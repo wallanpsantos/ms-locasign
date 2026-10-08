@@ -35,7 +35,7 @@ jobs:
       # Gerencia o cache do Gradle e valida o gradle-wrapper.jar (validate-wrappers: true por padrão).
       # Cache somente leitura fora de main/develop para branches temporárias não poluírem o cache.
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
@@ -61,15 +61,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # Projeto multi-módulo: o único executável é o bootJar do sdui-bootstrap.
+      # Projeto de módulo único: o único jar é o bootJar (app.jar); a task `jar` está desabilitada.
       - name: Archive bootJar
         if: success()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: sdui-bootstrap-jar
-          path: |
-            sdui-bootstrap/build/libs/*.jar
-            !sdui-bootstrap/build/libs/*-plain.jar
+          name: ms-locasign-jar
+          path: build/libs/app.jar
           if-no-files-found: error
           retention-days: 7
 
@@ -97,4 +95,4 @@ jobs:
 
       # https://github.com/gradle/actions/blob/main/docs/dependency-submission.md
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@v6
+        uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0

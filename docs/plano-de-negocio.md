@@ -37,12 +37,12 @@ está cada contrato e etapas esquecidas depois da assinatura.
 
 ## 3. Solução e proposta de valor
 
-| Para quem | O que ganha |
-|---|---|
-| Gestor da imobiliária | Visão em tempo real do status de todos os contratos e menos retrabalho. |
-| Corretor | Envia o contrato em minutos a partir dos dados já cadastrados e é avisado a cada assinatura. |
-| Locatário | Assina pelo celular, sem imprimir nada, e recebe a cópia assinada. |
-| Proprietário (locador) | Sabe exatamente quando a locação está ativa. |
+| Para quem              | O que ganha                                                                                  |
+|------------------------|----------------------------------------------------------------------------------------------|
+| Gestor da imobiliária  | Visão em tempo real do status de todos os contratos e menos retrabalho.                      |
+| Corretor               | Envia o contrato em minutos a partir dos dados já cadastrados e é avisado a cada assinatura. |
+| Locatário              | Assina pelo celular, sem imprimir nada, e recebe a cópia assinada.                           |
+| Proprietário (locador) | Sabe exatamente quando a locação está ativa.                                                 |
 
 ---
 
@@ -53,11 +53,11 @@ a poucas centenas de contratos. O público secundário são proprietários indep
 vários imóveis. Grandes imobiliárias com ERP próprio ficam fora do foco inicial e seriam
 atendidas no futuro via integração por API.
 
-| Persona | Contexto | Dor principal |
-|---|---|---|
-| Marina, gestora | Dona de uma imobiliária com 6 corretores. | Não sabe quais contratos estão travados nem por quê. |
-| Rafael, corretor | Fecha de 8 a 12 locações por mês. | Perde tempo preenchendo modelos e cobrando assinaturas. |
-| Lucas, locatário | Quer se mudar rápido. | Não tem impressora e não quer ir ao escritório assinar. |
+| Persona          | Contexto                                  | Dor principal                                           |
+|------------------|-------------------------------------------|---------------------------------------------------------|
+| Marina, gestora  | Dona de uma imobiliária com 6 corretores. | Não sabe quais contratos estão travados nem por quê.    |
+| Rafael, corretor | Fecha de 8 a 12 locações por mês.         | Perde tempo preenchendo modelos e cobrando assinaturas. |
+| Lucas, locatário | Quer se mudar rápido.                     | Não tem impressora e não quer ir ao escritório assinar. |
 
 ---
 
@@ -88,17 +88,17 @@ normal, não como exceção (ver regras R5 a R7).
 
 ## 6. Ciclo de vida do contrato
 
-| Status | Significado | O que leva a ele | Próximos status possíveis |
-|---|---|---|---|
-| Rascunho | Locação cadastrada, contrato ainda não gerado. | Cadastro da locação. | Gerado, Cancelado |
-| Gerado | Documento criado na PandaDoc, aguardando envio. | Geração bem-sucedida. | Enviado, Cancelado |
-| Enviado | Aguardando assinaturas. | Envio para os signatários. | Visualizado, Parcialmente assinado, Recusado, Expirado, Cancelado |
-| Visualizado | Algum signatário abriu o documento. | Webhook da PandaDoc. | Parcialmente assinado, Recusado, Expirado, Cancelado |
-| Parcialmente assinado | Pelo menos um signatário assinou. | Webhook da PandaDoc. | Concluído, Recusado, Expirado, Cancelado |
-| Concluído | Todos assinaram. | Webhook da PandaDoc. | Final |
-| Recusado | Um signatário recusou. | Webhook da PandaDoc. | Final (permite nova versão) |
-| Expirado | Prazo encerrado sem conclusão. | Regra interna de prazo. | Final (permite nova versão) |
-| Cancelado | O corretor desistiu ou precisou corrigir dados. | Ação do usuário. | Final (permite nova versão) |
+| Status                | Significado                                     | O que leva a ele           | Próximos status possíveis                                         |
+|-----------------------|-------------------------------------------------|----------------------------|-------------------------------------------------------------------|
+| Rascunho              | Locação cadastrada, contrato ainda não gerado.  | Cadastro da locação.       | Gerado, Cancelado                                                 |
+| Gerado                | Documento criado na PandaDoc, aguardando envio. | Geração bem-sucedida.      | Enviado, Cancelado                                                |
+| Enviado               | Aguardando assinaturas.                         | Envio para os signatários. | Visualizado, Parcialmente assinado, Recusado, Expirado, Cancelado |
+| Visualizado           | Algum signatário abriu o documento.             | Webhook da PandaDoc.       | Parcialmente assinado, Recusado, Expirado, Cancelado              |
+| Parcialmente assinado | Pelo menos um signatário assinou.               | Webhook da PandaDoc.       | Concluído, Recusado, Expirado, Cancelado                          |
+| Concluído             | Todos assinaram.                                | Webhook da PandaDoc.       | Final                                                             |
+| Recusado              | Um signatário recusou.                          | Webhook da PandaDoc.       | Final (permite nova versão)                                       |
+| Expirado              | Prazo encerrado sem conclusão.                  | Regra interna de prazo.    | Final (permite nova versão)                                       |
+| Cancelado             | O corretor desistiu ou precisou corrigir dados. | Ação do usuário.           | Final (permite nova versão)                                       |
 
 O status nunca regride e estados finais são imutáveis. Um webhook que tentaria levar o
 contrato "para trás" é registrado na auditoria, mas não altera o status.
@@ -111,17 +111,17 @@ Cada fato importante vira um evento publicado para que outras partes do sistema 
 forma independente. É aqui que o Kafka entra: quem gera o evento não precisa saber quem vai
 reagir a ele, e novas reações podem ser adicionadas sem mexer no fluxo principal.
 
-| Evento | Quando ocorre | Quem reage | Efeito esperado |
-|---|---|---|---|
-| Locação cadastrada | Corretor finaliza o cadastro. | Gerador de contratos. | Cria o documento na PandaDoc. |
-| Contrato gerado | PandaDoc confirma a criação. | Envio. | Envia para os signatários. |
-| Contrato enviado | Envio confirmado. | Notificações. | Avisa o corretor. |
-| Contrato visualizado | Signatário abre o documento. | Status e métricas. | Atualiza status e registra o horário. |
-| Signatário assinou | Uma assinatura é feita. | Status e notificações. | Atualiza status e avisa o corretor que falta uma assinatura. |
-| Contrato concluído | Todos assinaram. | Arquivamento, locação, vistoria, financeiro, notificações. | Arquiva o PDF, ativa a locação, agenda a vistoria, cria a 1ª cobrança e avisa todos. |
-| Contrato recusado | Signatário recusa. | Status e notificações. | Alerta o corretor com o motivo. |
-| Contrato expirado | Prazo vence. | Status e notificações. | Alerta o corretor. |
-| Falha de processamento | Uma reação falha repetidamente. | Fila de erros e auditoria. | Permite investigar e reprocessar. |
+| Evento                 | Quando ocorre                   | Quem reage                                                 | Efeito esperado                                                                      |
+|------------------------|---------------------------------|------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Locação cadastrada     | Corretor finaliza o cadastro.   | Gerador de contratos.                                      | Cria o documento na PandaDoc.                                                        |
+| Contrato gerado        | PandaDoc confirma a criação.    | Envio.                                                     | Envia para os signatários.                                                           |
+| Contrato enviado       | Envio confirmado.               | Notificações.                                              | Avisa o corretor.                                                                    |
+| Contrato visualizado   | Signatário abre o documento.    | Status e métricas.                                         | Atualiza status e registra o horário.                                                |
+| Signatário assinou     | Uma assinatura é feita.         | Status e notificações.                                     | Atualiza status e avisa o corretor que falta uma assinatura.                         |
+| Contrato concluído     | Todos assinaram.                | Arquivamento, locação, vistoria, financeiro, notificações. | Arquiva o PDF, ativa a locação, agenda a vistoria, cria a 1ª cobrança e avisa todos. |
+| Contrato recusado      | Signatário recusa.              | Status e notificações.                                     | Alerta o corretor com o motivo.                                                      |
+| Contrato expirado      | Prazo vence.                    | Status e notificações.                                     | Alerta o corretor.                                                                   |
+| Falha de processamento | Uma reação falha repetidamente. | Fila de erros e auditoria.                                 | Permite investigar e reprocessar.                                                    |
 
 No MVP, vistoria, financeiro e notificações são **simulados**: o sistema apenas registra que
 a ação aconteceria. Não há integração real com e-mail, WhatsApp ou meio de pagamento.
@@ -157,8 +157,8 @@ a ação aconteceria. Não há integração real com e-mail, WhatsApp ou meio de
 - Geração e envio do contrato para 2 signatários.
 - Recebimento de webhooks, com registro bruto e trilha de auditoria.
 - Atualização de status seguindo o ciclo de vida da seção 6.
-- Eventos de negócio no Kafka com pelo menos três consumidores: status, notificações
-  (simuladas) e pós-assinatura (simulado).
+- Eventos de negócio no Kafka com pelo menos três consumidores: status, notificações (simuladas) e pós-assinatura
+  (simulado).
 - Consulta do status atual e do histórico completo de um contrato.
 - Ambiente local completo (aplicação, PostgreSQL e Kafka) subindo com Docker.
 
@@ -175,17 +175,17 @@ a ação aconteceria. Não há integração real com e-mail, WhatsApp ou meio de
 
 ## 10. Restrições da PandaDoc e adaptações
 
-| Restrição | Impacto | Adaptação |
-|---|---|---|
-| Plano gratuito permite 2 destinatários por documento. | Sem fiador ou testemunhas. | Fluxo com locatário e imobiliária; fiador fica como evolução. |
-| Plano gratuito permite 5 modelos. | Poucos tipos de documento. | 1 modelo no MVP; no futuro, até 3 (locação, aditivo, distrato). |
-| Plano gratuito permite 60 documentos enviados por ano. | Cota pequena. | Desenvolver com a chave sandbox; usar produção só no teste final. |
-| Sandbox só envia para e-mails do mesmo domínio do remetente. | Não dá para enviar a e-mails externos. | Usar endereços e aliases do próprio domínio para simular locatário e imobiliária. |
-| Sandbox tem limite de 10 requisições por minuto por endpoint. | Testes em volume travam. | Testar com poucos contratos e tratar a resposta de limite excedido. |
-| Sandbox gera PDFs com marca d'água e prefixo "[DEV]". | Documentos não servem para uso real. | Aceitável para estudo. |
-| Download do PDF assinado exige chave de produção. | Arquivamento não funciona no sandbox. | No sandbox, guardar só a referência; testar o download uma vez com produção. |
-| Webhooks precisam de URL pública com HTTPS. | Ambiente local não é acessível de fora. | Usar um túnel (ngrok ou Cloudflare Tunnel) e também webhooks simulados nos testes. |
-| Disponibilidade de webhooks varia conforme plano e configuração. | Risco de bloqueio do fluxo principal. | Verificar logo no início; plano B é consultar o status periodicamente (polling). |
+| Restrição                                                        | Impacto                                 | Adaptação                                                                          |
+|------------------------------------------------------------------|-----------------------------------------|------------------------------------------------------------------------------------|
+| Plano gratuito permite 2 destinatários por documento.            | Sem fiador ou testemunhas.              | Fluxo com locatário e imobiliária; fiador fica como evolução.                      |
+| Plano gratuito permite 5 modelos.                                | Poucos tipos de documento.              | 1 modelo no MVP; no futuro, até 3 (locação, aditivo, distrato).                    |
+| Plano gratuito permite 60 documentos enviados por ano.           | Cota pequena.                           | Desenvolver com a chave sandbox; usar produção só no teste final.                  |
+| Sandbox só envia para e-mails do mesmo domínio do remetente.     | Não dá para enviar a e-mails externos.  | Usar endereços e aliases do próprio domínio para simular locatário e imobiliária.  |
+| Sandbox tem limite de 10 requisições por minuto por endpoint.    | Testes em volume travam.                | Testar com poucos contratos e tratar a resposta de limite excedido.                |
+| Sandbox gera PDFs com marca d'água e prefixo "[DEV]".            | Documentos não servem para uso real.    | Aceitável para estudo.                                                             |
+| Download do PDF assinado exige chave de produção.                | Arquivamento não funciona no sandbox.   | No sandbox, guardar só a referência; testar o download uma vez com produção.       |
+| Webhooks precisam de URL pública com HTTPS.                      | Ambiente local não é acessível de fora. | Usar um túnel (ngrok ou Cloudflare Tunnel) e também webhooks simulados nos testes. |
+| Disponibilidade de webhooks varia conforme plano e configuração. | Risco de bloqueio do fluxo principal.   | Verificar logo no início; plano B é consultar o status periodicamente (polling).   |
 
 ---
 
@@ -193,11 +193,11 @@ a ação aconteceria. Não há integração real com e-mail, WhatsApp ou meio de
 
 Como exercício de negócio, o LocaSign seria vendido para imobiliárias em dois formatos.
 
-| Plano | Preço hipotético | Para quem |
-|---|---|---|
-| Essencial | R$ 99/mês, até 20 contratos concluídos | Imobiliárias muito pequenas e proprietários. |
-| Profissional | R$ 249/mês, até 80 contratos concluídos | Imobiliárias em crescimento. |
-| Por uso | R$ 9 por contrato concluído | Volume irregular. |
+| Plano        | Preço hipotético                        | Para quem                                    |
+|--------------|-----------------------------------------|----------------------------------------------|
+| Essencial    | R$ 99/mês, até 20 contratos concluídos  | Imobiliárias muito pequenas e proprietários. |
+| Profissional | R$ 249/mês, até 80 contratos concluídos | Imobiliárias em crescimento.                 |
+| Por uso      | R$ 9 por contrato concluído             | Volume irregular.                            |
 
 Os custos principais seriam o custo por documento da API da PandaDoc no plano pago contratado,
 a infraestrutura (banco, mensageria e hospedagem) e o suporte. A margem por contrato depende
@@ -233,29 +233,29 @@ chegar e o status ser atualizado e a quantidade de eventos parados na fila de er
 
 ## 14. Riscos e mitigações
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|---|---|---|---|
-| Webhooks indisponíveis na conta. | Média | Alto | Verificar logo no início; polling como plano B; webhooks simulados. |
-| Escopo grande para o prazo. | Alta | Médio | Cortes definidos na seção 16. |
-| Projeto pronto, mas não compreendido, porque a IA escreveu tudo. | Alta | Alto | Regras de aprendizado da seção 15. |
-| Eventos duplicados ou fora de ordem. | Alta | Médio | Regras R5, R6 e R7. |
-| Configuração de Kafka e Docker consumir o dia. | Média | Médio | Subir a infraestrutura primeiro, logo cedo. |
-| Validade jurídica e LGPD em uso real. | Baixa no estudo | Alto em produção | Dados fictícios; antes de qualquer uso real, validar com um advogado (no Brasil, a validade de assinaturas eletrônicas em contratos privados se apoia principalmente na MP 2.200-2/2001). |
+| Risco                                                            | Probabilidade   | Impacto          | Mitigação                                                                                                                                                                                 |
+|------------------------------------------------------------------|-----------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Webhooks indisponíveis na conta.                                 | Média           | Alto             | Verificar logo no início; polling como plano B; webhooks simulados.                                                                                                                       |
+| Escopo grande para o prazo.                                      | Alta            | Médio            | Cortes definidos na seção 16.                                                                                                                                                             |
+| Projeto pronto, mas não compreendido, porque a IA escreveu tudo. | Alta            | Alto             | Regras de aprendizado da seção 15.                                                                                                                                                        |
+| Eventos duplicados ou fora de ordem.                             | Alta            | Médio            | Regras R5, R6 e R7.                                                                                                                                                                       |
+| Configuração de Kafka e Docker consumir o dia.                   | Média           | Médio            | Subir a infraestrutura primeiro, logo cedo.                                                                                                                                               |
+| Validade jurídica e LGPD em uso real.                            | Baixa no estudo | Alto em produção | Dados fictícios; antes de qualquer uso real, validar com um advogado (no Brasil, a validade de assinaturas eletrônicas em contratos privados se apoia principalmente na MP 2.200-2/2001). |
 
 ---
 
 ## 15. Objetivos de aprendizado
 
-| Capacidade de negócio | O que pratica |
-|---|---|
-| Modelar locação, partes e contrato. | Kotlin: data classes, null safety, value classes e validação de domínio. |
-| Ciclo de vida com estados e transições. | Kotlin: hierarquias seladas e `when` exaustivo. |
-| Chamadas à PandaDoc. | Cliente HTTP, coroutines, tratamento de erros e de limite de requisições. |
-| Receber webhooks. | Endpoints, validação de que a chamada veio mesmo da PandaDoc e respostas rápidas. |
-| Persistir e auditar. | PostgreSQL, migrations e transações. |
-| Publicar e consumir eventos. | Kafka: produtores, consumidores, grupos, reprocessamento e fila de erros. |
-| Não duplicar efeitos. | Idempotência e o padrão outbox. |
-| Ambiente reproduzível. | Docker Compose. |
+| Capacidade de negócio                   | O que pratica                                                                     |
+|-----------------------------------------|-----------------------------------------------------------------------------------|
+| Modelar locação, partes e contrato.     | Kotlin: data classes, null safety, value classes e validação de domínio.          |
+| Ciclo de vida com estados e transições. | Kotlin: hierarquias seladas e `when` exaustivo.                                   |
+| Chamadas à PandaDoc.                    | Cliente HTTP, coroutines, tratamento de erros e de limite de requisições.         |
+| Receber webhooks.                       | Endpoints, validação de que a chamada veio mesmo da PandaDoc e respostas rápidas. |
+| Persistir e auditar.                    | PostgreSQL, migrations e transações.                                              |
+| Publicar e consumir eventos.            | Kafka: produtores, consumidores, grupos, reprocessamento e fila de erros.         |
+| Não duplicar efeitos.                   | Idempotência e o padrão outbox.                                                   |
+| Ambiente reproduzível.                  | Docker Compose.                                                                   |
 
 ### Regras para aprender usando agentes de IA
 
@@ -269,11 +269,11 @@ chegar e o status ser atualizado e a quantidade de eventos parados na fila de er
 
 ## 16. Cronograma
 
-| Dia | Entrega |
-|---|---|
+| Dia                  | Entrega                                                                                                                                                                                                                          |
+|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Quinta, 08/10 (hoje) | Conta e chave sandbox da PandaDoc criadas, webhooks verificados, modelo de contrato com campos criado na PandaDoc. Infraestrutura no ar. Cadastro → geração → envio funcionando. Webhook recebido e gravado. Status consultável. |
-| Sexta, 09/10 | Webhooks viram eventos no Kafka com os três consumidores. Ciclo de vida completo com regras R5 a R7. Recusa e cancelamento funcionando. |
-| Sábado, 10/10 | Expiração e lembrete, fila de erros e reprocessamento, testes, README e demonstração ponta a ponta. Teste final com chave de produção (1 ou 2 documentos). |
+| Sexta, 09/10         | Webhooks viram eventos no Kafka com os três consumidores. Ciclo de vida completo com regras R5 a R7. Recusa e cancelamento funcionando.                                                                                          |
+| Sábado, 10/10        | Expiração e lembrete, fila de erros e reprocessamento, testes, README e demonstração ponta a ponta. Teste final com chave de produção (1 ou 2 documentos).                                                                       |
 
 **Se for só hoje**, o corte mínimo é: cadastro → geração → envio → webhook gravado → um evento
 no Kafka → status atualizado por um único consumidor.
@@ -284,8 +284,7 @@ no Kafka → status atualizado por um único consumidor.
 
 1. Dada uma locação válida, quando o contrato é solicitado, um documento é criado na PandaDoc
    e enviado aos 2 signatários na ordem definida.
-2. Quando o locatário assina, o status passa a Parcialmente assinado e o corretor é notificado
-   (simulado).
+2. Quando o locatário assina, o status passa a Parcialmente assinado e o corretor é notificado (simulado).
 3. Quando todos assinam, o status passa a Concluído e as ações pós-assinatura acontecem
    exatamente uma vez.
 4. Se o mesmo webhook chega duas vezes, nenhum efeito é duplicado.
@@ -299,17 +298,17 @@ no Kafka → status atualizado por um único consumidor.
 
 ## 18. Glossário
 
-| Termo | Significado |
-|---|---|
-| Locador | Proprietário do imóvel. |
-| Locatário | Inquilino. |
-| Fiador | Garantidor do contrato (fora do MVP). |
-| Vistoria de entrada | Registro do estado do imóvel antes da mudança. |
-| Signatário | Pessoa que precisa assinar o documento. |
-| Modelo (template) | Documento base na PandaDoc com campos a preencher. |
-| Webhook | Chamada que a PandaDoc faz ao sistema quando algo muda no documento. |
-| Evento de negócio | Fato relevante publicado para que outras partes reajam. |
-| Idempotência | Garantia de que processar o mesmo evento duas vezes tem o mesmo efeito que processar uma. |
+| Termo               | Significado                                                                               |
+|---------------------|-------------------------------------------------------------------------------------------|
+| Locador             | Proprietário do imóvel.                                                                   |
+| Locatário           | Inquilino.                                                                                |
+| Fiador              | Garantidor do contrato (fora do MVP).                                                     |
+| Vistoria de entrada | Registro do estado do imóvel antes da mudança.                                            |
+| Signatário          | Pessoa que precisa assinar o documento.                                                   |
+| Modelo (template)   | Documento base na PandaDoc com campos a preencher.                                        |
+| Webhook             | Chamada que a PandaDoc faz ao sistema quando algo muda no documento.                      |
+| Evento de negócio   | Fato relevante publicado para que outras partes reajam.                                   |
+| Idempotência        | Garantia de que processar o mesmo evento duas vezes tem o mesmo efeito que processar uma. |
 
 ---
 

@@ -14,38 +14,38 @@ import org.slf4j.LoggerFactory
  * Cada contrato roda na própria transação, então uma falha isolada não bloqueia os demais.
  */
 class ExpireOverdueContracts(
-	private val contracts: ContractRepositoryPort,
-	private val provider: SignatureProviderPort,
-	private val persister: ContractPersister,
-	private val clock: BusinessClock,
-	private val settings: ContractSettings,
-	private val transactions: TransactionRunner,
+    private val contracts: ContractRepositoryPort,
+    private val provider: SignatureProviderPort,
+    private val persister: ContractPersister,
+    private val clock: BusinessClock,
+    private val settings: ContractSettings,
+    private val transactions: TransactionRunner,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	/** Devolve quantos contratos foram expirados. */
-	fun execute(): Int {
-		val ids = contracts.findOverdueIds(clock.now(), settings.jobBatchSize)
-		return ids.count { expire(it) }
-	}
+    /** Devolve quantos contratos foram expirados. */
+    fun execute(): Int {
+        val ids = contracts.findOverdueIds(clock.now(), settings.jobBatchSize)
+        return ids.count { expire(it) }
+    }
 
-	private fun expire(id: ContractId): Boolean = try {
-		val expired = transactions.run {
-			val contract = contracts.findById(id)
-			if (contract?.expireIfOverdue(clock.now()) == TransitionResult.APPLIED) {
-				persister.save(contract)
-				Expired(contract.providerDocumentId)
-			} else {
-				null
-			}
-		}
-		expired?.documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato expirado") }
-		expired != null
-	} catch (e: RuntimeException) {
-		log.error("Falha ao expirar o contrato {}", id, e)
-		false
-	}
+    private fun expire(id: ContractId): Boolean = try {
+        val expired = transactions.run {
+            val contract = contracts.findById(id)
+            if (contract?.expireIfOverdue(clock.now()) == TransitionResult.APPLIED) {
+                persister.save(contract)
+                Expired(contract.providerDocumentId)
+            } else {
+                null
+            }
+        }
+        expired?.documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato expirado") }
+        expired != null
+    } catch (e: RuntimeException) {
+        log.error("Falha ao expirar o contrato {}", id, e)
+        false
+    }
 
-	/** Contrato expirado agora; o documento só é anulado no provedor depois que a transação confirma. */
-	private class Expired(val documentToVoid: ProviderDocumentId?)
+    /** Contrato expirado agora; o documento só é anulado no provedor depois que a transação confirma. */
+    private class Expired(val documentToVoid: ProviderDocumentId?)
 }

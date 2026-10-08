@@ -12,18 +12,18 @@ import java.nio.file.StandardCopyOption
 @Component
 class FileSystemSignedDocumentStorage(properties: LocaSignProperties) : SignedDocumentStoragePort {
 
-	private val root: Path = Path.of(properties.archive.directory).toAbsolutePath().normalize()
+    private val root: Path = Path.of(properties.archive.directory).toAbsolutePath().normalize()
 
-	override fun store(contractId: ContractId, bytes: ByteArray): String {
-		Files.createDirectories(root)
-		val target = root.resolve("$contractId.pdf")
-		val temporary = Files.createTempFile(root, "$contractId-", ".tmp")
-		try {
-			Files.write(temporary, bytes)
-			Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-		} finally {
-			Files.deleteIfExists(temporary)
-		}
-		return target.toString()
-	}
+    override fun store(contractId: ContractId, bytes: ByteArray): String {
+        Files.createDirectories(root)
+        val target = root.resolve("$contractId.pdf")
+        val temporary = Files.createTempFile(root, "$contractId-", ".tmp")
+        try {
+            Files.write(temporary, bytes)
+            Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+        return target.toString()
+    }
 }

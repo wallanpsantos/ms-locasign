@@ -7,5 +7,5 @@ import br.com.locasign.contract.domain.events.ContractEvent
  * andamento; nunca no Kafka diretamente (princípio 3).
  */
 interface ContractEventPublisherPort {
-	fun publish(events: List<ContractEvent>)
+    fun publish(events: List<ContractEvent>)
 }

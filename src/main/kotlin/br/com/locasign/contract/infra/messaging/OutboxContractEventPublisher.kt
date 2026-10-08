@@ -11,25 +11,25 @@ import tools.jackson.databind.json.JsonMapper
 /** Adapter do publicador: escreve no outbox, na transação do chamador (princípio 3). */
 @Component
 class OutboxContractEventPublisher(
-	private val outbox: OutboxPort,
-	private val mapper: JsonMapper,
+    private val outbox: OutboxPort,
+    private val mapper: JsonMapper,
 ) : ContractEventPublisherPort {
 
-	override fun publish(events: List<ContractEvent>) {
-		events.forEach { event ->
-			outbox.append(
-				OutboxMessage(
-					id = event.eventId.toString(),
-					topic = Topics.CONTRACT_EVENTS,
-					// Chave = contractId: todos os eventos do contrato ficam na mesma partição, em ordem.
-					key = event.aggregateId,
-					aggregateType = event.aggregateType,
-					aggregateId = event.aggregateId,
-					eventType = event.eventType,
-					occurredAt = event.occurredAt,
-					payloadJson = mapper.writeValueAsString(event.toPayload()),
-				),
-			)
-		}
-	}
+    override fun publish(events: List<ContractEvent>) {
+        events.forEach { event ->
+            outbox.append(
+                OutboxMessage(
+                    id = event.eventId.toString(),
+                    topic = Topics.CONTRACT_EVENTS,
+                    // Chave = contractId: todos os eventos do contrato ficam na mesma partição, em ordem.
+                    key = event.aggregateId,
+                    aggregateType = event.aggregateType,
+                    aggregateId = event.aggregateId,
+                    eventType = event.eventType,
+                    occurredAt = event.occurredAt,
+                    payloadJson = mapper.writeValueAsString(event.toPayload()),
+                ),
+            )
+        }
+    }
 }

@@ -6,5 +6,5 @@ import jakarta.validation.constraints.Size
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CancelContractRequest(
-	@field:NotBlank @field:Size(max = 500) val reason: String,
+    @field:NotBlank @field:Size(max = 500) val reason: String,
 )

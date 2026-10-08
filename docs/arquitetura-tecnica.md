@@ -1,6 +1,6 @@
 # LocaSign — Guia Técnico e de Arquitetura
 
-> Documento complementar ao `docs/plano-de-negocio.md`. Público: time técnico e Claude Code.
+> Documento complementar ao `docs/plano-de-negocio.md`. Público: time técnico e agentes de IA.
 > Não contém código de implementação: descreve contratos, nomes, regras e decisões para que
 > o código seja escrito a partir dele. Versões verificadas em 08/10/2026.
 > Itens marcados com **(confirmar)** devem ser checados na documentação oficial antes de implementar.
@@ -131,7 +131,7 @@ A regra é verificada automaticamente por testes de arquitetura (ArchUnit ou Kon
 │   ├── arquitetura-tecnica.md    # este documento
 │   └── adr/                      # decisões de arquitetura
 ├── http/                         # requisições de exemplo (.http do IntelliJ) para testes manuais
-├── AGENT.md                      # regras para o Claude Code (ver seção 17)
+├── AGENTS.md                     # diretrizes e regras para agentes de IA (ver seção 17)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example                  # variáveis sem valores secretos
@@ -411,7 +411,7 @@ um uso natural de **explicit backing fields**, recurso estável no Kotlin 2.4.
 
 ## 5. Integração com a PandaDoc
 
-> Para o Claude Code: a PandaDoc publica um índice para agentes em
+> Para agentes de IA: a PandaDoc publica um índice para agentes em
 > `https://developers.pandadoc.com/llms.txt`. Acrescentar `.md` a qualquer página da
 > documentação retorna a versão em Markdown. Consulte antes de implementar cada chamada.
 
@@ -794,7 +794,7 @@ O mapeamento fica no `advice` com `when` exaustivo sobre a hierarquia selada de 
 
 ## 10. Docker e ambiente local
 
-### 10.1 Serviços do `docker-compose.yml`
+### 10.1 Serviços do `../compose.yml`
 
 | Serviço     | Imagem                                         | Porta | Observação                                                                            |
 | ------------ | ---------------------------------------------- | ----- | --------------------------------------------------------------------------------------- |
@@ -914,7 +914,7 @@ Localmente há uma única instância. Se escalar, usar um lock distribuído (ex.
 
 ---
 
-## 16. Roteiro de implementação para o Claude Code
+## 16. Roteiro de implementação para agentes de IA
 
 | Fase                            | Entrega                                                                                            | Pronto quando                                                                             |
 | ------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -932,7 +932,7 @@ consumidor atualizando o status. Isso bate com o corte mínimo do plano de negó
 
 ---
 
-## 17. Regras para o Claude Code (conteúdo sugerido para o `CLAUDE.md`)
+## 17. Regras para agentes de IA (conteúdo do `AGENTS.md`)
 
 - Antes de qualquer tarefa, ler `docs/plano-de-negocio.md` e `docs/arquitetura-tecnica.md`.
 - Este é um **projeto de estudo de Kotlin**:

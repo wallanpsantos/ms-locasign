@@ -6,25 +6,25 @@ import br.com.locasign.shared.domain.DomainException
 @JvmInline
 value class LeaseTerm private constructor(val months: Int) {
 
-	override fun toString(): String = "$months meses"
+    override fun toString(): String = "$months meses"
 
-	companion object {
-		const val DEFAULT_MONTHS = 30
-		private const val MIN_MONTHS = 1
-		private const val MAX_MONTHS = 120
+    companion object {
+        const val DEFAULT_MONTHS = 30
+        private const val MIN_MONTHS = 1
+        private const val MAX_MONTHS = 120
 
-		fun of(months: Int?, field: String = "termMonths"): LeaseTerm {
-			val value = months ?: DEFAULT_MONTHS
-			if (value !in MIN_MONTHS..MAX_MONTHS) {
-				throw DomainException.BusinessRuleViolation(
-					field,
-					"O prazo deve estar entre $MIN_MONTHS e $MAX_MONTHS meses.",
-				)
-			}
-			return LeaseTerm(value)
-		}
+        fun of(months: Int?, field: String = "termMonths"): LeaseTerm {
+            val value = months ?: DEFAULT_MONTHS
+            if (value !in MIN_MONTHS..MAX_MONTHS) {
+                throw DomainException.BusinessRuleViolation(
+                    field,
+                    "O prazo deve estar entre $MIN_MONTHS e $MAX_MONTHS meses.",
+                )
+            }
+            return LeaseTerm(value)
+        }
 
-		/** Reconstitui um valor já validado vindo da persistência. */
-		fun fromStorage(months: Int): LeaseTerm = LeaseTerm(months)
-	}
+        /** Reconstitui um valor já validado vindo da persistência. */
+        fun fromStorage(months: Int): LeaseTerm = LeaseTerm(months)
+    }
 }

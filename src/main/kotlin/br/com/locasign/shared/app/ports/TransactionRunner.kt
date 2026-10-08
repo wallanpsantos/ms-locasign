@@ -5,5 +5,5 @@ package br.com.locasign.shared.app.ports
  * Chamadas aninhadas participam da transação em andamento. Qualquer exceção desfaz a transação.
  */
 interface TransactionRunner {
-	fun <T> run(block: () -> T): T
+    fun <T> run(block: () -> T): T
 }

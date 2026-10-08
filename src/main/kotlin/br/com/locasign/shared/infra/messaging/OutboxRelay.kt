@@ -23,37 +23,37 @@ import java.util.concurrent.TimeUnit
  */
 @Component
 class OutboxRelay(
-	private val jdbc: JdbcClient,
-	private val kafka: KafkaTemplate<String, String>,
-	private val mapper: JsonMapper,
-	private val transactions: TransactionRunner,
-	private val properties: LocaSignProperties,
-	registry: MeterRegistry,
+    private val jdbc: JdbcClient,
+    private val kafka: KafkaTemplate<String, String>,
+    private val mapper: JsonMapper,
+    private val transactions: TransactionRunner,
+    private val properties: LocaSignProperties,
+    registry: MeterRegistry,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	init {
-		Gauge.builder("locasign.outbox.oldest_unpublished_age_seconds") { oldestUnpublishedAgeSeconds() }
-			.description("Idade do evento mais antigo ainda não publicado no outbox")
-			.register(registry)
-	}
+    init {
+        Gauge.builder("locasign.outbox.oldest_unpublished_age_seconds") { oldestUnpublishedAgeSeconds() }
+            .description("Idade do evento mais antigo ainda não publicado no outbox")
+            .register(registry)
+    }
 
-	@Scheduled(fixedDelayString = "\${locasign.outbox.relay-interval:PT1.5S}")
-	fun relay() {
-		try {
-			// Continua enquanto os lotes vierem cheios, para escoar um acúmulo sem esperar o próximo ciclo.
-			do {
-				val rowsRead = relayBatch()
-			} while (rowsRead >= properties.outbox.batchSize)
-		} catch (e: Exception) {
-			log.error("Falha no relay do outbox; nova tentativa no próximo ciclo", e)
-		}
-	}
+    @Scheduled(fixedDelayString = "\${locasign.outbox.relay-interval:PT1.5S}")
+    fun relay() {
+        try {
+            // Continua enquanto os lotes vierem cheios, para escoar um acúmulo sem esperar o próximo ciclo.
+            do {
+                val rowsRead = relayBatch()
+            } while (rowsRead >= properties.outbox.batchSize)
+        } catch (e: Exception) {
+            log.error("Falha no relay do outbox; nova tentativa no próximo ciclo", e)
+        }
+    }
 
-	/** Publica um lote em uma transação e devolve quantas linhas foram lidas. */
-	fun relayBatch(): Int = transactions.run {
-		val rows = jdbc.sql(
-			"""
+    /** Publica um lote em uma transação e devolve quantas linhas foram lidas. */
+    fun relayBatch(): Int = transactions.run {
+        val rows = jdbc.sql(
+            """
 			SELECT id, topic, message_key, event_type, payload::text AS payload, headers::text AS headers
 			FROM outbox_events
 			WHERE published_at IS NULL AND available_at <= now()
@@ -61,88 +61,89 @@ class OutboxRelay(
 			LIMIT :limit
 			FOR UPDATE SKIP LOCKED
 			""".trimIndent(),
-		)
-			.param("limit", properties.outbox.batchSize)
-			.query { rs, _ ->
-				OutboxRow(
-					id = rs.getString("id"),
-					topic = rs.getString("topic"),
-					key = rs.getString("message_key"),
-					eventType = rs.getString("event_type"),
-					payload = rs.getString("payload"),
-					headers = rs.getString("headers"),
-				)
-			}
-			.list()
+        )
+            .param("limit", properties.outbox.batchSize)
+            .query { rs, _ ->
+                OutboxRow(
+                    id = rs.getString("id"),
+                    topic = rs.getString("topic"),
+                    key = rs.getString("message_key"),
+                    eventType = rs.getString("event_type"),
+                    payload = rs.getString("payload"),
+                    headers = rs.getString("headers"),
+                )
+            }
+            .list()
 
-		// Se uma mensagem falha, as seguintes da mesma chave esperam, para não inverter a ordem por chave.
-		val blocked = mutableSetOf<Pair<String, String>>()
-		for (row in rows) {
-			val partition = row.topic to row.key
-			if (partition in blocked) continue
-			try {
-				publish(row)
-				markPublished(row.id)
-			} catch (e: Exception) {
-				blocked += partition
-				markFailed(row.id, e)
-				log.warn("Falha ao publicar o evento {} no tópico {}: {}", row.id, row.topic, e.message)
-			}
-		}
-		rows.size
-	}
+        // Se uma mensagem falha, as seguintes da mesma chave esperam, para não inverter a ordem por chave.
+        val blocked = mutableSetOf<Pair<String, String>>()
+        for (row in rows) {
+            val partition = row.topic to row.key
+            if (partition in blocked) continue
+            try {
+                publish(row)
+                markPublished(row.id)
+            } catch (e: Exception) {
+                blocked += partition
+                markFailed(row.id, e)
+                log.warn("Falha ao publicar o evento {} no tópico {}: {}", row.id, row.topic, e.message)
+            }
+        }
+        rows.size
+    }
 
-	private fun publish(row: OutboxRow) {
-		val record = ProducerRecord<String, String>(row.topic, row.key, row.payload)
-		mapper.readTree(row.headers).properties().forEach { (name, value) ->
-			record.headers().add(name, value.asString().toByteArray(Charsets.UTF_8))
-		}
-		kafka.send(record).get(properties.outbox.sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
-	}
+    private fun publish(row: OutboxRow) {
+        val record = ProducerRecord<String, String>(row.topic, row.key, row.payload)
+        mapper.readTree(row.headers).properties().forEach { (name, value) ->
+            record.headers().add(name, value.asString().toByteArray(Charsets.UTF_8))
+        }
+        kafka.send(record).get(properties.outbox.sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
+    }
 
-	private fun markPublished(id: String) {
-		jdbc.sql("UPDATE outbox_events SET published_at = now(), last_error = NULL WHERE id = :id")
-			.param("id", id)
-			.update()
-	}
+    private fun markPublished(id: String) {
+        jdbc.sql("UPDATE outbox_events SET published_at = now(), last_error = NULL WHERE id = :id")
+            .param("id", id)
+            .update()
+    }
 
-	private fun markFailed(id: String, error: Exception) {
-		jdbc.sql(
-			"""
+    private fun markFailed(id: String, error: Exception) {
+        jdbc.sql(
+            """
 			UPDATE outbox_events
 			SET attempts = attempts + 1,
 			    last_error = :error,
 			    available_at = now() + (LEAST(:maxBackoff, power(2, attempts + 1)) * interval '1 second')
 			WHERE id = :id
 			""".trimIndent(),
-		)
-			.param("id", id)
-			.param("error", error.message?.take(MAX_ERROR_LENGTH) ?: error.javaClass.simpleName)
-			.param("maxBackoff", MAX_BACKOFF_SECONDS)
-			.update()
-	}
+        )
+            .param("id", id)
+            .param("error", error.message?.take(MAX_ERROR_LENGTH) ?: error.javaClass.simpleName)
+            .param("maxBackoff", MAX_BACKOFF_SECONDS)
+            .update()
+    }
 
-	private fun oldestUnpublishedAgeSeconds(): Double = try {
-		val oldest: Instant? = jdbc.sql("SELECT min(created_at) AS oldest FROM outbox_events WHERE published_at IS NULL")
-			.query { rs, _ -> rs.getInstant("oldest") }
-			.single()
-		oldest?.let { Duration.between(it, Instant.now()).toMillis() / MILLIS_PER_SECOND } ?: 0.0
-	} catch (_: Exception) {
-		0.0
-	}
+    private fun oldestUnpublishedAgeSeconds(): Double = try {
+        val oldest: Instant? =
+            jdbc.sql("SELECT min(created_at) AS oldest FROM outbox_events WHERE published_at IS NULL")
+                .query { rs, _ -> rs.getInstant("oldest") }
+                .single()
+        oldest?.let { Duration.between(it, Instant.now()).toMillis() / MILLIS_PER_SECOND } ?: 0.0
+    } catch (_: Exception) {
+        0.0
+    }
 
-	private class OutboxRow(
-		val id: String,
-		val topic: String,
-		val key: String,
-		val eventType: String,
-		val payload: String,
-		val headers: String,
-	)
+    private class OutboxRow(
+        val id: String,
+        val topic: String,
+        val key: String,
+        val eventType: String,
+        val payload: String,
+        val headers: String,
+    )
 
-	private companion object {
-		const val MAX_ERROR_LENGTH = 500
-		const val MAX_BACKOFF_SECONDS = 300
-		const val MILLIS_PER_SECOND = 1000.0
-	}
+    private companion object {
+        const val MAX_ERROR_LENGTH = 500
+        const val MAX_BACKOFF_SECONDS = 300
+        const val MILLIS_PER_SECOND = 1000.0
+    }
 }

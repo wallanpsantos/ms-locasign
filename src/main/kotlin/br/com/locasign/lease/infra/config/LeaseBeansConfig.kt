@@ -16,26 +16,26 @@ import org.springframework.context.annotation.Configuration
 @Configuration(proxyBeanMethods = false)
 class LeaseBeansConfig {
 
-	@Bean
-	fun registerLease(
-		leases: LeaseRepositoryPort,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-		properties: LocaSignProperties,
-	): RegisterLease = RegisterLease(
-		leases = leases,
-		clock = clock,
-		transactions = transactions,
-		agencyDefaults = AgencySignerDefaults(properties.agencySigner.name, properties.agencySigner.email),
-	)
+    @Bean
+    fun registerLease(
+        leases: LeaseRepositoryPort,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+        properties: LocaSignProperties,
+    ): RegisterLease = RegisterLease(
+        leases = leases,
+        clock = clock,
+        transactions = transactions,
+        agencyDefaults = AgencySignerDefaults(properties.agencySigner.name, properties.agencySigner.email),
+    )
 
-	@Bean
-	fun activateLease(
-		leases: LeaseRepositoryPort,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): ActivateLease = ActivateLease(leases, clock, transactions)
+    @Bean
+    fun activateLease(
+        leases: LeaseRepositoryPort,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): ActivateLease = ActivateLease(leases, clock, transactions)
 
-	@Bean
-	fun getLease(queries: LeaseQueryPort): GetLease = GetLease(queries)
+    @Bean
+    fun getLease(queries: LeaseQueryPort): GetLease = GetLease(queries)
 }

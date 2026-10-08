@@ -25,5 +25,5 @@ jobs:
       - name: Build
         run: ./gradlew build --no-daemon
 
-      - name: Valida o docker-compose.yml
+      - name: Valida o compose.yml
         run: docker compose config --quiet

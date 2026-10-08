@@ -8,16 +8,16 @@ package br.com.locasign.shared.domain
  */
 sealed class DomainException(message: String) : RuntimeException(message) {
 
-	/** Regra de negócio violada por um dado válido sintaticamente (HTTP 422). */
-	class BusinessRuleViolation(val field: String, message: String) : DomainException(message)
+    /** Regra de negócio violada por um dado válido sintaticamente (HTTP 422). */
+    class BusinessRuleViolation(val field: String, message: String) : DomainException(message)
 
-	/** Recurso inexistente (HTTP 404). */
-	class NotFound(val resource: String, val id: String) : DomainException("$resource não encontrado(a): $id")
+    /** Recurso inexistente (HTTP 404). */
+    class NotFound(val resource: String, val id: String) : DomainException("$resource não encontrado(a): $id")
 
-	/** R1: já existe contrato não final (ou concluído) para a locação (HTTP 409). */
-	class ActiveContractExists(val leaseId: String, message: String) : DomainException(message)
+    /** R1: já existe contrato não final (ou concluído) para a locação (HTTP 409). */
+    class ActiveContractExists(val leaseId: String, message: String) : DomainException(message)
 
-	/** Operação sobre contrato em estado final (HTTP 409). */
-	class ContractFinal(val contractId: String, val status: String) :
-		DomainException("O contrato $contractId está em estado final ($status) e não aceita esta operação.")
+    /** Operação sobre contrato em estado final (HTTP 409). */
+    class ContractFinal(val contractId: String, val status: String) :
+        DomainException("O contrato $contractId está em estado final ($status) e não aceita esta operação.")
 }

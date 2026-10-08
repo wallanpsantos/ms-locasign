@@ -6,7 +6,7 @@ import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 /**
  * Registro de persistência da locação (Spring Data JDBC, ADR-003). O id é gerado no domínio; o
@@ -14,18 +14,18 @@ import java.util.UUID
  */
 @Table("leases")
 data class LeaseEntity(
-	@Id val id: UUID,
-	val tenantName: String,
-	val tenantCpf: String,
-	val tenantEmail: String,
-	val agencySignerName: String,
-	val agencySignerEmail: String,
-	val propertyAddress: String,
-	val rentAmount: BigDecimal,
-	val startDate: LocalDate,
-	val termMonths: Int,
-	val status: String,
-	val activatedAt: Instant?,
-	@Version val rowVersion: Long?,
-	val createdAt: Instant,
+    @Id val id: UUID,
+    val tenantName: String,
+    val tenantCpf: String,
+    val tenantEmail: String,
+    val agencySignerName: String,
+    val agencySignerEmail: String,
+    val propertyAddress: String,
+    val rentAmount: BigDecimal,
+    val startDate: LocalDate,
+    val termMonths: Int,
+    val status: String,
+    val activatedAt: Instant?,
+    @Version val rowVersion: Long?,
+    val createdAt: Instant,
 )

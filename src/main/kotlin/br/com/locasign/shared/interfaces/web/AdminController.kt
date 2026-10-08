@@ -18,17 +18,17 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/admin")
 @Tag(name = "Operação", description = "Reprocessamento da fila de erros")
 class AdminController(
-	private val deadLetters: DeadLetterReplayPort,
-	private val operatorAccess: OperatorAccessGuard,
+    private val deadLetters: DeadLetterReplayPort,
+    private val operatorAccess: OperatorAccessGuard,
 ) {
 
-	@PostMapping("/dead-letters/{topic}/replay")
-	@ResponseStatus(HttpStatus.OK)
-	@Operation(summary = "Reenvia as mensagens da DLT de um tópico para o tópico original")
-	fun replay(@PathVariable topic: String): ReplayResponse {
-		operatorAccess.requireOperator()
-		return ReplayResponse(topic, deadLetters.replay(topic))
-	}
+    @PostMapping("/dead-letters/{topic}/replay")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Reenvia as mensagens da DLT de um tópico para o tópico original")
+    fun replay(@PathVariable topic: String): ReplayResponse {
+        operatorAccess.requireOperator()
+        return ReplayResponse(topic, deadLetters.replay(topic))
+    }
 
-	data class ReplayResponse(val topic: String, val replayed: Int)
+    data class ReplayResponse(val topic: String, val replayed: Int)
 }

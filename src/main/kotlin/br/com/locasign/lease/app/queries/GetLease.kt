@@ -7,6 +7,6 @@ import br.com.locasign.shared.domain.DomainException
 /** Query: lê direto do banco pelo query port, sem carregar o agregado. */
 class GetLease(private val queries: LeaseQueryPort) {
 
-	fun execute(leaseId: LeaseId): LeaseDetailView =
-		queries.findDetail(leaseId) ?: throw DomainException.NotFound("Locação", leaseId.toString())
+    fun execute(leaseId: LeaseId): LeaseDetailView =
+        queries.findDetail(leaseId) ?: throw DomainException.NotFound("Locação", leaseId.toString())
 }

@@ -2,11 +2,11 @@ package br.com.locasign.notification.domain
 
 /** Quem recebe a notificação de um evento do contrato. */
 enum class Audience {
-	/** O corretor, representado pelo signatário da imobiliária no MVP. */
-	AGENCY_ONLY,
+    /** O corretor, representado pelo signatário da imobiliária no MVP. */
+    AGENCY_ONLY,
 
-	/** Todas as partes: locatário e imobiliária. */
-	ALL_PARTIES,
+    /** Todas as partes: locatário e imobiliária. */
+    ALL_PARTIES,
 }
 
 /**
@@ -15,16 +15,17 @@ enum class Audience {
  */
 object NotificationPolicy {
 
-	fun audienceFor(eventType: String): Audience? = when (eventType) {
-		"ContractSent",
-		"ContractSignerCompleted",
-		"ContractDeclined",
-		"ContractExpired",
-		"ContractCancelled",
-		"ContractGenerationFailed",
-		"ContractReminderSent",
-		-> Audience.AGENCY_ONLY
-		"ContractCompleted" -> Audience.ALL_PARTIES
-		else -> null
-	}
+    fun audienceFor(eventType: String): Audience? = when (eventType) {
+        "ContractSent",
+        "ContractSignerCompleted",
+        "ContractDeclined",
+        "ContractExpired",
+        "ContractCancelled",
+        "ContractGenerationFailed",
+        "ContractReminderSent",
+            -> Audience.AGENCY_ONLY
+
+        "ContractCompleted" -> Audience.ALL_PARTIES
+        else -> null
+    }
 }

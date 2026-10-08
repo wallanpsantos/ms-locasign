@@ -20,19 +20,19 @@ import org.springframework.web.service.annotation.PostExchange
 @HttpExchange(accept = ["application/json"])
 interface PandaDocClient {
 
-	@PostExchange("/documents", contentType = "application/json")
-	fun createDocument(@RequestBody body: CreateDocumentRequest): DocumentResponse
+    @PostExchange("/documents", contentType = "application/json")
+    fun createDocument(@RequestBody body: CreateDocumentRequest): DocumentResponse
 
-	@GetExchange("/documents/{id}/details")
-	fun details(@PathVariable id: String): DocumentDetailsResponse
+    @GetExchange("/documents/{id}/details")
+    fun details(@PathVariable id: String): DocumentDetailsResponse
 
-	@PostExchange("/documents/{id}/send", contentType = "application/json")
-	fun send(@PathVariable id: String, @RequestBody body: SendDocumentRequest): DocumentResponse
+    @PostExchange("/documents/{id}/send", contentType = "application/json")
+    fun send(@PathVariable id: String, @RequestBody body: SendDocumentRequest): DocumentResponse
 
-	@PatchExchange("/documents/{id}/status", contentType = "application/json")
-	fun changeStatus(@PathVariable id: String, @RequestBody body: StatusChangeRequest): ResponseEntity<Void>
+    @PatchExchange("/documents/{id}/status", contentType = "application/json")
+    fun changeStatus(@PathVariable id: String, @RequestBody body: StatusChangeRequest): ResponseEntity<Void>
 
-	/** 200 com o PDF, ou 202 enquanto o arquivo ainda é gerado. Exige chave de produção. */
-	@GetExchange("/documents/{id}/download-protected", accept = ["application/pdf", "application/octet-stream"])
-	fun downloadProtected(@PathVariable id: String): ResponseEntity<ByteArray>
+    /** 200 com o PDF, ou 202 enquanto o arquivo ainda é gerado. Exige chave de produção. */
+    @GetExchange("/documents/{id}/download-protected", accept = ["application/pdf", "application/octet-stream"])
+    fun downloadProtected(@PathVariable id: String): ResponseEntity<ByteArray>
 }

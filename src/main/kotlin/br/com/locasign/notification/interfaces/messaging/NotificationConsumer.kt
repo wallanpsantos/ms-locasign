@@ -13,19 +13,19 @@ import kotlin.uuid.Uuid
 /** Grupo `notifications`: reage aos eventos do contrato registrando a notificação simulada. */
 @Component
 class NotificationConsumer(
-	private val reader: EnvelopeReader,
-	private val recordNotifications: RecordNotifications,
+    private val reader: EnvelopeReader,
+    private val recordNotifications: RecordNotifications,
 ) {
 
-	@KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.NOTIFICATIONS)
-	fun onMessage(message: String) {
-		val envelope = reader.read(message)
-		val contractId = Uuid.parseOrNull(envelope.aggregateId)
-			?: throw UnreadableMessageException("Evento ${envelope.eventId} com aggregateId inválido: ${envelope.aggregateId}")
-		reader.handle(envelope) {
-			recordNotifications.execute(
-				RecordNotificationsCommand(envelope.eventId, envelope.eventType, contractId.toString()),
-			)
-		}
-	}
+    @KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.NOTIFICATIONS)
+    fun onMessage(message: String) {
+        val envelope = reader.read(message)
+        val contractId = Uuid.parseOrNull(envelope.aggregateId)
+            ?: throw UnreadableMessageException("Evento ${envelope.eventId} com aggregateId inválido: ${envelope.aggregateId}")
+        reader.handle(envelope) {
+            recordNotifications.execute(
+                RecordNotificationsCommand(envelope.eventId, envelope.eventType, contractId.toString()),
+            )
+        }
+    }
 }

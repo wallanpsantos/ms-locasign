@@ -40,147 +40,147 @@ import java.time.Duration
 @Configuration(proxyBeanMethods = false)
 class ContractBeansConfig {
 
-	@Bean
-	fun contractSettings(properties: LocaSignProperties): ContractSettings = ContractSettings(
-		signatureDeadline = Duration.ofDays(properties.contract.signatureDeadlineDays),
-		reminderAfter = Duration.ofDays(properties.contract.reminderAfterDays),
-		reconciliationStaleAfter = properties.contract.reconciliationStaleAfter,
-		jobBatchSize = properties.jobs.batchSize,
-	)
+    @Bean
+    fun contractSettings(properties: LocaSignProperties): ContractSettings = ContractSettings(
+        signatureDeadline = Duration.ofDays(properties.contract.signatureDeadlineDays),
+        reminderAfter = Duration.ofDays(properties.contract.reminderAfterDays),
+        reconciliationStaleAfter = properties.contract.reconciliationStaleAfter,
+        jobBatchSize = properties.jobs.batchSize,
+    )
 
-	@Bean
-	fun contractPersister(
-		contracts: ContractRepositoryPort,
-		publisher: ContractEventPublisherPort,
-	): ContractPersister = ContractPersister(contracts, publisher)
+    @Bean
+    fun contractPersister(
+        contracts: ContractRepositoryPort,
+        publisher: ContractEventPublisherPort,
+    ): ContractPersister = ContractPersister(contracts, publisher)
 
-	@Bean
-	fun requestContract(
-		leases: LeaseLookupPort,
-		contracts: ContractRepositoryPort,
-		persister: ContractPersister,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): RequestContract = RequestContract(leases, contracts, persister, clock, transactions)
+    @Bean
+    fun requestContract(
+        leases: LeaseLookupPort,
+        contracts: ContractRepositoryPort,
+        persister: ContractPersister,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): RequestContract = RequestContract(leases, contracts, persister, clock, transactions)
 
-	@Bean
-	fun createProviderDocument(
-		contracts: ContractRepositoryPort,
-		leases: LeaseLookupPort,
-		provider: SignatureProviderPort,
-		persister: ContractPersister,
-		processed: ProcessedMessagesPort,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): CreateProviderDocument =
-		CreateProviderDocument(contracts, leases, provider, persister, processed, clock, transactions)
+    @Bean
+    fun createProviderDocument(
+        contracts: ContractRepositoryPort,
+        leases: LeaseLookupPort,
+        provider: SignatureProviderPort,
+        persister: ContractPersister,
+        processed: ProcessedMessagesPort,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): CreateProviderDocument =
+        CreateProviderDocument(contracts, leases, provider, persister, processed, clock, transactions)
 
-	@Bean
-	fun sendContract(
-		contracts: ContractRepositoryPort,
-		provider: SignatureProviderPort,
-		persister: ContractPersister,
-		processed: ProcessedMessagesPort,
-		clock: BusinessClock,
-		settings: ContractSettings,
-		transactions: TransactionRunner,
-	): SendContract = SendContract(contracts, provider, persister, processed, clock, settings, transactions)
+    @Bean
+    fun sendContract(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        persister: ContractPersister,
+        processed: ProcessedMessagesPort,
+        clock: BusinessClock,
+        settings: ContractSettings,
+        transactions: TransactionRunner,
+    ): SendContract = SendContract(contracts, provider, persister, processed, clock, settings, transactions)
 
-	@Bean
-	fun applyProviderUpdate(
-		contracts: ContractRepositoryPort,
-		persister: ContractPersister,
-		clock: BusinessClock,
-		settings: ContractSettings,
-		metrics: MetricsPort,
-		transactions: TransactionRunner,
-	): ApplyProviderUpdate = ApplyProviderUpdate(contracts, persister, clock, settings, metrics, transactions)
+    @Bean
+    fun applyProviderUpdate(
+        contracts: ContractRepositoryPort,
+        persister: ContractPersister,
+        clock: BusinessClock,
+        settings: ContractSettings,
+        metrics: MetricsPort,
+        transactions: TransactionRunner,
+    ): ApplyProviderUpdate = ApplyProviderUpdate(contracts, persister, clock, settings, metrics, transactions)
 
-	@Bean
-	fun archiveSignedDocument(
-		contracts: ContractRepositoryPort,
-		provider: SignatureProviderPort,
-		storage: SignedDocumentStoragePort,
-		persister: ContractPersister,
-		processed: ProcessedMessagesPort,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): ArchiveSignedDocument =
-		ArchiveSignedDocument(contracts, provider, storage, persister, processed, clock, transactions)
+    @Bean
+    fun archiveSignedDocument(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        storage: SignedDocumentStoragePort,
+        persister: ContractPersister,
+        processed: ProcessedMessagesPort,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): ArchiveSignedDocument =
+        ArchiveSignedDocument(contracts, provider, storage, persister, processed, clock, transactions)
 
-	@Bean
-	fun processProviderWebhookItem(
-		gateway: ProviderWebhookGateway,
-		applyUpdate: ApplyProviderUpdate,
-		archive: ArchiveSignedDocument,
-		processed: ProcessedMessagesPort,
-		transactions: TransactionRunner,
-	): ProcessProviderWebhookItem = ProcessProviderWebhookItem(gateway, applyUpdate, archive, processed, transactions)
+    @Bean
+    fun processProviderWebhookItem(
+        gateway: ProviderWebhookGateway,
+        applyUpdate: ApplyProviderUpdate,
+        archive: ArchiveSignedDocument,
+        processed: ProcessedMessagesPort,
+        transactions: TransactionRunner,
+    ): ProcessProviderWebhookItem = ProcessProviderWebhookItem(gateway, applyUpdate, archive, processed, transactions)
 
-	@Bean
-	fun receiveProviderWebhook(
-		gateway: ProviderWebhookGateway,
-		inbox: WebhookInboxPort,
-		outbox: OutboxPort,
-		clock: BusinessClock,
-		metrics: MetricsPort,
-		transactions: TransactionRunner,
-	): ReceiveProviderWebhook = ReceiveProviderWebhook(gateway, inbox, outbox, clock, metrics, transactions)
+    @Bean
+    fun receiveProviderWebhook(
+        gateway: ProviderWebhookGateway,
+        inbox: WebhookInboxPort,
+        outbox: OutboxPort,
+        clock: BusinessClock,
+        metrics: MetricsPort,
+        transactions: TransactionRunner,
+    ): ReceiveProviderWebhook = ReceiveProviderWebhook(gateway, inbox, outbox, clock, metrics, transactions)
 
-	@Bean
-	fun cancelContract(
-		contracts: ContractRepositoryPort,
-		provider: SignatureProviderPort,
-		persister: ContractPersister,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): CancelContract = CancelContract(contracts, provider, persister, clock, transactions)
+    @Bean
+    fun cancelContract(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        persister: ContractPersister,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): CancelContract = CancelContract(contracts, provider, persister, clock, transactions)
 
-	@Bean
-	fun expireOverdueContracts(
-		contracts: ContractRepositoryPort,
-		provider: SignatureProviderPort,
-		persister: ContractPersister,
-		clock: BusinessClock,
-		settings: ContractSettings,
-		transactions: TransactionRunner,
-	): ExpireOverdueContracts = ExpireOverdueContracts(contracts, provider, persister, clock, settings, transactions)
+    @Bean
+    fun expireOverdueContracts(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        persister: ContractPersister,
+        clock: BusinessClock,
+        settings: ContractSettings,
+        transactions: TransactionRunner,
+    ): ExpireOverdueContracts = ExpireOverdueContracts(contracts, provider, persister, clock, settings, transactions)
 
-	@Bean
-	fun sendSignatureReminders(
-		contracts: ContractRepositoryPort,
-		persister: ContractPersister,
-		clock: BusinessClock,
-		settings: ContractSettings,
-		transactions: TransactionRunner,
-	): SendSignatureReminders = SendSignatureReminders(contracts, persister, clock, settings, transactions)
+    @Bean
+    fun sendSignatureReminders(
+        contracts: ContractRepositoryPort,
+        persister: ContractPersister,
+        clock: BusinessClock,
+        settings: ContractSettings,
+        transactions: TransactionRunner,
+    ): SendSignatureReminders = SendSignatureReminders(contracts, persister, clock, settings, transactions)
 
-	@Bean
-	fun reconcileContracts(
-		contracts: ContractRepositoryPort,
-		provider: SignatureProviderPort,
-		applyUpdate: ApplyProviderUpdate,
-		clock: BusinessClock,
-		settings: ContractSettings,
-		transactions: TransactionRunner,
-	): ReconcileContracts = ReconcileContracts(contracts, provider, applyUpdate, clock, settings, transactions)
+    @Bean
+    fun reconcileContracts(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        applyUpdate: ApplyProviderUpdate,
+        clock: BusinessClock,
+        settings: ContractSettings,
+        transactions: TransactionRunner,
+    ): ReconcileContracts = ReconcileContracts(contracts, provider, applyUpdate, clock, settings, transactions)
 
-	@Bean
-	fun runPostSignatureActions(
-		contracts: ContractRepositoryPort,
-		leases: LeaseLookupPort,
-		leaseActivation: LeaseActivationPort,
-		actions: PostSignatureActionsPort,
-		persister: ContractPersister,
-		processed: ProcessedMessagesPort,
-		clock: BusinessClock,
-		transactions: TransactionRunner,
-	): RunPostSignatureActions =
-		RunPostSignatureActions(contracts, leases, leaseActivation, actions, persister, processed, clock, transactions)
+    @Bean
+    fun runPostSignatureActions(
+        contracts: ContractRepositoryPort,
+        leases: LeaseLookupPort,
+        leaseActivation: LeaseActivationPort,
+        actions: PostSignatureActionsPort,
+        persister: ContractPersister,
+        processed: ProcessedMessagesPort,
+        clock: BusinessClock,
+        transactions: TransactionRunner,
+    ): RunPostSignatureActions =
+        RunPostSignatureActions(contracts, leases, leaseActivation, actions, persister, processed, clock, transactions)
 
-	@Bean
-	fun getContract(queries: ContractQueryPort): GetContract = GetContract(queries)
+    @Bean
+    fun getContract(queries: ContractQueryPort): GetContract = GetContract(queries)
 
-	@Bean
-	fun getContractHistory(queries: ContractQueryPort): GetContractHistory = GetContractHistory(queries)
+    @Bean
+    fun getContractHistory(queries: ContractQueryPort): GetContractHistory = GetContractHistory(queries)
 }

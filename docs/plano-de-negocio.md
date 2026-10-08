@@ -257,9 +257,9 @@ chegar e o status ser atualizado e a quantidade de eventos parados na fila de er
 | Não duplicar efeitos. | Idempotência e o padrão outbox. |
 | Ambiente reproduzível. | Docker Compose. |
 
-### Regras para aprender usando o Claude Code
+### Regras para aprender usando agentes de IA
 
-1. Peça para o Claude Code explicar cada decisão antes de aceitar o código.
+1. Peça para o agente de IA explicar cada decisão antes de aceitar o código.
 2. Escreva você mesmo as regras do ciclo de vida (seções 6 e 8) e deixe a IA cuidar do
    boilerplate e da configuração.
 3. Faça commits pequenos, um por capacidade de negócio.
@@ -316,5 +316,5 @@ no Kafka → status atualizado por um único consumidor.
 ## 19. Próximo passo
 
 Salvar este arquivo no repositório (por exemplo, `docs/plano-de-negocio.md`) e usá-lo como
-base para o plano técnico no Claude Code: arquitetura, módulos, modelo de dados, tópicos,
+base para o plano técnico com agentes de IA: arquitetura, módulos, modelo de dados, tópicos,
 endpoints e estratégia de testes.

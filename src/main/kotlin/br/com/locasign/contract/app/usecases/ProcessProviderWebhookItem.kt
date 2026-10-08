@@ -16,39 +16,46 @@ data class WebhookItemCommand(val eventId: String, val itemJson: String)
  * Eventos desconhecidos são registrados como processados e ignorados; o corpo bruto já está no inbox.
  */
 class ProcessProviderWebhookItem(
-	private val gateway: ProviderWebhookGateway,
-	private val applyUpdate: ApplyProviderUpdate,
-	private val archive: ArchiveSignedDocument,
-	private val processed: ProcessedMessagesPort,
-	private val transactions: TransactionRunner,
+    private val gateway: ProviderWebhookGateway,
+    private val applyUpdate: ApplyProviderUpdate,
+    private val archive: ArchiveSignedDocument,
+    private val processed: ProcessedMessagesPort,
+    private val transactions: TransactionRunner,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	fun execute(command: WebhookItemCommand) {
-		if (processed.isProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) return
+    fun execute(command: WebhookItemCommand) {
+        if (processed.isProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) return
 
-		val signal = gateway.translate(command.itemJson)
-		when (signal) {
-			null -> transactions.run {
-				log.debug("Item de webhook {} ignorado (evento não utilizado)", command.eventId)
-				processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)
-			}
-			is ProviderSignal.PdfReady -> archive.execute(ArchiveSignedDocumentCommand(command.eventId, signal.documentId))
-			is ProviderSignal.StatusChanged,
-			is ProviderSignal.RecipientCompleted,
-			is ProviderSignal.CreationFailed,
-			is ProviderSignal.DocumentDeleted,
-			-> transactions.run {
-				if (processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) {
-					applyUpdate.execute(
-						ApplyProviderUpdateCommand(
-							signals = listOf(signal),
-							source = ChangeSource.WEBHOOK,
-							sourceEventId = command.eventId,
-						),
-					)
-				}
-			}
-		}
-	}
+        val signal = gateway.translate(command.itemJson)
+        when (signal) {
+            null -> transactions.run {
+                log.debug("Item de webhook {} ignorado (evento não utilizado)", command.eventId)
+                processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)
+            }
+
+            is ProviderSignal.PdfReady -> archive.execute(
+                ArchiveSignedDocumentCommand(
+                    command.eventId,
+                    signal.documentId
+                )
+            )
+
+            is ProviderSignal.StatusChanged,
+            is ProviderSignal.RecipientCompleted,
+            is ProviderSignal.CreationFailed,
+            is ProviderSignal.DocumentDeleted,
+                -> transactions.run {
+                if (processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) {
+                    applyUpdate.execute(
+                        ApplyProviderUpdateCommand(
+                            signals = listOf(signal),
+                            source = ChangeSource.WEBHOOK,
+                            sourceEventId = command.eventId,
+                        ),
+                    )
+                }
+            }
+        }
+    }
 }

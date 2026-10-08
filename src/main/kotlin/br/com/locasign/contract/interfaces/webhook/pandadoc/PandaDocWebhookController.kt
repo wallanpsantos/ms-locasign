@@ -22,27 +22,27 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @Hidden
 class PandaDocWebhookController(
-	private val receiveWebhook: ReceiveProviderWebhook,
-	private val correlation: CorrelationContext,
+    private val receiveWebhook: ReceiveProviderWebhook,
+    private val correlation: CorrelationContext,
 ) {
 
-	@PostMapping("/webhooks/pandadoc")
-	fun receive(
-		@RequestBody(required = false) body: ByteArray?,
-		@RequestParam(name = "signature", required = false) signature: String?,
-		@RequestHeader(name = DELIVERY_ID_HEADER, required = false) deliveryId: String?,
-	): ResponseEntity<Void> {
-		val receipt = correlation.with(deliveryId) {
-			receiveWebhook.execute(ReceiveProviderWebhookCommand(body ?: ByteArray(0), signature, deliveryId))
-		}
-		return when (receipt) {
-			is WebhookReceipt.Accepted, is WebhookReceipt.Duplicate -> ResponseEntity.ok().build()
-			WebhookReceipt.InvalidSignature -> ResponseEntity.status(UNAUTHORIZED).build()
-		}
-	}
+    @PostMapping("/webhooks/pandadoc")
+    fun receive(
+        @RequestBody(required = false) body: ByteArray?,
+        @RequestParam(name = "signature", required = false) signature: String?,
+        @RequestHeader(name = DELIVERY_ID_HEADER, required = false) deliveryId: String?,
+    ): ResponseEntity<Void> {
+        val receipt = correlation.with(deliveryId) {
+            receiveWebhook.execute(ReceiveProviderWebhookCommand(body ?: ByteArray(0), signature, deliveryId))
+        }
+        return when (receipt) {
+            is WebhookReceipt.Accepted, is WebhookReceipt.Duplicate -> ResponseEntity.ok().build()
+            WebhookReceipt.InvalidSignature -> ResponseEntity.status(UNAUTHORIZED).build()
+        }
+    }
 
-	private companion object {
-		const val DELIVERY_ID_HEADER = "X-PandaDoc-Webhook-Event-Id"
-		const val UNAUTHORIZED = 401
-	}
+    private companion object {
+        const val DELIVERY_ID_HEADER = "X-PandaDoc-Webhook-Event-Id"
+        const val UNAUTHORIZED = 401
+    }
 }

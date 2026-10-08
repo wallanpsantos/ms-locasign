@@ -15,27 +15,27 @@ data class RecordNotificationsCommand(val eventId: String, val eventType: String
  * apenas registra que a notificação seria enviada, com o destinatário mascarado.
  */
 class RecordNotifications(
-	private val recipients: NotificationRecipientsPort,
-	private val log: NotificationLogPort,
-	private val processed: ProcessedMessagesPort,
-	private val transactions: TransactionRunner,
+    private val recipients: NotificationRecipientsPort,
+    private val log: NotificationLogPort,
+    private val processed: ProcessedMessagesPort,
+    private val transactions: TransactionRunner,
 ) {
-	private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
-	fun execute(command: RecordNotificationsCommand) {
-		val audience = NotificationPolicy.audienceFor(command.eventType) ?: return
-		transactions.run {
-			if (!processed.markProcessed(ConsumerGroups.NOTIFICATIONS, command.eventId)) return@run
-			recipients.recipientsOf(command.contractId, audience).forEach { recipient ->
-				log.record(command.contractId, command.eventId, command.eventType, recipient.emailMasked)
-				logger.info(
-					"[simulado] Notificação {} para {} ({}) sobre o contrato {}",
-					command.eventType,
-					recipient.emailMasked,
-					recipient.role,
-					command.contractId,
-				)
-			}
-		}
-	}
+    fun execute(command: RecordNotificationsCommand) {
+        val audience = NotificationPolicy.audienceFor(command.eventType) ?: return
+        transactions.run {
+            if (!processed.markProcessed(ConsumerGroups.NOTIFICATIONS, command.eventId)) return@run
+            recipients.recipientsOf(command.contractId, audience).forEach { recipient ->
+                log.record(command.contractId, command.eventId, command.eventType, recipient.emailMasked)
+                logger.info(
+                    "[simulado] Notificação {} para {} ({}) sobre o contrato {}",
+                    command.eventType,
+                    recipient.emailMasked,
+                    recipient.role,
+                    command.contractId,
+                )
+            }
+        }
+    }
 }

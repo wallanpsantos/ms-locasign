@@ -38,3 +38,10 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### LocaSign ###
+# Segredos locais e dados gerados pela aplicação (PDFs arquivados).
+.env
+/data/
+# Worktrees do Claude Code
+.claude/worktrees/

@@ -6,9 +6,11 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
- * Limitador de taxa por operação (janela deslizante de 1 minuto). O sandbox permite 10
- * requisições por minuto por endpoint; o padrão configurado é 8, com margem. Quando a espera
- * necessária passa de [maxWait], falha com `RateLimited` e o consumidor Kafka reprocessa depois.
+ * Limitador de taxa em memória baseado em algoritmo de janela deslizante de 1 minuto para requisições externas à PandaDoc.
+ *
+ * **Responsabilidade:**
+ * - Proteger a aplicação contra bloqueios por excesso de requisições (HTTP 429) no sandbox ou produção da PandaDoc.
+ * - Bloquear a execução de threads concorrentes até a liberação de permissão dentro da janela de tempo ou lançar [ProviderException.RateLimited] ao exceder o tempo limite de espera ([maxWait]).
  */
 class SlidingWindowRateLimiter(
     private val permitsPerMinute: Int,

@@ -1,11 +1,23 @@
 package br.com.locasign.shared.app.ports
 
-/** Contadores de negócio. Os nomes não podem carregar dados pessoais (seção 14 do guia). */
+/**
+ * Porta de saída da camada de aplicação para emissão de métricas operacionais e contadores de negócio.
+ *
+ * **Responsabilidade:**
+ * - Definir o contrato abstrato para coleta de métricas sem dependência direta de bibliotecas de observabilidade como Micrometer.
+ * - Assegurar a contabilização de eventos de negócio preservando a privacidade de dados (sem permitir dados sensíveis/PII em tags ou nomes).
+ */
 interface MetricsPort {
     fun count(name: String, vararg tags: String)
 }
 
-/** Nomes das métricas de negócio, em um só lugar para evitar divergência entre quem emite e quem consulta. */
+/**
+ * Catálogo centralizado de nomes de métricas operacionais e de negócio do sistema.
+ *
+ * **Responsabilidade:**
+ * - Centralizar as constantes textuais de métricas (webhooks, transições de contrato, rate limiting e mensagens em DLT).
+ * - Garantir uniformidade na telemetria entre componentes emissores e painéis de monitoramento e alertas.
+ */
 object Metrics {
     const val WEBHOOK_RECEIVED = "locasign.webhook.received"
     const val WEBHOOK_INVALID = "locasign.webhook.invalid"

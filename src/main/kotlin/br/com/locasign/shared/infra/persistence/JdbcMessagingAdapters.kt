@@ -11,9 +11,11 @@ import org.springframework.stereotype.Repository
 import tools.jackson.databind.json.JsonMapper
 
 /**
- * Escreve no outbox, na transação do chamador. Monta o envelope da seção 7.3 do guia:
- * `eventId`, `eventType`, `schemaVersion`, `occurredAt`, `aggregateType/Id`, `correlationId`,
- * `causationId` e `payload`.
+ * Adaptador de persistência para gravação transacional de eventos no padrão Transactional Outbox.
+ *
+ * **Responsabilidade:**
+ * - Implementar [OutboxPort], persistindo eventos na tabela `outbox_events` na mesma transação de negócio da mutação.
+ * - Envelopar o payload do evento com metadados canônicos de rastreabilidade ([correlationId], [causationId], versão de schema) em formato JSONB.
  */
 @Repository
 class JdbcOutboxAdapter(
@@ -68,7 +70,13 @@ class JdbcOutboxAdapter(
     }
 }
 
-/** R6: o par (grupo, eventId) é processado uma única vez. */
+/**
+ * Adaptador de persistência para controle transacional de idempotência de consumidores de mensageria.
+ *
+ * **Responsabilidade:**
+ * - Implementar [ProcessedMessagesPort], consultando e inserindo o par ([consumerGroup], [eventId]) na tabela `processed_messages`.
+ * - Prevenir efeitos colaterais duplicados decorrentes de reentregas de mensagens pelo Kafka (regra R6).
+ */
 @Repository
 class JdbcProcessedMessagesAdapter(private val jdbc: JdbcClient) : ProcessedMessagesPort {
 
@@ -92,7 +100,13 @@ class JdbcProcessedMessagesAdapter(private val jdbc: JdbcClient) : ProcessedMess
             .update() == 1
 }
 
-/** R7: o corpo bruto do webhook é gravado como texto, preservando os bytes recebidos. */
+/**
+ * Adaptador de persistência para armazenamento idempotente de webhooks no padrão Transactional Inbox.
+ *
+ * **Responsabilidade:**
+ * - Implementar [WebhookInboxPort], persistindo o corpo bruto (`rawBody`) e o identificador de entrega ([deliveryId]) na tabela `webhook_inbox`.
+ * - Assegurar deduplicação de requisições de webhook (regra R7) e integridade dos bytes brutos recebidos para validação criptográfica posterior.
+ */
 @Repository
 class JdbcWebhookInboxAdapter(private val jdbc: JdbcClient) : WebhookInboxPort {
 

@@ -17,8 +17,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.net.URI
 
 /**
- * Erros em Problem Details (RFC 9457). O mapeamento dos erros de domínio usa `when` exaustivo sobre
- * a hierarquia selada: um novo erro de domínio não compila até receber um status HTTP.
+ * Adaptador driving global para interceptação e padronização de exceções em respostas HTTP.
+ *
+ * **Responsabilidade:**
+ * - Capturar e converter exceções de domínio ([DomainException]), concorrência otimista e falhas sistêmicas no formato padrão RFC 9457 (Problem Details).
+ * - Mapear deterministicamente cada subtipo de erro de domínio via `when` exaustivo para seu respectivo código de status HTTP (404, 409, 422).
  */
 @RestControllerAdvice
 class ApiExceptionHandler : ResponseEntityExceptionHandler() {

@@ -9,7 +9,13 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Clock
 
-/** Limpeza diária (opcional): remove outbox publicado e inbox antigos, além de registros de idempotência. */
+/**
+ * Tarefa agendada de infraestrutura para limpeza periódica de registros operacionais históricos.
+ *
+ * **Responsabilidade:**
+ * - Expurgar registros defasados das tabelas `outbox_events` (já publicados), `webhook_inbox` e `processed_messages` com base no tempo de retenção configurado.
+ * - Evitar crescimento indefinido do banco de dados relacional e manter a alta performance de índices no PostgreSQL.
+ */
 @Component
 @ConditionalOnProperty(prefix = "locasign.jobs.housekeeping", name = ["enabled"], matchIfMissing = true)
 class HousekeepingJob(

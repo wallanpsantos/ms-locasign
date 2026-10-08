@@ -12,10 +12,12 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Reação a `ContractCompleted` (R8): ativa a locação e registra a vistoria de entrada e a primeira
- * cobrança. Vistoria e financeiro são simulados no MVP: o sistema só registra que a ação aconteceria.
+ * Caso de uso assíncrono que orquestra as ações consequentes à conclusão bem-sucedida do contrato (Regra R8).
  *
- * Idempotência em duas camadas (R6): `processed_messages` por grupo e UNIQUE (contrato, ação).
+ * **Responsabilidade:**
+ * - Reagir ao evento `ContractCompleted` para ativar a locação vinculada via [LeaseActivationPort].
+ * - Simular e registrar a vistoria de entrada e emissão da primeira cobrança financeira.
+ * - Implementar idempotência em duas camadas (Regra R6): controle de mensagens processadas por consumidor e restrição UNIQUE `(contract_id, action_type)` no banco de dados.
  */
 class RunPostSignatureActions(
     private val contracts: ContractRepositoryPort,

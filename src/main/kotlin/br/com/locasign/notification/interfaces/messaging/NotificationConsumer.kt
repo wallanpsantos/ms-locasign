@@ -10,7 +10,13 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import kotlin.uuid.Uuid
 
-/** Grupo `notifications`: reage aos eventos do contrato registrando a notificação simulada. */
+/**
+ * Consumidor Kafka do grupo de notificações (`notifications`), responsável por escutar eventos do ciclo de vida dos contratos.
+ *
+ * **Responsabilidade:**
+ * - Consumir mensagens do tópico [Topics.CONTRACT_EVENTS], desserializar o envelope e propagar o contexto de correlação.
+ * - Invocar o caso de uso [RecordNotifications] para simular o envio e registrar o log da notificação de forma assíncrona.
+ */
 @Component
 class NotificationConsumer(
     private val reader: EnvelopeReader,

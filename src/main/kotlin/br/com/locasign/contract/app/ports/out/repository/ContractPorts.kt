@@ -8,7 +8,14 @@ import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import java.time.Instant
 
-/** Porta de escrita do agregado `Contract`. */
+/**
+ * Porta de saída para persistência e recuperação do agregado [Contract].
+ *
+ * **Responsabilidade:**
+ * - Persistir o agregado [Contract], seus signatários e as entradas de histórico na mesma transação atômica.
+ * - Assegurar bloqueio otimista via controle de versão de linha (`row_version`) e unicidade de contrato ativo por locação (Regra R1).
+ * - Prover consultas especializadas para identificação de contratos vencidos (R4), lembretes pendentes (R7) e candidatos à reconciliação (R6).
+ */
 interface ContractRepositoryPort {
     /**
      * Persiste o contrato, os signatários e as linhas de auditoria pendentes (`pullHistory`).
@@ -37,7 +44,13 @@ interface ContractRepositoryPort {
     fun findReconciliationCandidateIds(staleBefore: Instant, limit: Int): List<ContractId>
 }
 
-/** Porta de leitura: modelos prontos para a API, sem carregar o agregado. */
+/**
+ * Porta de saída para consultas de leitura especializadas de contratos, desacopladas do carregamento do agregado.
+ *
+ * **Responsabilidade:**
+ * - Recuperar projeções de detalhe ([ContractDetailView]) e histórico de auditoria ([HistoryEntryView]) otimizadas para a camada de apresentação.
+ * - Evitar a sobrecarga de reconstituição da raiz de agregação em cenários somente-leitura.
+ */
 interface ContractQueryPort {
     fun findDetail(id: ContractId): ContractDetailView?
 
@@ -45,7 +58,13 @@ interface ContractQueryPort {
     fun findHistory(id: ContractId): List<HistoryEntryView>?
 }
 
-/** Efeitos pós-assinatura executados no máximo uma vez por contrato (R6, R8). */
+/**
+ * Porta de saída para controle de execução idempotente de efeitos colaterais pós-assinatura (Regras R6 e R8).
+ *
+ * **Responsabilidade:**
+ * - Registrar de forma atômica no banco de dados a execução de ações pós-assinatura (ativação de locação, arquivamento de PDF).
+ * - Garantir semântica *at-most-once* por ação e por contrato, impedindo duplicidade em caso de reprocessamento.
+ */
 interface PostSignatureActionsPort {
     /** Registra a ação. Devolve `false` se ela já havia sido executada. */
     fun registerIfAbsent(contractId: ContractId, actionType: String, status: String, detailsJson: String?): Boolean

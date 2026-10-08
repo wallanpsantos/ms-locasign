@@ -11,7 +11,13 @@ import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
 import kotlin.uuid.toJavaUuid
 
-/** Leitura direta do banco, sem carregar o agregado ("queries can bypass domain layer"). */
+/**
+ * Adaptador de leitura que implementa a porta de consultas [ContractQueryPort] via JDBC direto.
+ *
+ * **Responsabilidade:**
+ * - Executar projeções otimizadas de leitura diretamente contra as tabelas `contracts`, `contract_signers` e `contract_status_history`.
+ * - Fornecer DTOs de leitura ([ContractDetailView] e [HistoryEntryView]) sem passar pelo ciclo de instanciação do agregado.
+ */
 @Repository
 class ContractQueryAdapter(private val jdbc: JdbcClient) : ContractQueryPort {
 
@@ -94,6 +100,13 @@ class ContractQueryAdapter(private val jdbc: JdbcClient) : ContractQueryPort {
     }
 }
 
+/**
+ * Adaptador de persistência que implementa [PostSignatureActionsPort] para controle transacional de efeitos colaterais pós-assinatura.
+ *
+ * **Responsabilidade:**
+ * - Registrar a execução de ações pós-assinatura na tabela `post_signature_actions` com restrição de chave única `(contract_id, action_type)` (`ON CONFLICT DO NOTHING`).
+ * - Garantir semântica de execução *at-most-once* para ativação de locação e geração de vistorias (Regras R6 e R8).
+ */
 @Repository
 class PostSignatureActionsAdapter(private val jdbc: JdbcClient) : PostSignatureActionsPort {
 

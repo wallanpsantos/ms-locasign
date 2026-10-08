@@ -9,11 +9,20 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
 import org.slf4j.LoggerFactory
 
+/**
+ * Parâmetros de comando para cancelamento voluntário de um contrato de locação em andamento.
+ *
+ * **Responsabilidade:**
+ * - Conter o identificador do contrato ([contractId]) e a justificativa formal do cancelamento ([reason]).
+ */
 data class CancelContractCommand(val contractId: ContractId, val reason: String)
 
 /**
- * Cancelamento pelo corretor (R9). A transição é gravada primeiro; depois, fora da transação, o
- * documento é anulado no provedor em regime de melhor esforço, para que ninguém mais o assine.
+ * Caso de uso síncrono responsável por cancelar um contrato por solicitação do corretor ou operador (Regra R9).
+ *
+ * **Responsabilidade:**
+ * - Validar a justificativa de cancelamento e aplicar a transição para `CANCELLED` no agregado [Contract].
+ * - Persistir a alteração transacionalmente e, subsequentemente fora da transação, anular o documento no provedor externo em melhor esforço para impedir assinaturas residuais.
  */
 class CancelContract(
     private val contracts: ContractRepositoryPort,

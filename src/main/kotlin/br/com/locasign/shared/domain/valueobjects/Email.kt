@@ -2,7 +2,13 @@ package br.com.locasign.shared.domain.valueobjects
 
 import br.com.locasign.shared.domain.DomainException
 
-/** E-mail com formato válido, normalizado em minúsculas. */
+/**
+ * Value object que representa um endereço de correio eletrônico em formato canônico normalizado.
+ *
+ * **Responsabilidade:**
+ * - Validar o formato estrutural e limite de tamanho (RFC 5322), mantendo o valor normalizado em minúsculas e sem espaços.
+ * - Oferecer mascaramento seguro do nome do usuário (`masked()`) para logs e auditoria, protegendo dados sensíveis.
+ */
 @JvmInline
 value class Email private constructor(val value: String) {
 

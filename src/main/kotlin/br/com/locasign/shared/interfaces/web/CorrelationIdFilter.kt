@@ -10,7 +10,13 @@ import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 import java.util.*
 
-/** Propaga o `X-Correlation-Id` (ou gera um) para logs, eventos e para a resposta. */
+/**
+ * Filtro servlet driving para rastreamento distribuído e propagação de cabeçalho de correlação HTTP.
+ *
+ * **Responsabilidade:**
+ * - Interceptar requisições HTTP e capturar ou gerar o identificador de correlação (`X-Correlation-Id`).
+ * - Injetar o identificador na resposta HTTP e propagá-lo no [CorrelationContext] para consistência de logs e eventos emitidos durante a requisição.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 class CorrelationIdFilter(private val correlation: CorrelationContext) : OncePerRequestFilter() {

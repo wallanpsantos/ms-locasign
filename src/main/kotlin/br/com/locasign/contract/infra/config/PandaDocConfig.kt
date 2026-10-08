@@ -20,6 +20,13 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory
 import tools.jackson.databind.json.JsonMapper
 import java.net.http.HttpClient
 
+/**
+ * Configuração de beans de infraestrutura para integração com o provedor PandaDoc.
+ *
+ * **Responsabilidade:**
+ * - Configurar o cliente [org.springframework.web.client.RestClient] com timeouts resilientes, fábrica de buffer e cabeçalho de autenticação via API-Key.
+ * - Criar e disponibilizar os beans [PandaDocClient], [SlidingWindowRateLimiter], [PandaDocSignatureProviderAdapter] e [PandaDocWebhookGateway].
+ */
 @Configuration(proxyBeanMethods = false)
 class PandaDocConfig {
     private val log = LoggerFactory.getLogger(javaClass)

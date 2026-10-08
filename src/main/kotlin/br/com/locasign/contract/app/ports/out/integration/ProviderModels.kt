@@ -10,9 +10,21 @@ import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.Instant
 import java.time.LocalDate
 
-/** Status do documento no provedor, em termos neutros (a PandaDoc é só uma implementação). */
+/**
+ * Estados do ciclo de vida do documento no provedor externo de assinatura eletrônica, expressos em termos neutros.
+ *
+ * **Responsabilidade:**
+ * - Desacoplar o vocabulário proprietário da API externa (ex.: nomes de status do PandaDoc) da aplicação.
+ * - Fornecer enum neutro para mapeamento e interpretação de progresso remoto.
+ */
 enum class ProviderDocumentStatus { UPLOADED, DRAFT, SENT, VIEWED, COMPLETED, DECLINED, VOIDED, ERROR, OTHER }
 
+/**
+ * Informações do signatário enviadas ao provedor para composição do documento e ordem de assinatura.
+ *
+ * **Responsabilidade:**
+ * - Transportar os dados necessários de cada signatário para inclusão no fluxo de assinatura externa.
+ */
 data class ProviderRecipient(
     val role: SignerRole,
     val name: String,
@@ -20,7 +32,12 @@ data class ProviderRecipient(
     val signingOrder: Int,
 )
 
-/** Dados da locação que preenchem o modelo do contrato. A formatação é feita pelo adapter. */
+/**
+ * Dados consolidados da locação utilizados para preenchimento de campos dinâmicos no modelo do contrato.
+ *
+ * **Responsabilidade:**
+ * - Agrupar os valores contratuais (endereço, locatário, valores, datas e vigência) exigidos para mesclagem no template.
+ */
 data class LeaseTemplateData(
     val tenantName: String,
     val tenantCpf: Cpf,
@@ -30,6 +47,12 @@ data class LeaseTemplateData(
     val termMonths: Int,
 )
 
+/**
+ * Parâmetros completos de solicitação de criação de documento no provedor externo.
+ *
+ * **Responsabilidade:**
+ * - Reunir identificadores do contrato e locação, nome do documento, signatários e dados de preenchimento do modelo.
+ */
 data class ProviderDocumentRequest(
     val contractId: ContractId,
     val leaseId: LeaseId,
@@ -38,9 +61,20 @@ data class ProviderDocumentRequest(
     val template: LeaseTemplateData,
 )
 
+/**
+ * Parâmetros de solicitação de envio e notificação do documento aos signatários via provedor.
+ *
+ * **Responsabilidade:**
+ * - Encapsular o assunto e o corpo da mensagem de e-mail enviada pelo provedor aos signatários.
+ */
 data class ProviderSendRequest(val subject: String, val message: String)
 
-/** Estado do documento devolvido por uma consulta (reconciliação). */
+/**
+ * Fotografia do estado atual do documento obtida por consulta ativa na API do provedor externo.
+ *
+ * **Responsabilidade:**
+ * - Retornar o status remoto, signatários que já assinaram e timestamp de modificação para processos de reconciliação periódica (R6).
+ */
 data class ProviderDocumentState(
     val documentId: ProviderDocumentId,
     val status: ProviderDocumentStatus,
@@ -48,7 +82,12 @@ data class ProviderDocumentState(
     val modifiedAt: Instant?,
 )
 
-/** Resultado do download do PDF assinado. */
+/**
+ * Resultado da operação de download do arquivo PDF assinado junto ao provedor externo.
+ *
+ * **Responsabilidade:**
+ * - Representar polimorficamente o sucesso com os bytes disponíveis ([Available]) ou a indisponibilidade justificada ([Unavailable]) por limitações de ambiente sandbox ou configuração.
+ */
 sealed interface SignedDocument {
     class Available(val bytes: ByteArray) : SignedDocument
 
@@ -57,8 +96,11 @@ sealed interface SignedDocument {
 }
 
 /**
- * Sinal neutro derivado de um evento de webhook ou de uma consulta de reconciliação. O adapter
- * traduz nomes e status da PandaDoc para estes tipos; o domínio decide o que muda.
+ * Sinal agnóstico de evento emitido pelo provedor de assinatura eletrônica (oriundo de webhook ou reconciliação).
+ *
+ * **Responsabilidade:**
+ * - Isolar o modelo de domínio dos eventos específicos da API proprietária (PandaDoc).
+ * - Carregar a identificação remota do documento ([documentId]) e a dica de correlação do contrato local ([contractHint]).
  */
 sealed interface ProviderSignal {
     val documentId: ProviderDocumentId
@@ -97,5 +139,10 @@ sealed interface ProviderSignal {
     ) : ProviderSignal
 }
 
-/** Um item do array entregue por um webhook. */
+/**
+ * Representa um item individual decomposto de um lote (array) de eventos de webhook entregue pelo provedor.
+ *
+ * **Responsabilidade:**
+ * - Conter o JSON bruto do item individual, o nome do evento e o identificador do documento para processamento desacoplado.
+ */
 data class WebhookItem(val json: String, val eventName: String?, val documentId: String?)

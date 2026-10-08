@@ -3,9 +3,11 @@ package br.com.locasign.shared.domain.valueobjects
 import br.com.locasign.shared.domain.DomainException
 
 /**
- * CPF com 11 dígitos e dígitos verificadores válidos. Aceita entrada com ou sem máscara.
- * Internamente guarda só os dígitos; a exibição é sempre mascarada, exceto [formatted],
- * que existe apenas para preencher o modelo do contrato.
+ * Value object que representa um Cadastro de Pessoas Físicas (CPF) válido da Receita Federal do Brasil.
+ *
+ * **Responsabilidade:**
+ * - Validar a estrutura sintática, tamanho (11 dígitos numéricos) e os dígitos verificadores calculados pelo algoritmo módulo 11.
+ * - Encapsular a sanitização e formatação do documento, garantindo mascaramento nativo em logs (`toString()` / `masked()`) para conformidade com privacidade de dados (LGPD).
  */
 @JvmInline
 value class Cpf private constructor(val digits: String) {

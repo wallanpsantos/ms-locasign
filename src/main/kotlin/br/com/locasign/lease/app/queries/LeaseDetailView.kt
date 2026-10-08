@@ -3,7 +3,13 @@ package br.com.locasign.lease.app.queries
 import java.time.Instant
 import java.time.LocalDate
 
-/** Modelo de leitura da locação. O CPF sai sempre mascarado. */
+/**
+ * Projeção de leitura (Read Model / View) dos dados detalhados de uma locação para a camada de apresentação.
+ *
+ * **Responsabilidade:**
+ * - Transportar as informações consolidadas da locação com proteção de privacidade (CPF mascarado).
+ * - Expor o estado atual da locação e a referência à versão mais recente do contrato associado ([currentContract]).
+ */
 data class LeaseDetailView(
     val id: String,
     val status: String,
@@ -21,7 +27,12 @@ data class LeaseDetailView(
     val currentContract: CurrentContractView?,
 )
 
-/** Versão mais recente do contrato da locação (R9 preserva todas as versões no histórico). */
+/**
+ * Projeção de leitura resumida do contrato atualmente vinculado à locação.
+ *
+ * **Responsabilidade:**
+ * - Transportar status, número da versão e prazo de expiração da versão vigente do contrato conforme regra R9.
+ */
 data class CurrentContractView(
     val id: String,
     val versionNumber: Int,

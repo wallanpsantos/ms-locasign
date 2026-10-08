@@ -14,6 +14,12 @@ import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.LocalDate
 
+/**
+ * Comando de entrada com os dados necessários para o cadastro inicial de uma locação residencial.
+ *
+ * **Responsabilidade:**
+ * - Encapsular os parâmetros brutos de entrada da locação (locatário, imóvel, valores, datas e signatário da imobiliária).
+ */
 data class RegisterLeaseCommand(
     val tenantName: String,
     val tenantCpf: String,
@@ -26,10 +32,21 @@ data class RegisterLeaseCommand(
     val termMonths: Int?,
 )
 
-/** Signatário padrão da imobiliária, vindo da configuração (`AGENCY_SIGNER_NAME` / `AGENCY_SIGNER_EMAIL`). */
+/**
+ * Objeto de configuração com os dados padrão do signatário da imobiliária.
+ *
+ * **Responsabilidade:**
+ * - Fornecer nome e e-mail padrão configurados no ambiente (`AGENCY_SIGNER_NAME`/`AGENCY_SIGNER_EMAIL`) caso não informados no cadastro.
+ */
 data class AgencySignerDefaults(val name: String?, val email: String?)
 
-/** Cadastra a locação aplicando as validações de domínio (R2). */
+/**
+ * Caso de uso de aplicação para cadastro de uma nova locação residencial.
+ *
+ * **Responsabilidade:**
+ * - Aplicar as regras de validação obrigatórias do cadastro da locação (regra R2).
+ * - Preencher o signatário padrão da imobiliária quando omitido e persistir atomicamente o novo agregado [Lease].
+ */
 class RegisterLease(
     private val leases: LeaseRepositoryPort,
     private val clock: BusinessClock,

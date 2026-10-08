@@ -17,6 +17,13 @@ import org.springframework.stereotype.Repository
 import java.time.LocalDate
 import kotlin.uuid.toJavaUuid
 
+/**
+ * Adaptador de persistência para escrita e reconstituição do agregado de locação via Spring Data JDBC.
+ *
+ * **Responsabilidade:**
+ * - Implementar [LeaseRepositoryPort], convertendo o agregado [Lease] em [LeaseEntity] e persistindo através do [LeaseJdbcRepository].
+ * - Reconstituir o agregado puro a partir da entidade relacional preservando versionamento otimista.
+ */
 @Repository
 class LeaseRepositoryAdapter(private val repository: LeaseJdbcRepository) : LeaseRepositoryPort {
 
@@ -28,7 +35,13 @@ class LeaseRepositoryAdapter(private val repository: LeaseJdbcRepository) : Leas
         repository.findByIdOrNull(id.value.toJavaUuid())?.toDomain()
 }
 
-/** Leitura direta do banco, sem carregar o agregado ("queries can bypass domain layer"). */
+/**
+ * Adaptador de infraestrutura para consultas analíticas de leitura da locação e contrato associado.
+ *
+ * **Responsabilidade:**
+ * - Implementar [LeaseQueryPort] utilizando queries SQL otimizadas com [JdbcClient] diretamente no banco de dados.
+ * - Montar a projeção [LeaseDetailView] com contrato corrente sem carregar os agregados de domínio em memória.
+ */
 @Repository
 class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
 

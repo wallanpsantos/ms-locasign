@@ -3,8 +3,11 @@ package br.com.locasign.contract.app.ports.out.messaging
 import br.com.locasign.contract.domain.events.ContractEvent
 
 /**
- * Publica eventos do contrato. A implementação escreve no outbox, dentro da transação em
- * andamento; nunca no Kafka diretamente (princípio 3).
+ * Porta de saída para publicação de eventos de domínio gerados pelo módulo de contratos.
+ *
+ * **Responsabilidade:**
+ * - Persistir eventos de domínio na tabela transacional de outbox dentro da mesma transação do agregado (Princípio 3 da arquitetura).
+ * - Garantir que use cases nunca emitam eventos diretamente para o Apache Kafka, prevenindo perda de mensagens ou inconsistência dual-write.
  */
 interface ContractEventPublisherPort {
     fun publish(events: List<ContractEvent>)

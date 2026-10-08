@@ -14,8 +14,11 @@ import org.springframework.web.service.annotation.PatchExchange
 import org.springframework.web.service.annotation.PostExchange
 
 /**
- * Cliente HTTP Interface sobre `RestClient` (ADR-004). A URL base e o header
- * `Authorization: API-Key {chave}` vêm da configuração do `RestClient`.
+ * Cliente declarativo HTTP para integração com a API v1 da PandaDoc via Spring HTTP Interfaces (ADR-004).
+ *
+ * **Responsabilidade:**
+ * - Definir os contratos das chamadas REST remotas (criação de documentos a partir de template, consulta de status, envio de links, alteração manual de status e download protegido de PDF).
+ * - Delegar a execução para o [org.springframework.web.client.RestClient] pré-configurado com autenticação via `API-Key`.
  */
 @HttpExchange(accept = ["application/json"])
 interface PandaDocClient {

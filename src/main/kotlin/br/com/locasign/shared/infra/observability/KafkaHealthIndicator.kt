@@ -7,7 +7,13 @@ import org.springframework.kafka.core.KafkaAdmin
 import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
 
-/** Indicador de saúde do Kafka (o Actuator não traz um): consulta o cluster com tempo limite curto. */
+/**
+ * Indicador customizado de integridade e prontidão operacional do Apache Kafka integrado ao Spring Boot Actuator.
+ *
+ * **Responsabilidade:**
+ * - Sondar a conectividade ativa com os nós do cluster Kafka utilizando o `AdminClient` com timeout rígido.
+ * - Expor o status de saúde (`UP` ou `DOWN`) e metadados de diagnóstico (ID do cluster e quantidade de nós) no endpoint `/actuator/health`.
+ */
 @Component("kafka")
 class KafkaHealthIndicator(private val kafkaAdmin: KafkaAdmin) : AbstractHealthIndicator("Kafka health check failed") {
 

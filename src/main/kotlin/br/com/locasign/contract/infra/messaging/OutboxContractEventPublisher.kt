@@ -8,7 +8,13 @@ import br.com.locasign.shared.app.ports.OutboxPort
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
 
-/** Adapter do publicador: escreve no outbox, na transação do chamador (princípio 3). */
+/**
+ * Adaptador de mensageria que implementa [ContractEventPublisherPort] persistindo mensagens na tabela transacional `outbox`.
+ *
+ * **Responsabilidade:**
+ * - Serializar cada evento de contrato em JSON e gravá-lo na tabela `outbox` na mesma transação atômica do agregado.
+ * - Definir a chave de partição Kafka com base no identificador do contrato (`contractId`), garantindo ordem causal estrita por partição (Princípio 3).
+ */
 @Component
 class OutboxContractEventPublisher(
     private val outbox: OutboxPort,

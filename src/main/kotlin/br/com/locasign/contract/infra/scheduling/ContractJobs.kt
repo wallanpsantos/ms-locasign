@@ -9,9 +9,11 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Reconciliação (guia, seção 12): consulta o provedor para contratos parados. Cobre webhooks
- * perdidos (a PandaDoc não reenvia) e é o plano B se os webhooks não estiverem disponíveis na conta.
- * Localmente há uma única instância; ao escalar, proteger os jobs com um lock distribuído (ShedLock).
+ * Tarefa agendada de reconciliação periódica de contratos estagnados junto à API da PandaDoc (seção 12 do guia).
+ *
+ * **Responsabilidade:**
+ * - Executar periodicamente o caso de uso [ReconcileContracts] para sincronizar contratos sem atualização recente.
+ * - Compensar eventuais webhooks perdidos ou atrasados e prover plano de contingência caso os webhooks estejam desabilitados.
  */
 @Component
 @ConditionalOnProperty(prefix = "locasign.jobs.reconciliation", name = ["enabled"], matchIfMissing = true)
@@ -32,7 +34,12 @@ class ReconciliationJob(private val reconcile: ReconcileContracts) {
     }
 }
 
-/** Expiração (R4): contratos aguardando assinatura com prazo vencido vão para `EXPIRED`. */
+/**
+ * Tarefa agendada para expiração automática de contratos cujo prazo limite foi excedido (Regra R4).
+ *
+ * **Responsabilidade:**
+ * - Executar periodicamente o caso de uso [ExpireOverdueContracts] para transicionar contratos pendentes vencidos para o estado final `EXPIRED`.
+ */
 @Component
 @ConditionalOnProperty(prefix = "locasign.jobs.expiration", name = ["enabled"], matchIfMissing = true)
 class ExpirationJob(private val expire: ExpireOverdueContracts) {
@@ -52,7 +59,12 @@ class ExpirationJob(private val expire: ExpireOverdueContracts) {
     }
 }
 
-/** Lembrete do 3º dia (R4, opcional no MVP): registra um lembrete simulado por contrato. */
+/**
+ * Tarefa agendada para envio de lembretes preventivos aos signatários com assinaturas pendentes (Regras R4 e R7).
+ *
+ * **Responsabilidade:**
+ * - Executar periodicamente o caso de uso [SendSignatureReminders] após o 3º dia de envio para incentivar a conclusão das assinaturas.
+ */
 @Component
 @ConditionalOnProperty(prefix = "locasign.jobs.reminder", name = ["enabled"], matchIfMissing = true)
 class ReminderJob(private val reminders: SendSignatureReminders) {

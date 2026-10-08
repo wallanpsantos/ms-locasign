@@ -9,7 +9,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 
-/** Documentação OpenAPI separada do controller, que fica só com o roteamento. */
+/**
+ * Interface de documentação OpenAPI/Swagger para os endpoints REST de gerenciamento de contratos.
+ *
+ * **Responsabilidade:**
+ * - Documentar formalmente os endpoints, parâmetros, respostas e códigos de status HTTP da API de contratos sem poluir o controlador de roteamento.
+ */
 @Tag(name = "Contratos", description = "Geração, acompanhamento e cancelamento de contratos")
 interface ContractApi {
 

@@ -1,27 +1,35 @@
 package br.com.locasign.contract.app.ports.out.integration
 
 /**
- * Erros do provedor de assinatura, já classificados para que os use cases decidam entre
- * retentar (o consumidor Kafka reprocessa e, depois do limite, envia para a DLT) e falhar o contrato.
+ * Hierarquia de exceções de integração com o provedor de assinatura eletrônica, categorizadas por retentabilidade.
+ *
+ * **Responsabilidade:**
+ * - Classificar as falhas de integração externa para direcionar a estratégia de resiliência (retentativas temporárias no consumidor Kafka vs. falha definitiva e DLT).
+ * - Mapear códigos de erro e indisponibilidades de API em tipos semânticos protegendo a camada de aplicação.
  */
 sealed class ProviderException(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
 
-    /** O documento ainda não está pronto (404 ou 409 antes de `document.draft`). Retentável. */
+    /** O documento ainda não está pronto para despacho (HTTP 404/409 pré-processamento). Erro transitório retentável. */
     class NotReady(message: String, cause: Throwable? = null) : ProviderException(message, cause)
 
-    /** Limite de requisições excedido, mesmo após as retentativas do adapter. Retentável. */
+    /** Limite de taxa de requisições excedido junto à API do provedor (HTTP 429). Erro transitório retentável após recuo. */
     class RateLimited(message: String, cause: Throwable? = null) : ProviderException(message, cause)
 
-    /** 5xx, timeout ou falha de rede. Retentável. */
+    /** Falha transitória de infraestrutura de rede, timeout ou erro interno do provedor (HTTP 5xx). Erro retentável. */
     class Unavailable(message: String, cause: Throwable? = null) : ProviderException(message, cause)
 
-    /** 403: créditos esgotados ou permissão negada (por exemplo, e-mail fora do domínio no sandbox). Não retentar. */
+    /** Erro de permissão de acesso, credencial inválida ou cota esgotada (HTTP 403). Falha permanente não retentável. */
     class Forbidden(message: String, cause: Throwable? = null) : ProviderException(message, cause)
 
-    /** Outros 4xx: requisição inválida (por exemplo, role ausente no modelo). Não retentar. */
+    /** Requisição rejeitada por validação estrutural ou violação de contrato de API (HTTP 4xx genérico). Falha permanente não retentável. */
     class Rejected(val httpStatus: Int, message: String, cause: Throwable? = null) :
         ProviderException(message, cause)
 }
 
-/** Corpo de webhook que não é JSON no formato esperado. O corpo ainda é gravado no inbox (R7). */
+/**
+ * Exceção lançada quando o corpo da requisição de webhook não representa um JSON estruturado válido ou compatível.
+ *
+ * **Responsabilidade:**
+ * - Sinalizar anomalias de formatação no payload bruto do webhook sem impedir seu armazenamento na tabela de inbox para auditoria.
+ */
 class MalformedWebhookPayload(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

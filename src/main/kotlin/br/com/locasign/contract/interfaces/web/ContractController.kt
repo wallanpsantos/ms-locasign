@@ -29,8 +29,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.net.URI
 
 /**
- * Operações assíncronas respondem 202 com o `Location` do recurso. Nenhuma chamada ao provedor
- * acontece na requisição: a geração e o envio rodam nos consumidores Kafka (princípio 2).
+ * Adaptador de entrada REST para gerenciamento do ciclo de vida de contratos de locação.
+ *
+ * **Responsabilidade:**
+ * - Expor endpoints HTTP para solicitação de novas versões de contratos, consulta de detalhes, histórico e cancelamento formal.
+ * - Responder HTTP 202 (Accepted) para operações de escrita sem invocar provedores externos de forma síncrona (Princípio 2).
+ * - Exigir e verificar credenciais de operador administrativo ([OperatorAccessGuard]) em operações protegidas como cancelamento e reconciliação manual.
  */
 @RestController
 @RequestMapping("/api/v1")

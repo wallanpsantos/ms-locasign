@@ -8,7 +8,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 
-/** Documentação OpenAPI separada do controller, que fica só com o roteamento. */
+/**
+ * Contrato de documentação OpenAPI 3.0 para a API REST do módulo de locações.
+ *
+ * **Responsabilidade:**
+ * - Definir as anotações do Swagger/OpenAPI (sumários, códigos de status e esquemas de resposta) de forma isolada da lógica de roteamento do controller.
+ */
 @Tag(name = "Locações", description = "Cadastro e consulta de locações")
 interface LeaseApi {
 

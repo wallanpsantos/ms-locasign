@@ -17,9 +17,11 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
- * Relay do outbox (guia, seção 7.6): lê lotes de eventos não publicados com `FOR UPDATE SKIP LOCKED`,
- * publica no Kafka e marca `published_at`. A garantia é "pelo menos uma vez"; a idempotência dos
- * consumidores completa o efeito "exatamente uma vez" de negócio.
+ * Componente agendado de infraestrutura responsável pela leitura e publicação de eventos do Transactional Outbox.
+ *
+ * **Responsabilidade:**
+ * - Consultar periodicamente eventos não publicados no PostgreSQL usando concorrência segura (`FOR UPDATE SKIP LOCKED`).
+ * - Publicar mensagens ordenadamente no Apache Kafka garantindo entrega at-least-once e registrar timestamp de publicação e telemetria.
  */
 @Component
 class OutboxRelay(
@@ -132,6 +134,12 @@ class OutboxRelay(
         0.0
     }
 
+    /**
+     * Modelo interno de representação de uma linha da tabela `outbox_events` em memória.
+     *
+     * **Responsabilidade:**
+     * - Mapear os campos relacionais essenciais para montagem do registro Kafka e cálculo de cabeçalhos.
+     */
     private class OutboxRow(
         val id: String,
         val topic: String,

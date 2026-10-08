@@ -36,7 +36,13 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Duration
 
-/** Os use cases são classes Kotlin puras; este é o único lugar que os instancia (guia, seção 3.6). */
+/**
+ * Configuração de injeção de dependências do Spring para os casos de uso e serviços de aplicação do módulo de contratos.
+ *
+ * **Responsabilidade:**
+ * - Instanciar explicitamente todos os casos de uso de contratos como classes puras do Kotlin, desacopladas de anotações do framework (seção 3.6 do guia).
+ * - Fornecer as amarrações com portas de persistência, mensageria, gateways e o executor transacional [br.com.locasign.shared.app.ports.TransactionRunner].
+ */
 @Configuration(proxyBeanMethods = false)
 class ContractBeansConfig {
 

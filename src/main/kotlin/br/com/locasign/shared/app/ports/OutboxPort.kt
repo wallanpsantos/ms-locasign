@@ -3,8 +3,11 @@ package br.com.locasign.shared.app.ports
 import java.time.Instant
 
 /**
- * Mensagem a publicar via outbox. [id] é o `eventId` do envelope e a chave de idempotência dos
- * consumidores (texto, porque itens de webhook usam `deliveryId:índice`).
+ * Modelo de dados que representa um evento de negócio a ser persistido na tabela de transactional outbox.
+ *
+ * **Responsabilidade:**
+ * - Encapsular os dados necessários para publicação assíncrona no Kafka ([topic], [key], [payloadJson], [eventType], [aggregateId]).
+ * - Manter identificador estável ([id]) compatível com UUIDs e identificadores compostos de webhook (`deliveryId:index`) para garantia de idempotência.
  */
 data class OutboxMessage(
     val id: String,
@@ -18,8 +21,11 @@ data class OutboxMessage(
 )
 
 /**
- * Princípio 3: todo evento sai pelo outbox. Deve ser chamada dentro da mesma transação que
- * altera o estado; um relay publica no Kafka depois (garantia "pelo menos uma vez").
+ * Porta de saída da camada de aplicação para enfileiramento transacional de eventos de domínio no padrão Transactional Outbox.
+ *
+ * **Responsabilidade:**
+ * - Garantir que eventos gerados por mutações de negócio sejam persistidos atomicamente na mesma transação de banco de dados da entidade alterada.
+ * - Assegurar o desacoplamento entre a execução do caso de uso e a disponibilidade imediata do broker de mensageria (Kafka).
  */
 interface OutboxPort {
     fun append(message: OutboxMessage)

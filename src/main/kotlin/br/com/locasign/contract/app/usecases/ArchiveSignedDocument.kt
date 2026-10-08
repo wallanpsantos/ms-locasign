@@ -15,11 +15,21 @@ import br.com.locasign.shared.app.ports.ProcessedMessagesPort
 import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
+/**
+ * Parâmetros de comando para download e arquivamento do documento assinado de um contrato concluído.
+ *
+ * **Responsabilidade:**
+ * - Conter o identificador do evento originador ([eventId]) e o identificador do documento no provedor ([documentId]).
+ */
 data class ArchiveSignedDocumentCommand(val eventId: String, val documentId: ProviderDocumentId)
 
 /**
- * Reação a `document_completed_pdf_ready`: baixa e arquiva o PDF assinado. No sandbox o download
- * não existe (exige chave de produção), então só a referência do documento é guardada.
+ * Caso de uso assíncrono encarregado de baixar o PDF final assinado e arquivá-lo no armazenamento permanente (Regra R8).
+ *
+ * **Responsabilidade:**
+ * - Obter o PDF via [SignatureProviderPort] ou registrar a referência em cenários onde o download é indisponível (sandbox).
+ * - Gravar os bytes do arquivo através de [SignedDocumentStoragePort] e atualizar a referência documental no agregado [Contract].
+ * - Persistir o arquivamento de forma transacional e idempotente com proteção contra reprocessamento.
  */
 class ArchiveSignedDocument(
     private val contracts: ContractRepositoryPort,

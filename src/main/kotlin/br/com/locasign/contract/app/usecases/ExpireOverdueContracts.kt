@@ -10,8 +10,12 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Job de expiração (R4): contratos aguardando assinatura cujo prazo venceu vão para `EXPIRED`.
- * Cada contrato roda na própria transação, então uma falha isolada não bloqueia os demais.
+ * Caso de uso agendado responsável por identificar e expirar contratos com prazo limite de assinatura vencido (Regra R4).
+ *
+ * **Responsabilidade:**
+ * - Buscar contratos em aberto que excederam o prazo regulamentar e aplicar a transição para `EXPIRED` no agregado [Contract].
+ * - Processar cada contrato em sua própria transação delimitada para isolar falhas.
+ * - Anular o documento no provedor externo em melhor esforço após a confirmação da transação.
  */
 class ExpireOverdueContracts(
     private val contracts: ContractRepositoryPort,

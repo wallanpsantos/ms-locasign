@@ -8,9 +8,11 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Registro de persistência do agregado `Contract` (Spring Data JDBC, ADR-003). Os signatários são
- * filhos do agregado: a cada `save` o Spring Data JDBC reescreve esse conjunto na mesma transação.
- * O `rowVersion` nulo marca a inserção e depois implementa o lock otimista.
+ * Entidade de persistência relacional do agregado [Contract] para o Spring Data JDBC (ADR-003).
+ *
+ * **Responsabilidade:**
+ * - Mapear as colunas da tabela `contracts`, incluindo timestamps, controle de concorrência otimista (`@Version rowVersion`) e signatários associados como coleção embutida.
+ * - Garantir reescrita atômica do agregado completo em cada operação de salvamento do repositório.
  */
 @Table("contracts")
 data class ContractEntity(
@@ -33,6 +35,12 @@ data class ContractEntity(
     val signers: Set<ContractSignerEntity>,
 )
 
+/**
+ * Entidade de persistência dos signatários vinculados ao contrato de locação (`contract_signers`).
+ *
+ * **Responsabilidade:**
+ * - Representar os dados relacionais do signatário (papel, nome, e-mail, ordem de assinatura e instante de conclusão) como filho agregado da entidade [ContractEntity].
+ */
 @Table("contract_signers")
 data class ContractSignerEntity(
     val role: String,

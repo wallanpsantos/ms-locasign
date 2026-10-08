@@ -2,7 +2,13 @@ package br.com.locasign.contract.domain.services
 
 import br.com.locasign.contract.domain.models.ContractStatus
 
-/** Decisão da política para uma tentativa de transição. */
+/**
+ * Resultado da avaliação de uma solicitação de transição de status pela política de ciclo de vida do contrato.
+ *
+ * **Responsabilidade:**
+ * - Classificar a decisão entre aplicação efetiva ([Apply]), operação inócua idempotente ([NoOp]) ou rejeição justificada ([Reject]).
+ * - Viabilizar tratamento exaustivo via `when` na máquina de estados do contrato.
+ */
 sealed interface TransitionDecision {
     /** A transição é válida e deve ser aplicada. */
     data object Apply : TransitionDecision
@@ -15,8 +21,12 @@ sealed interface TransitionDecision {
 }
 
 /**
- * R5 + ADR-010: o status nunca regride e estados finais são imutáveis, mas saltos para frente são
- * permitidos, porque a PandaDoc não reenvia webhooks perdidos.
+ * Política de domínio que governa as transições de status do contrato de locação (Regra R5 e ADR-010).
+ *
+ * **Responsabilidade:**
+ * - Garantir que contratos em estados finais ([ContractStatus.isFinal]) sejam estritamente imutáveis.
+ * - Impedir regressão de status (o progresso ordinal não pode diminuir).
+ * - Permitir avanços monotônicos ou saltos para a frente, acomodando eventuais perdas ou atrasos na entrega de webhooks de provedores externos.
  */
 object ContractTransitionPolicy {
 

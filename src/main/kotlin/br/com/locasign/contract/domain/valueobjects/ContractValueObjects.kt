@@ -3,6 +3,13 @@ package br.com.locasign.contract.domain.valueobjects
 import br.com.locasign.shared.domain.DomainException
 import kotlin.uuid.Uuid
 
+/**
+ * Identificador tipado único de um contrato de locação, encapsulando um [Uuid] v7.
+ *
+ * **Responsabilidade:**
+ * - Garantir tipagem forte e imutabilidade na identificação de instâncias de contratos.
+ * - Validar formato textual no parsing e disparar [DomainException.NotFound] quando inválido, prevenindo erros de formato na camada web.
+ */
 @JvmInline
 value class ContractId(val value: Uuid) {
 
@@ -19,7 +26,13 @@ value class ContractId(val value: Uuid) {
     }
 }
 
-/** Identificador do documento no provedor de assinatura (texto não vazio). */
+/**
+ * Identificador do documento no provedor externo de assinatura eletrônica (PandaDoc).
+ *
+ * **Responsabilidade:**
+ * - Prover tipagem forte para o identificador externo do documento gerenciado pelo provedor.
+ * - Assegurar que o valor seja não vazio e sanitizado contra espaços em branco excedentes.
+ */
 @JvmInline
 value class ProviderDocumentId private constructor(val value: String) {
 
@@ -36,7 +49,13 @@ value class ProviderDocumentId private constructor(val value: String) {
     }
 }
 
-/** Ordem de assinatura (R3): locatário = 1, imobiliária = 2. */
+/**
+ * Ordem ordinal de assinatura do contrato pelas partes envolvidas (Regra R3).
+ *
+ * **Responsabilidade:**
+ * - Impor a sequência estrita de coleta de assinaturas (primeiro locatário = ordem 1, depois imobiliária = ordem 2).
+ * - Garantir que o valor ordinal seja estritamente positivo (maior ou igual a 1).
+ */
 @JvmInline
 value class SigningOrder private constructor(val value: Int) {
 

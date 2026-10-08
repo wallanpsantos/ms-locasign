@@ -8,7 +8,8 @@ vistoria, registrar a primeira cobrança e notificar os envolvidos).
 > Projeto de estudo de Kotlin 2.4, Spring Boot 4.1, PostgreSQL 18, Kafka 4.3 e Docker.
 > O negócio está em [`docs/plano-de-negocio.md`](docs/plano-de-negocio.md) e a arquitetura em
 > [`docs/arquitetura-tecnica.md`](docs/arquitetura-tecnica.md). Decisões posteriores ao guia ficam
-> em [`docs/adr/`](docs/adr). Use somente **dados fictícios** (R10).
+> formalizadas em [`docs/adr/`](docs/adr). O planejamento e backlog de tarefas estão em
+> [`docs/tasks/plan.md`](docs/tasks/plan.md) e [`docs/tasks/todo.md`](docs/tasks/todo.md). Use somente **dados fictícios** (R10).
 
 ## Subindo o ambiente
 
@@ -153,6 +154,20 @@ src/main/kotlin/br/com/locasign/
 └── notification/  # notificações simuladas
    (cada módulo: domain ← app ← interfaces / infra, verificado pela regra de dependência do guia)
 ```
+
+### Decisões Arquiteturais (ADRs)
+
+As decisões que detalham ou refinam o guia técnico estão registradas em [`docs/adr/`](docs/adr/):
+
+- **ADR-011:** Adota a porta `TransactionRunner` desacoplada de Spring para gerenciar transações curtas em casos de uso e evitar conexões retidas durante chamadas HTTP lentas à PandaDoc.
+- **ADR-012:** Consolidação dos comportamentos e validações com a API da PandaDoc (validação HMAC sobre bytes brutos do webhook, retentativas em HTTP 409/404, download protegido de PDF, etc.).
+- **ADR-013:** Ajustes de implementação em relação ao guia (distribuição de Value Objects, colunas adicionais para auditoria/backoff, replay manual de DLT via endpoint de admin protegido por `X-Admin-Token`).
+
+### Documentação de Classes (KDoc Estruturado)
+
+Todas as classes, interfaces, objetos e enums da aplicação seguem o padrão estruturado de KDoc em português brasileiro:
+- **O que a classe faz:** contextualização clara do comportamento técnico e papel no fluxo de negócio.
+- **Responsabilidade:** explicitação da responsabilidade única (SRP), limites na arquitetura hexagonal e garantias/regras de negócio asseguradas.
 
 ## Problemas comuns
 

@@ -20,8 +20,12 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Autenticidade, divisão do array e tradução dos webhooks da PandaDoc (guia, seções 5.6 e 6).
- * A assinatura é o HMAC-SHA256 em hexadecimal do corpo bruto, com a shared key, no parâmetro `signature`.
+ * Adaptador de entrada que implementa [ProviderWebhookGateway] para recepção segura de webhooks da PandaDoc.
+ *
+ * **Responsabilidade:**
+ * - Validar a assinatura criptográfica HMAC-SHA256 em tempo constante diretamente sobre os bytes brutos (`raw bytes`) da requisição HTTP (ADR-012).
+ * - Decompor o array JSON de eventos recebidos em itens individuais ([WebhookItem]) com tolerância a formatos de array ou objeto único.
+ * - Traduzir os eventos da PandaDoc (`document_state_changed`, `recipient_completed`, etc.) em sinais neutros de domínio ([ProviderSignal]).
  */
 class PandaDocWebhookGateway(
     private val mapper: JsonMapper,

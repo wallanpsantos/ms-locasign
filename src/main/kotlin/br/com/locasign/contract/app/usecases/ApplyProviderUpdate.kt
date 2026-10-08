@@ -16,8 +16,10 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
- * Atualização externa (webhook ou reconciliação) já traduzida em sinais neutros.
- * Todos os [signals] se referem ao mesmo documento.
+ * Comando contendo sinais neutros emitidos por atualizações externas (webhooks ou reconciliação periódica).
+ *
+ * **Responsabilidade:**
+ * - Transportar a lista de sinais atômicos ([signals]) referentes a um documento, a origem da notificação ([source]) e o identificador do evento gerador.
  */
 data class ApplyProviderUpdateCommand(
     val signals: List<ProviderSignal>,
@@ -27,8 +29,12 @@ data class ApplyProviderUpdateCommand(
 )
 
 /**
- * Traduz uma atualização externa em transições do agregado. O agregado decide: este use case nunca
- * escreve o status diretamente (R5). Webhook e reconciliação usam o mesmo caminho.
+ * Caso de uso responsável por aplicar sinais externos provenientes de webhooks ou reconciliações na máquina de estados do contrato.
+ *
+ * **Responsabilidade:**
+ * - Correlacionar sinais externos ao agregado [Contract] por identificador do provedor ou dica de contrato (`contractHint`).
+ * - Delegar integralmente a decisão de transição de status à raiz de agregação e sua política de domínio ([br.com.locasign.contract.domain.services.ContractTransitionPolicy]), assegurando a Regra R5.
+ * - Manter convergência de estado idêntica independentemente da origem ser um webhook em tempo real ou uma consulta ativa de reconciliação.
  */
 class ApplyProviderUpdate(
     private val contracts: ContractRepositoryPort,

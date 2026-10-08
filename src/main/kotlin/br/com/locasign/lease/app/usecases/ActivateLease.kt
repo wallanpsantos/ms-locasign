@@ -7,8 +7,11 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
 
 /**
- * Ativa a locação. Chamado pela ação pós-assinatura do módulo de contratos (R8), dentro da
- * transação dela. Devolve `true` se a ativação ocorreu agora e `false` se já estava ativa.
+ * Caso de uso de aplicação para ativação do status de vigência de uma locação.
+ *
+ * **Responsabilidade:**
+ * - Executar a transição de estado da locação para ativo ([LeaseStatus.ACTIVE]) acionada por eventos pós-assinatura (regra R8).
+ * - Garantir execução atômica via [TransactionRunner] e idempotência se a locação já estiver ativa.
  */
 class ActivateLease(
     private val leases: LeaseRepositoryPort,

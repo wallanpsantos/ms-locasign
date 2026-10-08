@@ -2,7 +2,13 @@ package br.com.locasign.lease.domain.valueobjects
 
 import br.com.locasign.shared.domain.DomainException
 
-/** Prazo da locação em meses, de 1 a 120. O padrão de 30 meses é comum na locação residencial (R2). */
+/**
+ * Value object que representa o prazo de vigência contratual da locação em meses.
+ *
+ * **Responsabilidade:**
+ * - Validar limites contratuais permitidos (entre 1 e 120 meses), aplicando o padrão comercial de 30 meses para locações residenciais (regra R2).
+ * - Prevenir valores nulos ou intervalos inválidos na definição temporal da vigência do contrato.
+ */
 @JvmInline
 value class LeaseTerm private constructor(val months: Int) {
 

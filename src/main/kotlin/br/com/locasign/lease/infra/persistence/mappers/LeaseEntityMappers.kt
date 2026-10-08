@@ -13,6 +13,13 @@ import br.com.locasign.shared.domain.valueobjects.Money
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
+/**
+ * Funções de extensão para conversão bidirecional entre o agregado de domínio [Lease] e a entidade relacional [LeaseEntity].
+ *
+ * **Responsabilidade:**
+ * - Mapear o agregado [Lease] para a entidade [LeaseEntity] para persistência via Spring Data JDBC.
+ * - Reconstituir o agregado puro [Lease] a partir da entidade [LeaseEntity] através do método de fábrica [Lease.restore].
+ */
 fun Lease.toEntity(): LeaseEntity = LeaseEntity(
     id = id.value.toJavaUuid(),
     tenantName = tenant.name,

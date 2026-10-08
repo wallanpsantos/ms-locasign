@@ -10,10 +10,11 @@ import jakarta.validation.constraints.Size
 import java.time.LocalDate
 
 /**
- * Cadastro de locação. A Bean Validation cobre apenas presença e tamanho (HTTP 400); as regras de
- * negócio (CPF válido, data de início, valor positivo) são do domínio e respondem HTTP 422.
+ * DTO de requisição para cadastro de uma nova locação residencial.
  *
- * Todas as anotações usam `@field:` para garantir que o Hibernate Validator as enxergue.
+ * **Responsabilidade:**
+ * - Capturar e validar a presença e tamanho dos dados informados na requisição HTTP com Bean Validation (`@field:`).
+ * - Servir de fronteira de entrada desacoplada dos tipos de domínio.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CreateLeaseRequest(
@@ -28,6 +29,12 @@ data class CreateLeaseRequest(
     @field:Min(1) @field:Max(120) val termMonths: Int? = null,
 )
 
+/**
+ * DTO de requisição que encapsula os dados cadastrais do locatário.
+ *
+ * **Responsabilidade:**
+ * - Validar limites de tamanho e preenchimento de nome, CPF e e-mail informados na requisição.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class TenantRequest(
     @field:NotBlank @field:Size(min = 3, max = 120) val name: String,
@@ -36,13 +43,24 @@ data class TenantRequest(
     @field:NotBlank val email: String,
 )
 
-/** Opcional: se ausente, usa o signatário padrão da configuração. */
+/**
+ * DTO opcional de requisição com os dados do signatário da imobiliária.
+ *
+ * **Responsabilidade:**
+ * - Capturar nome e e-mail de um signatário específico para a locação caso não se deseje utilizar o padrão global.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AgencySignerRequest(
     @field:NotBlank @field:Size(min = 3, max = 120) val name: String,
     @field:NotBlank val email: String,
 )
 
+/**
+ * DTO de requisição que encapsula as características do imóvel alugado.
+ *
+ * **Responsabilidade:**
+ * - Capturar e validar os limites de tamanho do endereço do imóvel.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PropertyRequest(
     @field:NotBlank @field:Size(max = 300) val address: String,

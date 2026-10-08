@@ -7,8 +7,11 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Job de lembrete (R4, opcional no MVP): no 3º dia, registra um lembrete simulado para cada
- * contrato que ainda aguarda assinatura. O evento `ContractReminderSent` alimenta as notificações.
+ * Caso de uso agendado responsável por identificar contratos pendentes e disparar lembretes de assinatura (Regra R4 e R7).
+ *
+ * **Responsabilidade:**
+ * - Identificar contratos aguardando assinaturas que atingiram a janela de lembrete (3º dia).
+ * - Registrar o lembrete no agregado [Contract] e emitir o evento `ContractReminderSent` via outbox para notificação simulada.
  */
 class SendSignatureReminders(
     private val contracts: ContractRepositoryPort,

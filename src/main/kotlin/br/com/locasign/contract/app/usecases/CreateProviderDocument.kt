@@ -17,11 +17,12 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Reação a `ContractRequested`: cria o documento no provedor a partir do modelo.
+ * Caso de uso assíncrono que orquestra a criação do documento eletrônico no provedor externo a partir de modelo.
  *
- * A chamada HTTP acontece entre duas transações curtas, para não segurar conexão de banco durante
- * a chamada externa. Se o processo cair depois da criação e antes da segunda transação, a reentrega
- * da mensagem pode criar um segundo documento no provedor (risco aceito, registrado no guia).
+ * **Responsabilidade:**
+ * - Reagir ao evento `ContractRequested` de forma desacoplada via consumidor Kafka.
+ * - Isolar a chamada HTTP de criação externa entre duas transações curtas no banco de dados para evitar exaustão de conexões no pool.
+ * - Tratar falhas definitivas do provedor (como [ProviderException.Forbidden] e [ProviderException.Rejected]) cancelando o contrato imediatamente com justificativa formal.
  */
 class CreateProviderDocument(
     private val contracts: ContractRepositoryPort,

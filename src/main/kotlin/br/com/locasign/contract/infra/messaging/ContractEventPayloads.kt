@@ -17,8 +17,11 @@ import br.com.locasign.contract.domain.events.LeaseActivated
 import br.com.locasign.contract.domain.events.SignedDocumentArchived
 
 /**
- * Payload do envelope (guia, seção 7.3): ids e dados essenciais, **sem CPF nem e-mail completos**.
- * O `when` é exaustivo sobre a hierarquia selada: um evento novo não compila até ser mapeado aqui.
+ * Serializa os atributos específicos de cada evento de domínio [ContractEvent] para o mapa de carga útil (`payload`) do envelope Kafka.
+ *
+ * **Responsabilidade:**
+ * - Proteger a privacidade e cumprir a LGPD assegurando que dados cadastrais completos (CPF e e-mail) nunca sejam publicados nos tópicos Kafka.
+ * - Garantir mapeamento exaustivo via `when` sobre a hierarquia selada [ContractEvent], impedindo novos eventos sem contrato de serialização.
  */
 fun ContractEvent.toPayload(): Map<String, Any?> {
     val payload = linkedMapOf<String, Any?>("contractId" to contractId.toString())

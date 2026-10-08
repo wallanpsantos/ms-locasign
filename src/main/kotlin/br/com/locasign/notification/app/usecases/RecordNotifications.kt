@@ -8,11 +8,22 @@ import br.com.locasign.shared.app.ports.ProcessedMessagesPort
 import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
+/**
+ * Parâmetros de comando para execução do registro de notificações geradas por eventos de contrato.
+ *
+ * **Responsabilidade:**
+ * - Transportar os identificadores do evento de domínio original, tipo de evento e contrato afetado.
+ * - Fornecer os dados necessários para avaliação da audiência e idempotência do processamento.
+ */
 data class RecordNotificationsCommand(val eventId: String, val eventType: String, val contractId: String)
 
 /**
- * Notificações simuladas: não há e-mail, WhatsApp nem meio de pagamento reais no MVP. O sistema
- * apenas registra que a notificação seria enviada, com o destinatário mascarado.
+ * Caso de uso responsável por registrar notificações simuladas decorrentes dos eventos de domínio do contrato.
+ *
+ * **Responsabilidade:**
+ * - Avaliar o público-alvo com base no tipo de evento utilizando [NotificationPolicy].
+ * - Assegurar consumo idempotente por meio de [ProcessedMessagesPort] e demarcação transacional via [TransactionRunner].
+ * - Obter os contatos mascarados via [NotificationRecipientsPort] e registrar a auditoria via [NotificationLogPort] sem expor dados pessoais sensíveis (R1-R10 / LGPD).
  */
 class RecordNotifications(
     private val recipients: NotificationRecipientsPort,

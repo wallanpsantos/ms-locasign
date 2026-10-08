@@ -12,6 +12,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+/**
+ * Configuração Spring dos beans compartilhados e utilitários transversais de infraestrutura.
+ *
+ * **Responsabilidade:**
+ * - Habilitar o agendamento de tarefas (`@EnableScheduling`) e instanciar os adaptadores de relógio de negócio e gerenciamento transacional.
+ * - Isolar a instanciação das implementações de infraestrutura em relação às portas de aplicação.
+ */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 class SharedBeansConfig {
@@ -28,7 +35,12 @@ class SharedBeansConfig {
         SpringTransactionRunner(TransactionTemplate(transactionManager))
 }
 
-/** Instantes em UTC; "hoje" no fuso da operação (`APP_TIMEZONE`, padrão America/Sao_Paulo). */
+/**
+ * Implementação do relógio de negócio baseada no relógio do sistema e fuso horário configurado.
+ *
+ * **Responsabilidade:**
+ * - Adaptar o [Clock] padrão da JVM para a porta [BusinessClock], garantindo instantes UTC e datas truncadas no fuso horário operacional.
+ */
 class SystemBusinessClock(private val clock: Clock, private val zone: ZoneId) : BusinessClock {
     override fun now(): Instant = clock.instant()
 
@@ -36,8 +48,10 @@ class SystemBusinessClock(private val clock: Clock, private val zone: ZoneId) : 
 }
 
 /**
- * Implementa a fronteira transacional da camada `app` (ADR-011). Chamadas aninhadas participam da
- * transação em andamento (propagação REQUIRED); exceções não verificadas desfazem a transação.
+ * Implementação da porta [TransactionRunner] utilizando o `TransactionTemplate` do Spring Framework.
+ *
+ * **Responsabilidade:**
+ * - Executar blocos de código com demarcação transacional de propagação REQUIRED e rollback automático sob exceções, conforme ADR-011.
  */
 class SpringTransactionRunner(private val template: TransactionTemplate) : TransactionRunner {
 

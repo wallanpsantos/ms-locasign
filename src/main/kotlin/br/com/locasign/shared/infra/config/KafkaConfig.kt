@@ -17,8 +17,11 @@ import org.springframework.kafka.listener.DefaultErrorHandler
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries
 
 /**
- * Tópicos declarados pela aplicação (a criação automática fica desligada no broker) e tratamento
- * de erros dos consumidores: 3 tentativas com backoff exponencial e, depois, DLT.
+ * Configuração de infraestrutura do Spring Kafka para declaração explícita de tópicos e tratamento de erros.
+ *
+ * **Responsabilidade:**
+ * - Registrar os beans de tópicos de produção e suas respectivas DLTs ([NewTopic]) para criação declarativa no broker.
+ * - Configurar a estratégia de tratamento de erros com retentativa exponencial (3 tentativas) e desvio de mensagens venenosas ou ilegíveis para DLT com contagem de métricas de telemetria.
  */
 @Configuration(proxyBeanMethods = false)
 class KafkaConfig {

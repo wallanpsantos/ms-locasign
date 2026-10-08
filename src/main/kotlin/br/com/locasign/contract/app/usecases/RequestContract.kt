@@ -12,11 +12,21 @@ import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
 
+/**
+ * Parâmetros de comando para solicitação e criação de uma nova versão de contrato para uma locação.
+ *
+ * **Responsabilidade:**
+ * - Conter o identificador da locação ([leaseId]) para a qual o contrato será gerado.
+ */
 data class RequestContractCommand(val leaseId: LeaseId)
 
 /**
- * Cria o contrato em `DRAFT` (uma nova versão da locação) e emite `ContractRequested`.
- * Nenhuma chamada externa acontece aqui (princípio 2): a geração roda no consumidor do evento.
+ * Caso de uso responsável por iniciar a confecção de um contrato de locação em estado de rascunho (`DRAFT`).
+ *
+ * **Responsabilidade:**
+ * - Validar a existência da locação e a ausência de outro contrato ativo ou já concluído para o mesmo imóvel (Regra R1).
+ * - Montar os signatários com as ordens de assinatura regulamentares (R3: locatário primeiro, imobiliária depois).
+ * - Instanciar o agregado [Contract], persisti-lo e emitir o evento de outbox [br.com.locasign.contract.domain.events.ContractRequested] sem realizar chamadas síncronas a provedores externos (Princípio 2).
  */
 class RequestContract(
     private val leases: LeaseLookupPort,

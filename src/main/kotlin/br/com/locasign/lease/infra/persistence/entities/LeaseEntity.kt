@@ -9,8 +9,11 @@ import java.time.LocalDate
 import java.util.*
 
 /**
- * Registro de persistência da locação (Spring Data JDBC, ADR-003). O id é gerado no domínio; o
- * `@Version` nulo marca a inserção e depois garante o lock otimista.
+ * Entidade de mapeamento objeto-relacional para persistência de locações na tabela `leases` via Spring Data JDBC.
+ *
+ * **Responsabilidade:**
+ * - Mapear os campos da tabela relacional `leases` (partes, endereço, valor, datas e status).
+ * - Suportar chave primária gerada na aplicação ([id]) e controle de concorrência com bloqueio otimista via anotação `@Version` ([rowVersion]).
  */
 @Table("leases")
 data class LeaseEntity(

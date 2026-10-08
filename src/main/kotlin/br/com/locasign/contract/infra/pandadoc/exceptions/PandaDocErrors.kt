@@ -13,9 +13,17 @@ private val EMAIL_IN_TEXT = Regex("""[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z
 private fun String.sanitized(): String = replace(EMAIL_IN_TEXT, "***@***").take(MAX_DETAIL_LENGTH)
 
 /**
- * Classifica a falha HTTP da PandaDoc (guia, seção 5.7):
- * 404/409 → ainda não pronto; 429 → limite; 403 → permissão ou créditos; 401 → credenciais
- * (retentável: a correção é de configuração, não do contrato); outros 4xx → rejeitado; 5xx → indisponível.
+ * Converte exceções do cliente HTTP do Spring ([RestClientException]) em exceções tipadas de provedor ([ProviderException]).
+ *
+ * **Responsabilidade:**
+ * - Classificar respostas da API da PandaDoc segundo suas diretrizes oficiais (seção 5.7 do guia):
+ *   - HTTP 404/409: documento não pronto para processamento ([ProviderException.NotReady]).
+ *   - HTTP 429: limite de requisições excedido ([ProviderException.RateLimited]).
+ *   - HTTP 403: permissão negada ou créditos exauridos ([ProviderException.Forbidden]).
+ *   - HTTP 401: falha de autenticação de credencial ([ProviderException.Unavailable]).
+ *   - Outros 4xx: requisição rejeitada por validação ([ProviderException.Rejected]).
+ *   - HTTP 5xx e erros de conectividade: indisponibilidade temporária de rede ([ProviderException.Unavailable]).
+ * - Sanitizar mensagens de erro removendo endereços de e-mail e limitando o tamanho para proteção de dados (LGPD).
  */
 fun RestClientException.toProviderException(operation: String): ProviderException = when (this) {
     is RestClientResponseException -> {

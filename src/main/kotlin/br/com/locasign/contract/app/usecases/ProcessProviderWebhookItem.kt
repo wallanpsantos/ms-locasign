@@ -8,12 +8,21 @@ import br.com.locasign.shared.app.ports.ProcessedMessagesPort
 import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
-/** Item de webhook lido do tópico. [eventId] tem a forma `deliveryId:índice` e é a chave de idempotência. */
+/**
+ * Comando de processamento individual de item de webhook recebido da fila de eventos.
+ *
+ * **Responsabilidade:**
+ * - Conter a chave composta de idempotência ([eventId]) no formato `deliveryId:index` e o JSON do item individual ([itemJson]).
+ */
 data class WebhookItemCommand(val eventId: String, val itemJson: String)
 
 /**
- * Consumidor do tópico de webhooks: traduz o item e o aplica ao contrato (ou arquiva o PDF).
- * Eventos desconhecidos são registrados como processados e ignorados; o corpo bruto já está no inbox.
+ * Caso de uso assíncrono responsável por traduzir e processar itens individuais de webhooks recebidos do Apache Kafka.
+ *
+ * **Responsabilidade:**
+ * - Traduzir o JSON do item em sinais neutros ([ProviderSignal]) através do gateway agnóstico.
+ * - Despachar atualizações de status para o caso de uso [ApplyProviderUpdate] ou ordens de arquivamento para [ArchiveSignedDocument].
+ * - Assegurar idempotência estrita via [ProcessedMessagesPort] e descarte seguro de eventos desconhecidos sem falhar a fila.
  */
 class ProcessProviderWebhookItem(
     private val gateway: ProviderWebhookGateway,

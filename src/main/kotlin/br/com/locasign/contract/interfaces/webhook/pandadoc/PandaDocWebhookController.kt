@@ -13,11 +13,18 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Receptor de webhooks da PandaDoc (guia, seção 6.2).
+ * Controlador REST para recepção de webhooks enviados pelo parceiro externo PandaDoc (guia, seção 6.2).
  *
- * O corpo é lido como **bytes brutos**: reserializar o JSON quebraria a assinatura HMAC. Responde
- * 200 rapidamente (o processamento real acontece depois, via Kafka) e **nunca responde 410**, pois a
- * PandaDoc desativa o webhook ao receber 410. Eventos desconhecidos também recebem 200.
+ * Lê o corpo da requisição estritamente como bytes brutos (`ByteArray`) para viabilizar a conferência da assinatura
+ * HMAC sem distorções de serialização JSON. Propaga o identificador de entrega para o contexto de correlação e
+ * delega o registro imediato na tabela de inbox ao caso de uso [ReceiveProviderWebhook]. Responde HTTP 200 de forma
+ * rápida e idempotente para lotes aceitos ou duplicados, HTTP 401 para assinaturas inválidas e nunca retorna
+ * HTTP 410 (para evitar que o provedor desative o endpoint).
+ *
+ * **Responsabilidade:**
+ * - Atuar como adaptador de entrada (driving adapter) HTTP para recepção assíncrona de eventos externos da PandaDoc.
+ * - Desacoplar a recepção HTTP do processamento efetivo dos eventos, assegurando conformidade com o padrão de Inbox transacional.
+ * - Garantir as regras de segurança e integração com a PandaDoc (verificação HMAC sobre raw bytes e retenção de webhooks).
  */
 @RestController
 @Hidden

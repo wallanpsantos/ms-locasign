@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Operação: investigar e reprocessar a fila de erros (DLT). Restrito a operadores: loopback, ou o
- * header `X-Admin-Token` quando `ADMIN_TOKEN` está configurado (ver [OperatorAccessGuard]).
+ * Controller REST driving para gerenciamento operacional e suporte administrativo da mensageria.
+ *
+ * **Responsabilidade:**
+ * - Expor o endpoint restrito `POST /api/v1/admin/dead-letters/{topic}/replay` para reprocessamento manual de mensagens em DLT.
+ * - Delegar a verificação de autorização ao [OperatorAccessGuard] antes de disparar o reprocessamento.
  */
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -30,5 +33,11 @@ class AdminController(
         return ReplayResponse(topic, deadLetters.replay(topic))
     }
 
+    /**
+     * DTO de resposta que sumariza o resultado da republicação de mensagens de uma DLT.
+     *
+     * **Responsabilidade:**
+     * - Retornar o nome do tópico processado ([topic]) e a quantidade total de registros reenviados com sucesso ([replayed]).
+     */
     data class ReplayResponse(val topic: String, val replayed: Int)
 }

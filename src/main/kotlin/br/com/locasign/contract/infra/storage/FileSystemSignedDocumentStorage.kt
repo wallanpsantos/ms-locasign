@@ -8,7 +8,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-/** Arquiva o PDF assinado em disco (`locasign.archive.directory`). Escrita atômica: nunca deixa arquivo pela metade. */
+/**
+ * Adaptador de armazenamento físico que implementa [SignedDocumentStoragePort] gravando o PDF assinado em sistema de arquivos local.
+ *
+ * **Responsabilidade:**
+ * - Garantir gravação atômica via arquivo temporário e `StandardCopyOption.ATOMIC_MOVE`, impedindo corrupção de arquivos em falhas abruptas.
+ * - Centralizar o diretório de arquivo com base nas propriedades da aplicação (`locasign.archive.directory`).
+ */
 @Component
 class FileSystemSignedDocumentStorage(properties: LocaSignProperties) : SignedDocumentStoragePort {
 

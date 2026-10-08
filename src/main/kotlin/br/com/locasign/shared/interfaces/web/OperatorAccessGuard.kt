@@ -10,12 +10,11 @@ import org.springframework.web.server.ResponseStatusException
 import java.security.MessageDigest
 
 /**
- * Restringe as operações sensíveis (reprocessar a DLT, forçar a reconciliação) enquanto a API não
- * tem autenticação (decisão do MVP, registrada como risco no guia, seção 14).
+ * Componente de segurança driving para controle de acesso a operações sensíveis e administrativas.
  *
- * **Falha fechada:** sem `ADMIN_TOKEN` configurado, as operações ficam desabilitadas (403). Não se
- * confia no endereço de origem: um túnel (ngrok, cloudflared) usado para os webhooks chega à
- * aplicação vindo de loopback, e isso faria qualquer cliente da internet parecer o próprio host.
+ * **Responsabilidade:**
+ * - Validar a presença e integridade do token administrativo (`X-Admin-Token`) com comparação hash em tempo constante para mitigar timing attacks.
+ * - Aplicar o princípio de segurança de falha fechada (fail-closed), rejeitando requisições com HTTP 403 Forbidden caso o token do operador não esteja configurado no ambiente.
  */
 @Component
 class OperatorAccessGuard(

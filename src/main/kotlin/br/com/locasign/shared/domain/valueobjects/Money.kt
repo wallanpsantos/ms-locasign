@@ -4,7 +4,13 @@ import br.com.locasign.shared.domain.DomainException
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-/** Valor monetário em BRL com 2 casas decimais. Nunca é construído a partir de ponto flutuante. */
+/**
+ * Value object que representa um valor monetário em Real Brasileiro (BRL) com precisão decimal exata.
+ *
+ * **Responsabilidade:**
+ * - Garantir precisão monetária de 2 casas decimais utilizando `BigDecimal`, prevenindo erros de arredondamento inerentes a tipos de ponto flutuante (`Double` / `Float`).
+ * - Validar montantes estritamente positivos exigidos em aluguéis (regra R2) e manter formato decimal plano estável (`toPlainString`).
+ */
 @JvmInline
 value class Money private constructor(val amount: BigDecimal) {
 

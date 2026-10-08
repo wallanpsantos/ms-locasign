@@ -12,9 +12,12 @@ import br.com.locasign.shared.domain.DomainException
 import org.slf4j.LoggerFactory
 
 /**
- * Reconciliação: a PandaDoc não reenvia webhooks, então um webhook perdido deixaria o contrato
- * parado para sempre. Este caso de uso consulta o provedor e alimenta o mesmo `ApplyProviderUpdate`
- * (com `source = RECONCILIATION`). Também é o plano B se os webhooks não estiverem disponíveis.
+ * Caso de uso agendado e sob demanda responsável por sincronizar ativamente o estado de contratos junto ao provedor externo (Regra R6).
+ *
+ * **Responsabilidade:**
+ * - Mitigar a eventual perda de webhooks consultando periodicamente contratos inalterados há tempo excessivo (`stale`).
+ * - Traduzir a fotografia remota ([br.com.locasign.contract.app.ports.out.integration.ProviderDocumentState]) em sinais neutros e submetê-los a [ApplyProviderUpdate].
+ * - Fornecer mecanismo de reconciliação pontual forçada para suporte operacional e desenvolvimento.
  */
 class ReconcileContracts(
     private val contracts: ContractRepositoryPort,

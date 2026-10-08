@@ -8,7 +8,13 @@ import br.com.locasign.lease.app.usecases.ActivateLease
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import org.springframework.stereotype.Component
 
-/** Ponte entre módulos: o contrato enxerga a locação só por esta porta, nunca pelo repositório dela. */
+/**
+ * Adaptador de integração que implementa a porta [LeaseLookupPort] consultando o módulo `lease`.
+ *
+ * **Responsabilidade:**
+ * - Prover a visão somente-leitura dos dados da locação ([LeaseSnapshot]) consumindo a porta de repositório do módulo de locações.
+ * - Manter a separação de fronteiras no monólito modular, garantindo que o módulo `contract` não acesse tabelas de locação diretamente.
+ */
 @Component
 class LeaseLookupAdapter(private val leases: LeaseRepositoryPort) : LeaseLookupPort {
 
@@ -28,6 +34,12 @@ class LeaseLookupAdapter(private val leases: LeaseRepositoryPort) : LeaseLookupP
     }
 }
 
+/**
+ * Adaptador de integração que implementa a porta [LeaseActivationPort] invocando o caso de uso [ActivateLease].
+ *
+ * **Responsabilidade:**
+ * - Conectar o fluxo de pós-assinatura de contratos à ativação formal da locação de forma limpa e desacoplada.
+ */
 @Component
 class LeaseActivationAdapter(private val activateLease: ActivateLease) : LeaseActivationPort {
 

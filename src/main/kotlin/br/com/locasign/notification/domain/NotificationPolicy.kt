@@ -1,6 +1,12 @@
 package br.com.locasign.notification.domain
 
-/** Quem recebe a notificação de um evento do contrato. */
+/**
+ * Define o público-alvo destinatário das notificações disparadas pelos eventos do ciclo de vida do contrato.
+ *
+ * **Responsabilidade:**
+ * - Classificar as partes interessadas elegíveis para recebimento de alertas (somente imobiliária ou todas as partes).
+ * - Garantir conformidade com as políticas de privacidade e comunicação do negócio (ex.: notificar locatário apenas na conclusão do contrato).
+ */
 enum class Audience {
     /** O corretor, representado pelo signatário da imobiliária no MVP. */
     AGENCY_ONLY,
@@ -10,8 +16,11 @@ enum class Audience {
 }
 
 /**
- * Catálogo de reações do grupo de notificações (guia, seção 7.4). Os nomes são o `eventType` do
- * envelope, que é a linguagem publicada pelo módulo de contratos.
+ * Catálogo e política de roteamento de notificações baseada no tipo de evento de domínio emitido pelo contrato.
+ *
+ * **Responsabilidade:**
+ * - Determinar o público-alvo ([Audience]) para cada tipo de evento do ciclo de vida do contrato conforme as regras da seção 7.4 do guia técnico.
+ * - Centralizar a política de notificação no domínio puro, desacoplando o caso de uso de regras estáticas de audiência.
  */
 object NotificationPolicy {
 

@@ -12,7 +12,13 @@ import br.com.locasign.shared.infra.config.LocaSignProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
-/** Os use cases são classes Kotlin puras; este é o único lugar que os instancia (guia, seção 3.6). */
+/**
+ * Configuração Spring para instanciação explícita dos casos de uso e componentes do módulo de locação.
+ *
+ * **Responsabilidade:**
+ * - Prover os beans dos casos de uso ([RegisterLease], [ActivateLease]) e consultas ([GetLease]) desacoplados de anotações de infraestrutura.
+ * - Injetar as portas de persistência, relógio de negócio, runner transacional e parâmetros de signatário padrão.
+ */
 @Configuration(proxyBeanMethods = false)
 class LeaseBeansConfig {
 

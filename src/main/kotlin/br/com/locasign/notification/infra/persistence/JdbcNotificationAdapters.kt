@@ -10,8 +10,11 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 /**
- * Resolve os destinatários pelo id do contrato (os eventos não carregam e-mails) e devolve só a
- * forma mascarada: dados pessoais completos não saem do módulo de contratos.
+ * Adaptador de persistência JDBC para resolução dos destinatários de notificação de um contrato.
+ *
+ * **Responsabilidade:**
+ * - Consultar a tabela `contract_signers` filtrando signatários pelo identificador do contrato e escopo de audiência.
+ * - Converter dados sensíveis (e-mails) em suas representações mascaradas via [Email.masked], protegendo informações pessoais de contato.
  */
 @Repository
 class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : NotificationRecipientsPort {
@@ -35,6 +38,13 @@ class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : Notifica
             .list()
 }
 
+/**
+ * Adaptador de persistência JDBC para registro em log das notificações emitidas pelo sistema.
+ *
+ * **Responsabilidade:**
+ * - Inserir registros na tabela `notifications_log` contendo identificador do contrato, evento gerador e destinatário mascarado.
+ * - Garantir a persistência da trilha de auditoria para fins de rastreamento operacional e conformidade legal.
+ */
 @Repository
 class JdbcNotificationLogAdapter(private val jdbc: JdbcClient) : NotificationLogPort {
 

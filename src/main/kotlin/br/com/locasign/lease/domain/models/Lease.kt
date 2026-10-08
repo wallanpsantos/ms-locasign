@@ -7,11 +7,21 @@ import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.Instant
 import java.time.LocalDate
 
+/**
+ * Estados do ciclo de vida da locação imobiliária.
+ *
+ * **Responsabilidade:**
+ * - Representar se a locação está apenas cadastrada ([REGISTERED]) ou formalmente vigente ([ACTIVE]) após assinatura do contrato.
+ */
 enum class LeaseStatus { REGISTERED, ACTIVE }
 
 /**
- * Locação: imóvel, partes, valores e prazos. No MVP o agregado é enxuto; o ciclo de vida do
- * documento fica no agregado `Contract`.
+ * Agregado raiz que representa uma locação residencial no domínio de negócio.
+ *
+ * **Responsabilidade:**
+ * - Manter as informações estruturais do aluguel (partes envolvidas, endereço do imóvel, valor monetário e vigência).
+ * - Controlar a transição atômica para o estado ativo ([activate]) disparada pelas ações pós-assinatura (regra R8).
+ * - Garantir a validação completa de dados obrigatórios no momento do cadastro (regra R2).
  */
 class Lease private constructor(
     val id: LeaseId,

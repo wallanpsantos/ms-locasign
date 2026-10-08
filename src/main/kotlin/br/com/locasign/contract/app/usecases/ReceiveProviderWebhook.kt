@@ -13,12 +13,24 @@ import br.com.locasign.shared.app.ports.WebhookInboxPort
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 
+/**
+ * Parâmetros de entrada contendo os bytes brutos e cabeçalhos de uma entrega de webhook do provedor.
+ *
+ * **Responsabilidade:**
+ * - Transportar o payload original não parseado ([rawBody]), a assinatura criptográfica ([signature]) e o identificador de entrega ([deliveryId]).
+ */
 class ReceiveProviderWebhookCommand(
     val rawBody: ByteArray,
     val signature: String?,
     val deliveryId: String?,
 )
 
+/**
+ * Resultado da recepção do webhook pelo gateway de entrada da aplicação.
+ *
+ * **Responsabilidade:**
+ * - Diferenciar recepção válida com itens enfileirados ([Accepted]), entrega duplicada descartada ([Duplicate]) e falha de integridade criptográfica ([InvalidSignature]).
+ */
 sealed interface WebhookReceipt {
     /** Entrega nova gravada no inbox, com [items] itens enfileirados no outbox. */
     data class Accepted(val deliveryId: String, val items: Int) : WebhookReceipt
@@ -31,8 +43,12 @@ sealed interface WebhookReceipt {
 }
 
 /**
- * Receptor de webhooks (guia, seção 6.2). Valida a assinatura sobre os bytes brutos, grava a entrega
- * no inbox (R7) e enfileira cada item no outbox na mesma transação. O processamento acontece depois, via Kafka.
+ * Caso de uso síncrono responsável pela recepção, validação HMAC e armazenamento transacional no inbox de webhooks do provedor.
+ *
+ * **Responsabilidade:**
+ * - Validar a assinatura criptográfica em tempo constante sobre os bytes brutos (`raw bytes`) via [ProviderWebhookGateway] antes de qualquer parsing (ADR-012).
+ * - Persistir a entrega bruta na tabela de inbox para auditoria forense (Regra R7).
+ * - Enfileirar itens decompostos na tabela de outbox na mesma transação atômica e responder HTTP 200 de imediato, garantindo isolamento de processamento via Kafka.
  */
 class ReceiveProviderWebhook(
     private val gateway: ProviderWebhookGateway,

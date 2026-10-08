@@ -16,8 +16,12 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Reação a `ContractGenerated`: envia o documento aos signatários e leva o contrato a `SENT`.
- * Nunca envia antes de o contrato estar `GENERATED`, ou seja, depois de `document.draft`.
+ * Caso de uso assíncrono responsável por disparar o envio formal do contrato aos signatários através do provedor externo.
+ *
+ * **Responsabilidade:**
+ * - Consumir o evento `ContractGenerated`, assegurando que o envio só ocorra quando o documento estiver plenamente gerado no provedor.
+ * - Despachar a requisição de envio aos signatários via [SignatureProviderPort] com tolerância a reentregas e verificações de idempotência.
+ * - Transicionar o contrato para o status `SENT`, calcular a data de expiração regulamentar (Regra R4) e persistir atomicamente via outbox.
  */
 class SendContract(
     private val contracts: ContractRepositoryPort,

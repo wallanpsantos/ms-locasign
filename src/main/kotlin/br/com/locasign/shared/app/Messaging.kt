@@ -1,6 +1,12 @@
 package br.com.locasign.shared.app
 
-/** Tópicos Kafka do LocaSign (versionados no nome, ADR-009). O sufixo `.dlt` é a fila de erros. */
+/**
+ * Dicionário canônico de tópicos Kafka utilizados pela mensageria assíncrona do sistema.
+ *
+ * **Responsabilidade:**
+ * - Centralizar os nomes e versões de tópicos (`PANDADOC_WEBHOOKS`, `CONTRACT_EVENTS`), respeitando a convenção de versionamento de schemas (ADR-009).
+ * - Definir o sufixo padrão de Dead Letter Topics ([DEAD_LETTER_SUFFIX]) para isolamento de mensagens venenosas.
+ */
 object Topics {
     const val PANDADOC_WEBHOOKS = "locasign.pandadoc.webhooks.v1"
     const val CONTRACT_EVENTS = "locasign.contract.events.v1"
@@ -9,7 +15,13 @@ object Topics {
     val ALL: List<String> = listOf(PANDADOC_WEBHOOKS, CONTRACT_EVENTS)
 }
 
-/** Grupos de consumidores. Cada grupo reage de forma independente aos mesmos eventos. */
+/**
+ * Catálogo canônico de grupos de consumidores Kafka da aplicação.
+ *
+ * **Responsabilidade:**
+ * - Identificar os grupos de consumo concorrente e independente para cada responsabilidade assíncrona do sistema (`ORCHESTRATOR`, `PROVIDER_EVENTS`, `POST_SIGNATURE`, `NOTIFICATIONS`).
+ * - Servir como chave de partição para o controle de idempotência na tabela `processed_messages` junto ao ID do evento.
+ */
 object ConsumerGroups {
     const val ORCHESTRATOR = "locasign-orchestrator"
     const val PROVIDER_EVENTS = "locasign-provider-events"

@@ -4,7 +4,11 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 /**
- * Fato relevante ocorrido em um agregado. O [eventId] é a chave de idempotência dos consumidores.
+ * Contrato base para todos os eventos de domínio emitidos pelos agregados do sistema.
+ *
+ * **Responsabilidade:**
+ * - Definir o contrato uniforme de eventos de domínio com identificador único ([eventId]), data/hora de ocorrência ([occurredAt]), tipo de agregado e nome canônico do evento.
+ * - Servir como chave de deduplicação e idempotência para consumidores assíncronos e mensageria via transactional outbox.
  */
 interface DomainEvent {
     val eventId: Uuid

@@ -23,8 +23,12 @@ import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClientException
 
 /**
- * Único lugar que conhece DTOs, nomes de status e endpoints da PandaDoc. Aplica limitador de taxa
- * por operação e retentativa com backoff exponencial em HTTP 429 (guia, seção 5.7).
+ * Adaptador de saída que implementa [SignatureProviderPort] para a API da PandaDoc.
+ *
+ * **Responsabilidade:**
+ * - Ser o único componente do sistema com conhecimento dos endpoints, DTOs, formatos de status e tokens da PandaDoc.
+ * - Envolver todas as chamadas externas com controle de limitação de taxa via [SlidingWindowRateLimiter] e retentativa com recuo exponencial em caso de HTTP 429.
+ * - Traduzir exceções de cliente HTTP em exceções de provedor tipadas e agnósticas ([br.com.locasign.contract.app.ports.out.integration.ProviderException]).
  */
 class PandaDocSignatureProviderAdapter(
     private val client: PandaDocClient,

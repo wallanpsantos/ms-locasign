@@ -21,7 +21,12 @@ import java.util.*
 private val PT_BR: Locale = Locale.of("pt", "BR")
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-/** Traduz o status textual da PandaDoc para o status neutro do provedor. */
+/**
+ * Converte o status textual proprietário da PandaDoc para o enum de status agnóstico [ProviderDocumentStatus].
+ *
+ * **Responsabilidade:**
+ * - Traduzir os identificadores de status da API externa (`document.draft`, `document.sent`, etc.) em tipos neutros do sistema.
+ */
 fun String?.toProviderStatus(): ProviderDocumentStatus = when (this) {
     "document.uploaded" -> ProviderDocumentStatus.UPLOADED
     "document.draft" -> ProviderDocumentStatus.DRAFT
@@ -34,7 +39,12 @@ fun String?.toProviderStatus(): ProviderDocumentStatus = when (this) {
     else -> ProviderDocumentStatus.OTHER
 }
 
-/** Os nomes das roles no modelo precisam bater exatamente com o campo `role` enviado (guia, seção 5.1). */
+/**
+ * Converte o papel de signatário de domínio [SignerRole] no nome formal da role configurada no template da PandaDoc.
+ *
+ * **Responsabilidade:**
+ * - Assegurar aderência estrita aos identificadores de papéis esperados pelo template externo (seção 5.1 do guia).
+ */
 fun SignerRole.toProviderRole(properties: LocaSignProperties.PandaDocProperties): String = when (this) {
     SignerRole.TENANT -> properties.tenantRole
     SignerRole.AGENCY -> properties.agencyRole
@@ -53,8 +63,11 @@ fun String?.toInstantOrNull(): Instant? = try {
 }
 
 /**
- * Monta a criação do documento a partir do modelo. A formatação pt-BR (moeda, data, prazo) é feita
- * aqui: o domínio guarda tipos, não textos formatados.
+ * Mapeia os dados canônicos da solicitação de criação de documento para a requisição de API [CreateDocumentRequest].
+ *
+ * **Responsabilidade:**
+ * - Converter e formatar os campos e tokens dinâmicos no padrão monetário brasileiro (BRL) e datas pt-BR (`dd/MM/yyyy`).
+ * - Inserir identificadores de correlação (`contract_id` e `lease_id`) nos metadados do documento no provedor.
  */
 fun ProviderDocumentRequest.toPandaDoc(properties: LocaSignProperties.PandaDocProperties): CreateDocumentRequest =
     CreateDocumentRequest(
@@ -94,7 +107,13 @@ internal fun java.math.BigDecimal.formatBrl(): String =
 
 internal fun Int.formatTerm(): String = if (this == 1) "1 mês" else "$this meses"
 
-/** Consulta de detalhes → estado neutro, com quem já assinou (`has_completed`). */
+/**
+ * Converte os detalhes da resposta da API da PandaDoc ([DocumentDetailsResponse]) na visão de estado do provedor ([ProviderDocumentState]).
+ *
+ * **Responsabilidade:**
+ * - Extrair os signatários que já concluíram sua assinatura eletrônica (`hasCompleted == true`) e correlacioná-los aos seus papéis de domínio.
+ * - Fornecer os dados necessários para o fluxo de reconciliação de contratos (Regra R6).
+ */
 fun DocumentDetailsResponse.toState(properties: LocaSignProperties.PandaDocProperties): ProviderDocumentState =
     ProviderDocumentState(
         documentId = ProviderDocumentId.of(id),

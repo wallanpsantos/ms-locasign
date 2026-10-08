@@ -4,8 +4,11 @@ import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 
 /**
- * Porta do provedor de assinatura. Não menciona "PandaDoc": o adapter é o único lugar que conhece
- * DTOs, nomes de status e endpoints. Todas as operações podem lançar [ProviderException].
+ * Porta de saída para comunicação agnóstica com o provedor de assinatura eletrônica (PandaDoc).
+ *
+ * **Responsabilidade:**
+ * - Abstrair as operações remotas de criação de documento, consulta de estado, envio para signatários, cancelamento e download de PDF assinado.
+ * - Isolar o núcleo da aplicação e o domínio dos detalhes da API externa (endpoints, DTOs e termos de status do PandaDoc), padronizando exceções em [ProviderException].
  */
 interface SignatureProviderPort {
     /** Cria o documento a partir do modelo. A criação é assíncrona no provedor. */
@@ -24,7 +27,13 @@ interface SignatureProviderPort {
     fun downloadSigned(documentId: ProviderDocumentId): SignedDocument
 }
 
-/** Porta de entrada de webhooks do provedor: autenticidade, divisão do array e tradução para sinais neutros. */
+/**
+ * Gateway de entrada para tratamento preliminar e validação criptográfica de payloads de webhooks do provedor.
+ *
+ * **Responsabilidade:**
+ * - Validar a assinatura HMAC sobre os bytes brutos (`raw bytes`) do corpo da requisição em tempo constante antes de qualquer parsing (ADR-012).
+ * - Decompor arrays de payloads múltiplos em itens individuais ([WebhookItem]) e traduzi-los em sinais neutros ([ProviderSignal]).
+ */
 interface ProviderWebhookGateway {
     /** Valida a assinatura sobre o corpo bruto, em tempo constante. */
     fun isAuthentic(rawBody: ByteArray, signature: String?): Boolean
@@ -36,7 +45,13 @@ interface ProviderWebhookGateway {
     fun translate(itemJson: String): ProviderSignal?
 }
 
-/** Guarda o PDF assinado e devolve a localização (caminho, URL...). */
+/**
+ * Porta de saída para persistência física do arquivo PDF do contrato assinado.
+ *
+ * **Responsabilidade:**
+ * - Armazenar os bytes do documento assinado em sistema de arquivos ou storage permanente.
+ * - Retornar a referência ou caminho canônico para arquivamento e rastreabilidade documental (Regra R8).
+ */
 interface SignedDocumentStoragePort {
     fun store(contractId: ContractId, bytes: ByteArray): String
 }

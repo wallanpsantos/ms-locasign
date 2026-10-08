@@ -26,11 +26,13 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 /**
- * Agregado do contrato: a fonte da verdade sobre o status (princípio 1). Toda mudança de status
- * passa por aqui; nenhuma informação externa altera o status sem a aprovação da política (R5).
+ * Raiz de agregação do contrato de locação, atuando como a única fonte da verdade sobre o status do documento.
  *
- * Eventos de domínio e linhas de auditoria produzidos pelas operações ficam pendentes até que o
- * use case os persista (`pullEvents` / `pullHistory`), sempre na mesma transação.
+ * **Responsabilidade:**
+ * - Centralizar e proteger as invariantes de negócio e ciclo de vida do contrato (princípio 1 da arquitetura e regras R1 a R10).
+ * - Submeter qualquer intenção de mutação de estado à política de transições ([ContractTransitionPolicy]) antes de efetivá-la.
+ * - Gerenciar a sequência estrita de assinaturas (R3), prazos de expiração (R4), lembretes de pendência (R7) e idempotência/reconciliação (R5, R6, R8).
+ * - Acumular eventos de domínio ([ContractEvent]) e entradas de histórico ([StatusHistoryEntry]) para descarregamento transacional atômico pelos casos de uso.
  */
 class Contract private constructor(
     val id: ContractId,

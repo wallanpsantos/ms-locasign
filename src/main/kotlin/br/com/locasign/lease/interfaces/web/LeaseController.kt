@@ -20,6 +20,13 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
+/**
+ * Controller REST driving para gerenciamento do ciclo de vida de locações residenciais.
+ *
+ * **Responsabilidade:**
+ * - Expor os endpoints HTTP `POST /api/v1/leases` e `GET /api/v1/leases/{leaseId}`.
+ * - Receber e validar as requisições web, delegar aos casos de uso de locação e retornar respostas com cabeçalhos apropriados (ex.: `Location`).
+ */
 @RestController
 @RequestMapping("/api/v1/leases")
 class LeaseController(

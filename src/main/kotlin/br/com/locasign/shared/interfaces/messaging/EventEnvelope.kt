@@ -9,7 +9,13 @@ import tools.jackson.core.JacksonException
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 
-/** Envelope das mensagens (guia, seção 7.3). O `payload` fica como árvore: cada consumidor lê o que precisa. */
+/**
+ * Envelope canônico e imutável para transporte de eventos e mensagens nos tópicos do Apache Kafka.
+ *
+ * **Responsabilidade:**
+ * - Padronizar o cabeçalho e metadados de eventos distribuídos ([eventId], [eventType], [schemaVersion], [correlationId], [causationId]).
+ * - Transportar o corpo do evento ([payload]) como árvore JSON polimórfica (`JsonNode`) para leitura seletiva e desacoplada pelos consumidores.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class EventEnvelope(
     val eventId: String,
@@ -23,7 +29,13 @@ data class EventEnvelope(
     val payload: JsonNode? = null,
 )
 
-/** Lê o envelope e executa o tratamento da mensagem com o contexto de correlação preenchido. */
+/**
+ * Componente utilitário de infraestrutura para deserialização de envelopes de eventos e vinculação de contexto de log.
+ *
+ * **Responsabilidade:**
+ * - Deserializar payloads JSON em instâncias de [EventEnvelope], convertendo falhas de formato na exceção fatal [UnreadableMessageException].
+ * - Extrair o JSON bruto do payload e executar rotinas de consumo dentro do contexto de correlação estruturado (MDC).
+ */
 @Component
 class EnvelopeReader(
     private val mapper: JsonMapper,

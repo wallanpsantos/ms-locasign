@@ -19,6 +19,14 @@ import java.time.Instant
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
+/**
+ * Adaptador de persistência que implementa a porta de escrita [ContractRepositoryPort].
+ *
+ * **Responsabilidade:**
+ * - Salvar atomicamente o agregado [Contract], os signatários associados e descarregar as linhas de auditoria pendentes na tabela `contract_status_history`.
+ * - Tratar violações de unicidade de contrato ativo (índice parcial da Regra R1) convertendo erros relacionais em [DomainException.ActiveContractExists].
+ * - Executar consultas especializadas com SQL otimizado para expiração, lembretes e reconciliação em lote.
+ */
 @Repository
 class ContractRepositoryAdapter(
     private val repository: ContractJdbcRepository,

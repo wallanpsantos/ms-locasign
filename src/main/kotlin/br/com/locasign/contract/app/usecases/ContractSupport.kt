@@ -10,7 +10,13 @@ import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import org.slf4j.Logger
 import java.time.Duration
 
-/** Parâmetros de negócio do ciclo de vida, vindos da configuração. */
+/**
+ * Configurações e parâmetros temporais que regem as regras de ciclo de vida dos contratos.
+ *
+ * **Responsabilidade:**
+ * - Centralizar prazos de expiração (R4), janelas para disparo de lembretes (R7), intervalos de reconciliação (R6) e tamanho de lotes de jobs.
+ * - Desacoplar valores temporais estáticos do domínio e casos de uso, injetando propriedades externas.
+ */
 data class ContractSettings(
     /** R4: prazo para assinatura (padrão de 7 dias). */
     val signatureDeadline: Duration,
@@ -22,7 +28,12 @@ data class ContractSettings(
     val jobBatchSize: Int,
 )
 
-/** Mensagem de evento do contrato entregue a um consumidor (id do envelope e contrato afetado). */
+/**
+ * Comando de transporte de evento Kafka consumido por orquestradores e executores assíncronos do contrato.
+ *
+ * **Responsabilidade:**
+ * - Carregar o identificador do evento original ([eventId]) e o identificador do contrato ([contractId]) para processamento idempotente.
+ */
 data class ContractEventCommand(val eventId: String, val contractId: ContractId)
 
 /**
@@ -38,8 +49,11 @@ internal fun SignatureProviderPort.cancelDocumentQuietly(documentId: ProviderDoc
 }
 
 /**
- * Persiste o agregado e publica seus eventos pendentes pelo outbox. Deve ser chamado dentro de uma
- * transação: estado, auditoria e eventos são gravados juntos (princípio 3).
+ * Utilitário de aplicação responsável por persistir o agregado [Contract] e descarregar seus eventos pendentes via Outbox.
+ *
+ * **Responsabilidade:**
+ * - Garantir atomicidade transacional: a gravação do contrato, seus signatários, histórico e eventos de outbox ocorrem na mesma transação (Princípio 3).
+ * - Evitar duplicação de lógica de persistência e outbox entre os múltiplos casos de uso do módulo.
  */
 class ContractPersister(
     private val contracts: ContractRepositoryPort,

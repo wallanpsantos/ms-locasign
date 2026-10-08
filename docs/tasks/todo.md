@@ -27,14 +27,14 @@ responsabilidade em encapsular invariantes primitivos do domínio.
 
 **Acceptance criteria:**
 
-- [ ] Todas as classes e interfaces em `shared/domain/` possuem KDoc com seção de responsabilidade.
-- [ ] `DomainEvent` e a hierarquia `DomainException` (`BusinessRuleViolation`, `NotFound`, `ActiveContractExists`,
+- [x] Todas as classes e interfaces em `shared/domain/` possuem KDoc com seção de responsabilidade.
+- [x] `DomainEvent` e a hierarquia `DomainException` (`BusinessRuleViolation`, `NotFound`, `ActiveContractExists`,
   `ContractFinal`) detalham sua responsabilidade de erro de negócio.
-- [ ] Value objects `Cpf`, `Email` e `Money` documentam a validação de formato e garantias de imutabilidade.
+- [x] Value objects `Cpf`, `Email` e `Money` documentam a validação de formato e garantias de imutabilidade.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** None
 
@@ -57,13 +57,13 @@ contexto de correlação, métricas, outbox e mensagens processadas.
 
 **Acceptance criteria:**
 
-- [ ] Portas `BusinessClock`, `CorrelationContext`, `MetricsPort`, `OutboxPort` e `ProcessedMessagesPort` recebem KDocs
+- [x] Portas `BusinessClock`, `CorrelationContext`, `MetricsPort`, `OutboxPort` e `ProcessedMessagesPort` recebem KDocs
   detalhando papel arquitetural como contratos abstratos desacoplados de infraestrutura.
-- [ ] Objetos utilitários associados (`ContextKeys`, `Metrics`, `OutboxMessage`) documentam suas responsabilidades.
+- [x] Objetos utilitários associados (`ContextKeys`, `Metrics`, `OutboxMessage`) documentam suas responsabilidades.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 1
 
@@ -86,14 +86,14 @@ além das constantes de tópicos/grupos Kafka (`Messaging.kt`) e tratamento de e
 
 **Acceptance criteria:**
 
-- [ ] `TransactionRunner` documenta a responsabilidade de delimitação transacional sem poluição de anotações no domínio
+- [x] `TransactionRunner` documenta a responsabilidade de delimitação transacional sem poluição de anotações no domínio
   (ADR-011).
-- [ ] `WebhookInboxPort` detalha o armazenamento de requisições idempotentes de webhook em raw bytes.
-- [ ] `Topics`, `ConsumerGroups`, `UnreadableMessageException` e `DeadLetterReplayPort` possuem KDocs claros.
+- [x] `WebhookInboxPort` detalha o armazenamento de requisições idempotentes de webhook em raw bytes.
+- [x] `Topics`, `ConsumerGroups`, `UnreadableMessageException` e `DeadLetterReplayPort` possuem KDocs claros.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 2
 
@@ -115,14 +115,14 @@ propriedades centralizadas de configuração (`LocaSignProperties`) e configura�
 
 **Acceptance criteria:**
 
-- [ ] `KafkaConfig`, `OpenApiConfig`, `SharedBeansConfig` (e classes internas de clock e transaction runner) recebem
+- [x] `KafkaConfig`, `OpenApiConfig`, `SharedBeansConfig` (e classes internas de clock e transaction runner) recebem
   KDocs descrevendo o provisionamento de infraestrutura.
-- [ ] `LocaSignProperties` e todas as suas classes filhas de configuração mapeiam as variáveis de ambiente e suas
+- [x] `LocaSignProperties` e todas as suas classes filhas de configuração mapeiam as variáveis de ambiente e suas
   responsabilidades de parametrização.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 3
 
@@ -145,15 +145,15 @@ propriedades centralizadas de configuração (`LocaSignProperties`) e configura�
 
 **Acceptance criteria:**
 
-- [ ] `OutboxRelay` e `DeadLetterReplayer` explicitam suas responsabilidades no repasse transacional e recuperação de
+- [x] `OutboxRelay` e `DeadLetterReplayer` explicitam suas responsabilidades no repasse transacional e recuperação de
   falhas em DLQ.
-- [ ] `KafkaHealthIndicator` e adaptadores de métricas/MDC detalham seu papel na observabilidade e rastreabilidade
+- [x] `KafkaHealthIndicator` e adaptadores de métricas/MDC detalham seu papel na observabilidade e rastreabilidade
   distribuída.
-- [ ] `HousekeepingJob` documenta a limpeza de registros antigos no banco de dados.
+- [x] `HousekeepingJob` documenta a limpeza de registros antigos no banco de dados.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 4
 
@@ -176,13 +176,13 @@ outbox, inbox e idempotência, além das funções de suporte a JDBC (`JdbcSuppo
 
 **Acceptance criteria:**
 
-- [ ] `JdbcOutboxAdapter`, `JdbcProcessedMessagesAdapter` e `JdbcWebhookInboxAdapter` documentam as operações
+- [x] `JdbcOutboxAdapter`, `JdbcProcessedMessagesAdapter` e `JdbcWebhookInboxAdapter` documentam as operações
   transacionais no PostgreSQL.
-- [ ] `JdbcSupport.kt` documenta sua responsabilidade como ponte de conversões de tipos SQL/Kotlin.
+- [x] `JdbcSupport.kt` documenta sua responsabilidade como ponte de conversões de tipos SQL/Kotlin.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 5
 
@@ -202,15 +202,15 @@ outbox, inbox e idempotência, além das funções de suporte a JDBC (`JdbcSuppo
 
 **Acceptance criteria:**
 
-- [ ] `AdminController` detalha a responsabilidade de expor operações de manutenção restritas.
-- [ ] `ApiExceptionHandler` documenta a tradução de exceções de domínio e sistema para Problem Details (RFC 7807).
-- [ ] `CorrelationIdFilter` e `OperatorAccessGuard` documentam propagação de rastreamento e proteção de endpoints
+- [x] `AdminController` detalha a responsabilidade de expor operações de manutenção restritas.
+- [x] `ApiExceptionHandler` documenta a tradução de exceções de domínio e sistema para Problem Details (RFC 7807).
+- [x] `CorrelationIdFilter` e `OperatorAccessGuard` documentam propagação de rastreamento e proteção de endpoints
   administrativos.
-- [ ] `EventEnvelope` documenta o formato canônico de publicação e leitura de eventos no Kafka.
+- [x] `EventEnvelope` documenta o formato canônico de publicação e leitura de eventos no Kafka.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 6
 
@@ -228,8 +228,8 @@ outbox, inbox e idempotência, além das funções de suporte a JDBC (`JdbcSuppo
 
 ### Checkpoint: Shared Module
 
-- [ ] Todos os 30 arquivos do módulo `shared` compilam sem advertências ou erros.
-- [ ] Todas as classes e interfaces em `br.com.locasign.shared` possuem KDoc no formato estruturado.
+- [x] Todos os 30 arquivos do módulo `shared` compilam sem advertências ou erros.
+- [x] Todas as classes e interfaces em `br.com.locasign.shared` possuem KDoc no formato estruturado.
 
 ---
 
@@ -242,13 +242,13 @@ os value objects `LeaseId` e `LeaseTerm`.
 
 **Acceptance criteria:**
 
-- [ ] `Lease` documenta a representação do contrato imobiliário no negócio e invariante de ativação (ação
+- [x] `Lease` documenta a representação do contrato imobiliário no negócio e invariante de ativação (ação
   pós-assinatura).
-- [ ] `Tenant`, `AgencySigner`, `LeaseId` e `LeaseTerm` detalham suas responsabilidades e validações (R2).
+- [x] `Tenant`, `AgencySigner`, `LeaseId` e `LeaseTerm` detalham suas responsabilidades e validações (R2).
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Checkpoint: Shared Module
 
@@ -270,13 +270,13 @@ os value objects `LeaseId` e `LeaseTerm`.
 
 **Acceptance criteria:**
 
-- [ ] `RegisterLease` documenta a orquestração do cadastro e validações de negócio da locação.
-- [ ] `ActivateLease` documenta a transição de estado disparada após conclusão das assinaturas.
-- [ ] Portas e projeções de consulta documentam seus contratos de persistência e leitura.
+- [x] `RegisterLease` documenta a orquestração do cadastro e validações de negócio da locação.
+- [x] `ActivateLease` documenta a transição de estado disparada após conclusão das assinaturas.
+- [x] Portas e projeções de consulta documentam seus contratos de persistência e leitura.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 8
 
@@ -299,14 +299,14 @@ os value objects `LeaseId` e `LeaseTerm`.
 
 **Acceptance criteria:**
 
-- [ ] `LeaseController` e `LeaseApi` documentam os endpoints REST de cadastro e busca de locações.
-- [ ] DTOs de requisição e resposta documentam seus esquemas de transferência de dados e validações Bean Validation
+- [x] `LeaseController` e `LeaseApi` documentam os endpoints REST de cadastro e busca de locações.
+- [x] DTOs de requisição e resposta documentam seus esquemas de transferência de dados e validações Bean Validation
   (`@field:`).
-- [ ] Mappers documentam a conversão bidirecional entre DTOs e modelos de aplicação.
+- [x] Mappers documentam a conversão bidirecional entre DTOs e modelos de aplicação.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 9
 
@@ -329,13 +329,13 @@ Data `LeaseJdbcRepository`, adaptadores `LeaseAdapters.kt` e mappers de entidade
 
 **Acceptance criteria:**
 
-- [ ] `LeaseBeansConfig` documenta a injeção e instanciação explícita dos casos de uso de locação.
-- [ ] `LeaseEntity` e `LeaseJdbcRepository` documentam o esquema da tabela `leases` e consultas relacionais.
-- [ ] `LeaseRepositoryAdapter` e `LeaseQueryAdapter` documentam a implementação das portas de saída.
+- [x] `LeaseBeansConfig` documenta a injeção e instanciação explícita dos casos de uso de locação.
+- [x] `LeaseEntity` e `LeaseJdbcRepository` documentam o esquema da tabela `leases` e consultas relacionais.
+- [x] `LeaseRepositoryAdapter` e `LeaseQueryAdapter` documentam a implementação das portas de saída.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 10
 
@@ -353,8 +353,8 @@ Data `LeaseJdbcRepository`, adaptadores `LeaseAdapters.kt` e mappers de entidade
 
 ### Checkpoint: Lease Module
 
-- [ ] Todos os 19 arquivos do módulo `lease` compilam com sucesso.
-- [ ] Nenhuma classe do módulo `lease` permanece sem KDoc estruturado.
+- [x] Todos os 19 arquivos do módulo `lease` compilam com sucesso.
+- [x] Nenhuma classe do módulo `lease` permanece sem KDoc estruturado.
 
 ---
 
@@ -367,14 +367,14 @@ Data `LeaseJdbcRepository`, adaptadores `LeaseAdapters.kt` e mappers de entidade
 
 **Acceptance criteria:**
 
-- [ ] `NotificationPolicy` documenta as regras de determinação de público-alvo (locatário, imobiliária, ambos) para cada
+- [x] `NotificationPolicy` documenta as regras de determinação de público-alvo (locatário, imobiliária, ambos) para cada
   evento.
-- [ ] `NotificationRecipientsPort` e `NotificationLogPort` detalham suas funções no envio e auditoria de notificações.
-- [ ] `RecordNotifications` documenta o registro e simulação de notificações enviadas.
+- [x] `NotificationRecipientsPort` e `NotificationLogPort` detalham suas funções no envio e auditoria de notificações.
+- [x] `RecordNotifications` documenta o registro e simulação de notificações enviadas.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Checkpoint: Lease Module
 
@@ -395,14 +395,14 @@ Kafka `NotificationConsumer.kt`.
 
 **Acceptance criteria:**
 
-- [ ] `NotificationConsumer` documenta o consumo assíncrono de eventos de contrato com idempotência transacional.
-- [ ] `JdbcNotificationRecipientsAdapter` e `JdbcNotificationLogAdapter` documentam o acesso aos destinatários e
+- [x] `NotificationConsumer` documenta o consumo assíncrono de eventos de contrato com idempotência transacional.
+- [x] `JdbcNotificationRecipientsAdapter` e `JdbcNotificationLogAdapter` documentam o acesso aos destinatários e
   gravação em tabela de log.
-- [ ] `NotificationBeansConfig` documenta a amarração dos beans do módulo.
+- [x] `NotificationBeansConfig` documenta a amarração dos beans do módulo.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 12
 
@@ -418,8 +418,8 @@ Kafka `NotificationConsumer.kt`.
 
 ### Checkpoint: Notification Module
 
-- [ ] Todos os 6 arquivos do módulo `notification` compilam com sucesso.
-- [ ] Notificações e políticas documentadas integralmente em conformidade com R1-R10.
+- [x] Todos os 6 arquivos do módulo `notification` compilam com sucesso.
+- [x] Notificações e políticas documentadas integralmente em conformidade com R1-R10.
 
 ---
 
@@ -432,14 +432,14 @@ alteração), e os value objects `ContractValueObjects.kt` (`ContractId`, `Provi
 
 **Acceptance criteria:**
 
-- [ ] `Contract` documenta seu papel como raiz de agregação e fonte da verdade absoluta sobre o ciclo de vida
+- [x] `Contract` documenta seu papel como raiz de agregação e fonte da verdade absoluta sobre o ciclo de vida
   documental.
-- [ ] `ContractStatus` mapeia o diagrama de transições de estados e origens de evento (`ChangeSource`).
-- [ ] Value objects de contrato documentam suas validações e encapsulamentos de identificadores.
+- [x] `ContractStatus` mapeia o diagrama de transições de estados e origens de evento (`ChangeSource`).
+- [x] Value objects de contrato documentam suas validações e encapsulamentos de identificadores.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Checkpoint: Notification Module
 
@@ -460,14 +460,14 @@ de domínio `ContractTransitionPolicy.kt` e toda a família de eventos em `Contr
 
 **Acceptance criteria:**
 
-- [ ] `ContractTransitionPolicy` documenta a matriz formal de transição de estados e proteção contra retrocessos ou
+- [x] `ContractTransitionPolicy` documenta a matriz formal de transição de estados e proteção contra retrocessos ou
   concorrência.
-- [ ] `Signer` e motivos de cancelamento documentam os papéis dos signatários e causas de encerramento prematuro.
-- [ ] Todos os eventos selados de `ContractEvent` documentam as mudanças de estado emitidas para outbox.
+- [x] `Signer` e motivos de cancelamento documentam os papéis dos signatários e causas de encerramento prematuro.
+- [x] Todos os eventos selados de `ContractEvent` documentam as mudanças de estado emitidas para outbox.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 14
 
@@ -488,13 +488,13 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `SignatureProviderPort` e `SignedDocumentStoragePort` documentam os contratos agnósticos a fornecedores externos.
-- [ ] Modelos de provedor e exceções (`ProviderErrors`) detalham as estruturas canônicas de dados e falhas mapeadas.
-- [ ] `LeaseLookupPort` e `LeaseActivationPort` detalham o isolamento hexagonal de contratos em relação a locações.
+- [x] `SignatureProviderPort` e `SignedDocumentStoragePort` documentam os contratos agnósticos a fornecedores externos.
+- [x] Modelos de provedor e exceções (`ProviderErrors`) detalham as estruturas canônicas de dados e falhas mapeadas.
+- [x] `LeaseLookupPort` e `LeaseActivationPort` detalham o isolamento hexagonal de contratos em relação a locações.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 15
 
@@ -516,15 +516,15 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `ContractRepositoryPort` e `ContractQueryPort` documentam os contratos de leitura e escrita do agregado e
+- [x] `ContractRepositoryPort` e `ContractQueryPort` documentam os contratos de leitura e escrita do agregado e
   histórico.
-- [ ] `ContractEventPublisherPort` documenta a emissão via outbox.
-- [ ] `ContractDetailView`, `SignerView`, `GetContract` e `GetContractHistory` documentam o suporte a leituras
+- [x] `ContractEventPublisherPort` documenta a emissão via outbox.
+- [x] `ContractDetailView`, `SignerView`, `GetContract` e `GetContractHistory` documentam o suporte a leituras
   desacopladas.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 16
 
@@ -545,15 +545,15 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `RequestContract` documenta o ponto de partida do contrato e emissão do evento inicial.
-- [ ] `CreateProviderDocument` e `SendContract` detalham o pipeline assíncrono de criação no parceiro externo e envio
+- [x] `RequestContract` documenta o ponto de partida do contrato e emissão do evento inicial.
+- [x] `CreateProviderDocument` e `SendContract` detalham o pipeline assíncrono de criação no parceiro externo e envio
   para assinatura.
-- [ ] `ApplyProviderUpdate` documenta a aplicação protegida de atualizações recebidas.
-- [ ] `ContractPersister` e `ContractSettings` detalham a persistência transacional de agregado + histórico + outbox.
+- [x] `ApplyProviderUpdate` documenta a aplicação protegida de atualizações recebidas.
+- [x] `ContractPersister` e `ContractSettings` detalham a persistência transacional de agregado + histórico + outbox.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 17
 
@@ -576,14 +576,14 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `ReceiveProviderWebhook` documenta a recepção rápida no inbox HTTP com validação HMAC.
-- [ ] `ProcessProviderWebhookItem` documenta o processamento desacoplado a partir da fila Kafka.
-- [ ] `ArchiveSignedDocument` documenta o download e armazenamento seguro do documento final assinado.
-- [ ] `RunPostSignatureActions` documenta os efeitos colaterais de ativação da locação e notificação aos envolvidos.
+- [x] `ReceiveProviderWebhook` documenta a recepção rápida no inbox HTTP com validação HMAC.
+- [x] `ProcessProviderWebhookItem` documenta o processamento desacoplado a partir da fila Kafka.
+- [x] `ArchiveSignedDocument` documenta o download e armazenamento seguro do documento final assinado.
+- [x] `RunPostSignatureActions` documenta os efeitos colaterais de ativação da locação e notificação aos envolvidos.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 18
 
@@ -604,14 +604,14 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `CancelContract` documenta o cancelamento administrativo ou por desistência com aviso ao provedor.
-- [ ] `ExpireOverdueContracts` documenta a expiração automática de contratos que atingiram o prazo limite.
-- [ ] `ReconcileContracts` documenta a reconciliação periódica contra eventuais perdas de webhooks.
-- [ ] `SendSignatureReminders` documenta o envio de notificações de lembrete a signatários pendentes.
+- [x] `CancelContract` documenta o cancelamento administrativo ou por desistência com aviso ao provedor.
+- [x] `ExpireOverdueContracts` documenta a expiração automática de contratos que atingiram o prazo limite.
+- [x] `ReconcileContracts` documenta a reconciliação periódica contra eventuais perdas de webhooks.
+- [x] `SendSignatureReminders` documenta o envio de notificações de lembrete a signatários pendentes.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 19
 
@@ -628,8 +628,8 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 ### Checkpoint: Contract Domain and Application
 
-- [ ] Todos os arquivos de domínio e aplicação de `contract` compilam sem erro.
-- [ ] Casos de uso e portas de contratos com KDocs rigorosos e fiéis às regras R1-R10.
+- [x] Todos os arquivos de domínio e aplicação de `contract` compilam sem erro.
+- [x] Casos de uso e portas de contratos com KDocs rigorosos e fiéis às regras R1-R10.
 
 ---
 
@@ -642,13 +642,13 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `PandaDocClient` documenta as chamadas HTTP à API PandaDoc via Spring HTTP Interface/RestClient.
-- [ ] `SlidingWindowRateLimiter` detalha o controle estrito de requisições por segundo para evitar HTTP 429.
-- [ ] `PandaDocErrors` e `PandaDocMappers` documentam a conversão entre o mundo PandaDoc e o modelo da aplicação.
+- [x] `PandaDocClient` documenta as chamadas HTTP à API PandaDoc via Spring HTTP Interface/RestClient.
+- [x] `SlidingWindowRateLimiter` detalha o controle estrito de requisições por segundo para evitar HTTP 429.
+- [x] `PandaDocErrors` e `PandaDocMappers` documentam a conversão entre o mundo PandaDoc e o modelo da aplicação.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Checkpoint: Contract Domain and Application
 
@@ -670,13 +670,13 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `PandaDocSignatureProviderAdapter` documenta a implementação de `SignatureProviderPort`.
-- [ ] `PandaDocWebhookGateway` documenta a verificação de assinatura HMAC sobre bytes brutos do webhook.
-- [ ] DTOs de requisição e resposta documentam os formatos serializados esperados pela PandaDoc.
+- [x] `PandaDocSignatureProviderAdapter` documenta a implementação de `SignatureProviderPort`.
+- [x] `PandaDocWebhookGateway` documenta a verificação de assinatura HMAC sobre bytes brutos do webhook.
+- [x] DTOs de requisição e resposta documentam os formatos serializados esperados pela PandaDoc.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 21
 
@@ -698,14 +698,14 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `ContractEntity` e signatários documentam o mapeamento relacional das tabelas `contracts` e `contract_signers`.
-- [ ] `ContractJdbcRepository` e `ContractRepositoryAdapter` detalham as queries SQL, locking otimista (`rowVersion`) e
+- [x] `ContractEntity` e signatários documentam o mapeamento relacional das tabelas `contracts` e `contract_signers`.
+- [x] `ContractJdbcRepository` e `ContractRepositoryAdapter` detalham as queries SQL, locking otimista (`rowVersion`) e
   reconstituição do agregado.
-- [ ] `ContractEntityMappers` documenta a tradução entre entidade de banco e o agregado puro `Contract`.
+- [x] `ContractEntityMappers` documenta a tradução entre entidade de banco e o agregado puro `Contract`.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 22
 
@@ -727,14 +727,14 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `ContractQueryAdapter` documenta a execução de queries otimizadas de leitura do contrato e histórico.
-- [ ] `LeaseBridgeAdapters` documenta as pontes JDBC que realizam lookup e ativação da locação sem dependência direta de
+- [x] `ContractQueryAdapter` documenta a execução de queries otimizadas de leitura do contrato e histórico.
+- [x] `LeaseBridgeAdapters` documenta as pontes JDBC que realizam lookup e ativação da locação sem dependência direta de
   código entre módulos.
-- [ ] `FileSystemSignedDocumentStorage` documenta o arquivamento seguro e atômico do PDF em disco local.
+- [x] `FileSystemSignedDocumentStorage` documenta o arquivamento seguro e atômico do PDF em disco local.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 23
 
@@ -755,14 +755,14 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 **Acceptance criteria:**
 
-- [ ] `OutboxContractEventPublisher` documenta o enfileiramento transacional de eventos de contrato na outbox.
-- [ ] `ContractJobs` (`ReconciliationJob`, `ExpirationJob`, `ReminderJob`) documenta os agendamentos automáticos com
+- [x] `OutboxContractEventPublisher` documenta o enfileiramento transacional de eventos de contrato na outbox.
+- [x] `ContractJobs` (`ReconciliationJob`, `ExpirationJob`, `ReminderJob`) documenta os agendamentos automáticos com
   anotações `@Scheduled`.
-- [ ] `ContractBeansConfig` e `PandaDocConfig` documentam a injeção e montagem dos componentes de contratos e PandaDoc.
+- [x] `ContractBeansConfig` e `PandaDocConfig` documentam a injeção e montagem dos componentes de contratos e PandaDoc.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 24
 
@@ -780,8 +780,8 @@ canônicos de provedor (`ProviderModels.kt`), erros tipados (`ProviderErrors.kt`
 
 ### Checkpoint: Contract Infrastructure
 
-- [ ] Todos os arquivos de infraestrutura de `contract` compilam sem erro.
-- [ ] Total conformidade com o ADR-012 (PandaDoc) e ADR-011 (Transações).
+- [x] Todos os arquivos de infraestrutura de `contract` compilam sem erro.
+- [x] Total conformidade com o ADR-012 (PandaDoc) e ADR-011 (Transações).
 
 ---
 
@@ -794,14 +794,14 @@ de resposta (`ContractResponses.kt`) e mappers web (`ContractWebMappers.kt`).
 
 **Acceptance criteria:**
 
-- [ ] `ContractController` e `ContractApi` documentam as operações REST de solicitação, detalhamento, histórico e
+- [x] `ContractController` e `ContractApi` documentam as operações REST de solicitação, detalhamento, histórico e
   cancelamento de contratos.
-- [ ] DTOs de requisição e resposta documentam os contratos JSON expostos para o cliente.
-- [ ] `ContractWebMappers` documenta a conversão entre DTOs e entidades/visões de aplicação.
+- [x] DTOs de requisição e resposta documentam os contratos JSON expostos para o cliente.
+- [x] `ContractWebMappers` documenta a conversão entre DTOs e entidades/visões de aplicação.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Checkpoint: Contract Infrastructure
 
@@ -825,14 +825,14 @@ de resposta (`ContractResponses.kt`) e mappers web (`ContractWebMappers.kt`).
 
 **Acceptance criteria:**
 
-- [ ] `PandaDocWebhookController` documenta o endpoint seguro de recepção de webhooks HMAC sem bloqueio síncrono.
-- [ ] `ContractConsumers.kt` documenta a orquestração assíncrona, garantia de idempotência e pós-processamento de
+- [x] `PandaDocWebhookController` documenta o endpoint seguro de recepção de webhooks HMAC sem bloqueio síncrono.
+- [x] `ContractConsumers.kt` documenta a orquestração assíncrona, garantia de idempotência e pós-processamento de
   assinaturas.
-- [ ] `LocaSignApplication.kt` documenta o ponto de entrada da aplicação Spring Boot e perfis suportados.
+- [x] `LocaSignApplication.kt` documenta o ponto de entrada da aplicação Spring Boot e fuso horário padronizado em UTC.
 
 **Verification:**
 
-- [ ] Build succeeds: `./gradlew compileKotlin`
+- [x] Build succeeds: `./gradlew compileKotlin`
 
 **Dependencies:** Task 26
 
@@ -848,7 +848,7 @@ de resposta (`ContractResponses.kt`) e mappers web (`ContractWebMappers.kt`).
 
 ### Checkpoint: Complete Application
 
-- [ ] `./gradlew compileKotlin` executa com sucesso total.
-- [ ] Todos os 109 arquivos de código fonte Kotlin do projeto possuem KDocs atualizados e estruturados.
-- [ ] Nenhuma alteração de lógica de execução foi introduzida.
-- [ ] Workspace limpo e preparado para conferência humana via `git status` e `git diff`.
+- [x] `./gradlew compileKotlin` executa com sucesso total.
+- [x] Todos os 109 arquivos de código fonte Kotlin do projeto possuem KDocs atualizados e estruturados.
+- [x] Nenhuma alteração de lógica de execução foi introduzida.
+- [x] Workspace limpo e preparado para conferência humana via `git status` e `git diff`.

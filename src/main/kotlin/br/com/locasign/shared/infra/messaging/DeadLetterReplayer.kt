@@ -16,9 +16,11 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 /**
- * Reprocessamento manual da fila de erros: lê a DLT do tópico, republica cada mensagem no tópico
- * original e confirma o offset do grupo de replay. Como os consumidores são idempotentes (R6),
- * reenviar uma mensagem já tratada é seguro.
+ * Componente de infraestrutura para reprocessamento manual de mensagens armazenadas em Dead Letter Topics (DLT).
+ *
+ * **Responsabilidade:**
+ * - Consumir mensagens da fila DLT de um tópico especificado e republicá-las em seu tópico Kafka original.
+ * - Garantir execução mutuamente exclusiva através de lock de concorrência (`ReentrantLock`) e atualizar os offsets de consumo após a republicação.
  */
 @Component
 class DeadLetterReplayer(

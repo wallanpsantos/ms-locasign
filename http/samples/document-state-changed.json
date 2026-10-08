@@ -1,0 +1,16 @@
+[
+  {
+    "event": "document_state_changed",
+    "data": {
+      "id": "SUBSTITUA_PELO_ID_DO_DOCUMENTO",
+      "name": "LocaSign contrato",
+      "date_modified": "2026-10-08T15:30:00.000000Z",
+      "status": "document.viewed",
+      "metadata": {},
+      "recipients": [
+        { "email": "maria@example.com", "role": "Locatario", "has_completed": false },
+        { "email": "agencia@example.com", "role": "Imobiliaria", "has_completed": false }
+      ]
+    }
+  }
+]

@@ -1,0 +1,73 @@
+### LocaSign: requisições de exemplo (cliente HTTP do IntelliJ).
+### Roteiro da demonstração do plano de negócio. Execute de cima para baixo.
+###
+### Variáveis: ajuste `host` se a app não estiver em localhost:8080.
+### `adminToken` só é necessário se a app foi iniciada com ADMIN_TOKEN.
+
+@host = http://localhost:8080
+@adminToken = abc123
+
+### 1. Saúde (banco e Kafka)
+GET {{host}}/actuator/health
+
+### 2. Cadastra a locação (dados FICTÍCIOS; no sandbox, use e-mails do domínio do remetente)
+# @name criarLocacao
+POST {{host}}/api/v1/leases
+Content-Type: application/json
+
+{
+  "tenant": {
+    "name": "Maria Silva",
+    "cpf": "529.982.247-25",
+    "email": "maria@example.com"
+  },
+  "agencySigner": {
+    "name": "Imobiliária Exemplo",
+    "email": "agencia@example.com"
+  },
+  "property": {
+    "address": "Rua das Flores, 100, São Paulo/SP"
+  },
+  "rentAmount": "2500.00",
+  "startDate": "2026-11-01",
+  "termMonths": 30
+}
+
+> {% client.global.set("leaseId", response.body.id); %}
+
+### 3. Consulta a locação (mostra o contrato atual)
+GET {{host}}/api/v1/leases/{{leaseId}}
+
+### 4. Solicita o contrato (202: a geração e o envio acontecem de forma assíncrona)
+# @name solicitarContrato
+POST {{host}}/api/v1/leases/{{leaseId}}/contracts
+
+> {% client.global.set("contractId", response.body.id); %}
+
+### 5. Acompanha o status (DRAFT -> GENERATED -> SENT -> VIEWED -> PARTIALLY_SIGNED -> COMPLETED)
+GET {{host}}/api/v1/contracts/{{contractId}}
+
+### 6. Linha do tempo completa (inclui transições ignoradas e fatos informativos)
+GET {{host}}/api/v1/contracts/{{contractId}}/history
+
+### 7. Cancela o contrato (motivo obrigatório). Depois disso, uma nova versão pode ser solicitada.
+POST {{host}}/api/v1/contracts/{{contractId}}/cancel
+Content-Type: application/json
+
+{
+  "reason": "Dados do locatário precisam de correção"
+}
+
+### 8. Força a reconciliação com a PandaDoc (operação). Útil se um webhook se perdeu.
+POST {{host}}/api/v1/contracts/{{contractId}}/reconcile
+X-Admin-Token: {{adminToken}}
+
+### 9. Reprocessa a fila de erros (DLT) de um tópico (operação)
+POST {{host}}/api/v1/admin/dead-letters/locasign.contract.events.v1/replay
+X-Admin-Token: {{adminToken}}
+
+### 10. Métricas de negócio
+GET {{host}}/actuator/metrics/locasign.webhook.received
+
+### 11. Documentação da API (Swagger UI): {{host}}/swagger-ui.html
+GET {{host}}/v3/api-docs

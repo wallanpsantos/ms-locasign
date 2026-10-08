@@ -1,0 +1,13 @@
+# Perfil de desenvolvimento: app rodando na IDE, infraestrutura no Docker Compose.
+# Uso: ./gradlew bootRun --args='--spring.profiles.active=local'
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    br.com.locasign: DEBUG
+    org.apache.kafka: WARN

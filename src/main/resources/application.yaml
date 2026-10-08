@@ -1,3 +1,109 @@
 spring:
   application:
     name: ms-locasign
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/locasign}
+    username: ${DB_USERNAME:locasign}
+    password: ${DB_PASSWORD:locasign}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      fail-fast: false
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 30000
+        request.timeout.ms: 15000
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      # Novo protocolo de rebalanceamento do Kafka 4 (opcional; ver guia, seção 7.5):
+      # properties:
+      #   group.protocol: consumer
+    listener:
+      # Commit do offset depois do processamento de cada mensagem (R6 completa o "exatamente uma vez").
+      ack-mode: record
+      concurrency: 1
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      # Status de cada componente (db, kafka) sempre visível; detalhes (caminhos, ids do cluster) só
+      # para quem estiver autorizado. O perfil `local` mostra tudo.
+      show-components: always
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+      probes:
+        enabled: true
+
+springdoc:
+  # Documentação da API em /swagger-ui.html. Defina SWAGGER_ENABLED=false fora do ambiente local.
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+
+locasign:
+  timezone: ${APP_TIMEZONE:America/Sao_Paulo}
+  admin:
+    # Operações sensíveis (replay da DLT, reconciliação forçada): exigem o header X-Admin-Token.
+    # Sem ADMIN_TOKEN elas ficam desabilitadas (403); o endereço de origem nunca é considerado confiável.
+    token: ${ADMIN_TOKEN:}
+  agency-signer:
+    name: ${AGENCY_SIGNER_NAME:}
+    email: ${AGENCY_SIGNER_EMAIL:}
+  contract:
+    signature-deadline-days: ${CONTRACT_SIGNATURE_DEADLINE_DAYS:7}
+    reminder-after-days: ${CONTRACT_REMINDER_AFTER_DAYS:3}
+    reconciliation-stale-after: ${RECONCILIATION_STALE_AFTER:10m}
+  outbox:
+    relay-interval: ${OUTBOX_RELAY_INTERVAL:1500ms}
+    batch-size: 100
+  archive:
+    directory: ${ARCHIVE_DIRECTORY:./data/signed-documents}
+  jobs:
+    batch-size: 50
+    reconciliation:
+      enabled: ${JOB_RECONCILIATION_ENABLED:true}
+      interval: ${JOB_RECONCILIATION_INTERVAL:5m}
+    expiration:
+      enabled: ${JOB_EXPIRATION_ENABLED:true}
+      interval: ${JOB_EXPIRATION_INTERVAL:15m}
+    reminder:
+      enabled: ${JOB_REMINDER_ENABLED:true}
+      interval: ${JOB_REMINDER_INTERVAL:24h}
+    housekeeping:
+      enabled: ${JOB_HOUSEKEEPING_ENABLED:true}
+      interval: 24h
+  pandadoc:
+    base-url: ${PANDADOC_BASE_URL:https://api.pandadoc.com/public/v1}
+    api-key: ${PANDADOC_API_KEY:}
+    template-id: ${PANDADOC_TEMPLATE_ID:}
+    webhook-shared-key: ${PANDADOC_WEBHOOK_SHARED_KEY:}
+    download-enabled: ${PANDADOC_DOWNLOAD_ENABLED:false}
+    rate-limit-per-minute: ${PANDADOC_RATE_LIMIT_PER_MINUTE:8}
+
+---
+# Logs estruturados em JSON (correlationId, contractId e eventId vêm do MDC) fora do perfil `local`.
+spring:
+  config:
+    activate:
+      on-profile: "!local"
+logging:
+  structured:
+    format:
+      console: ecs

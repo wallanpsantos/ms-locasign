@@ -1,0 +1,121 @@
+# LocaSign: infraestrutura local (guia técnico, seção 10).
+#
+#   docker compose up -d                       -> postgres + kafka (a app roda pela IDE)
+#   docker compose --profile tools up -d       -> + Kafka UI em http://localhost:8081
+#   docker compose --profile app up -d --build -> + a aplicação em container
+#   docker compose --profile tunnel up -d      -> + túnel HTTPS público para os webhooks da PandaDoc
+#
+# Variáveis opcionais em um arquivo `.env` (veja `.env.example`). Nunca versione o `.env`.
+name: locasign
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${DB_NAME:-locasign}
+      POSTGRES_USER: ${DB_USERNAME:-locasign}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-locasign}
+    ports:
+      # Publicadas só no loopback: credenciais padrão de desenvolvimento não devem ficar expostas na rede.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # A imagem 18 guarda os dados em /var/lib/postgresql/18/docker: o volume monta o diretório pai.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  kafka:
+    image: apache/kafka:4.3.1
+    # Modo KRaft em nó único (broker e controller). Sem ZooKeeper desde o Kafka 4.0.
+    #
+    # ARMADILHA CLÁSSICA: o broker anuncia DOIS listeners.
+    #   - PLAINTEXT  kafka:29092     -> clientes dentro da rede do Compose (container `app`)
+    #   - EXTERNAL   localhost:9092  -> clientes no host (app rodando na IDE, testes manuais)
+    # Se a app conecta mas não consegue produzir ou consumir, o problema quase sempre está aqui.
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:9093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:${KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Tópicos são declarados pela aplicação; a criação automática fica desligada.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "127.0.0.1:${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    profiles: ["tools"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: locasign-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8081:8080"
+
+  app:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-locasign}
+      DB_USERNAME: ${DB_USERNAME:-locasign}
+      DB_PASSWORD: ${DB_PASSWORD:-locasign}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PANDADOC_BASE_URL: ${PANDADOC_BASE_URL:-https://api.pandadoc.com/public/v1}
+      PANDADOC_API_KEY: ${PANDADOC_API_KEY:-}
+      PANDADOC_TEMPLATE_ID: ${PANDADOC_TEMPLATE_ID:-}
+      PANDADOC_WEBHOOK_SHARED_KEY: ${PANDADOC_WEBHOOK_SHARED_KEY:-}
+      PANDADOC_DOWNLOAD_ENABLED: ${PANDADOC_DOWNLOAD_ENABLED:-false}
+      PANDADOC_RATE_LIMIT_PER_MINUTE: ${PANDADOC_RATE_LIMIT_PER_MINUTE:-8}
+      AGENCY_SIGNER_NAME: ${AGENCY_SIGNER_NAME:-}
+      AGENCY_SIGNER_EMAIL: ${AGENCY_SIGNER_EMAIL:-}
+      CONTRACT_SIGNATURE_DEADLINE_DAYS: ${CONTRACT_SIGNATURE_DEADLINE_DAYS:-7}
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/Sao_Paulo}
+      ARCHIVE_DIRECTORY: /app/data/signed-documents
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - appdata:/app/data
+
+  tunnel:
+    # Túnel HTTPS público (Cloudflare, sem conta) para a PandaDoc alcançar /webhooks/pandadoc.
+    # A URL muda a cada execução: veja `docker compose logs tunnel` e atualize o cadastro do webhook.
+    # Alternativa: ngrok (`ngrok http 8080`).
+    # Alvo padrão: a app rodando na IDE (no host). Com `--profile app`, use TUNNEL_TARGET=app:8080.
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate --url http://${TUNNEL_TARGET:-host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata:
+  kafkadata:
+  appdata:

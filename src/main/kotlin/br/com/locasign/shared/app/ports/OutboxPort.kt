@@ -7,14 +7,14 @@ import java.time.Instant
  * consumidores (texto, porque itens de webhook usam `deliveryId:índice`).
  */
 data class OutboxMessage(
-	val id: String,
-	val topic: String,
-	val key: String,
-	val aggregateType: String,
-	val aggregateId: String,
-	val eventType: String,
-	val occurredAt: Instant,
-	val payloadJson: String,
+    val id: String,
+    val topic: String,
+    val key: String,
+    val aggregateType: String,
+    val aggregateId: String,
+    val eventType: String,
+    val occurredAt: Instant,
+    val payloadJson: String,
 )
 
 /**
@@ -22,5 +22,5 @@ data class OutboxMessage(
  * altera o estado; um relay publica no Kafka depois (garantia "pelo menos uma vez").
  */
 interface OutboxPort {
-	fun append(message: OutboxMessage)
+    fun append(message: OutboxMessage)
 }

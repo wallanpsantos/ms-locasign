@@ -12,14 +12,14 @@ import java.time.Duration
 
 /** Parâmetros de negócio do ciclo de vida, vindos da configuração. */
 data class ContractSettings(
-	/** R4: prazo para assinatura (padrão de 7 dias). */
-	val signatureDeadline: Duration,
-	/** R4: lembrete no 3º dia (opcional no MVP). */
-	val reminderAfter: Duration,
-	/** Tempo sem atualização antes de a reconciliação consultar o provedor. */
-	val reconciliationStaleAfter: Duration,
-	/** Quantidade máxima de contratos tratados por execução de job. */
-	val jobBatchSize: Int,
+    /** R4: prazo para assinatura (padrão de 7 dias). */
+    val signatureDeadline: Duration,
+    /** R4: lembrete no 3º dia (opcional no MVP). */
+    val reminderAfter: Duration,
+    /** Tempo sem atualização antes de a reconciliação consultar o provedor. */
+    val reconciliationStaleAfter: Duration,
+    /** Quantidade máxima de contratos tratados por execução de job. */
+    val jobBatchSize: Int,
 )
 
 /** Mensagem de evento do contrato entregue a um consumidor (id do envelope e contrato afetado). */
@@ -30,11 +30,11 @@ data class ContractEventCommand(val eventId: String, val contractId: ContractId)
  * contrato já foi gravada: uma falha aqui é registrada, nunca propagada.
  */
 internal fun SignatureProviderPort.cancelDocumentQuietly(documentId: ProviderDocumentId, log: Logger, context: String) {
-	try {
-		cancelDocument(documentId)
-	} catch (e: ProviderException) {
-		log.warn("{}, mas o documento {} não pôde ser anulado no provedor: {}", context, documentId, e.message)
-	}
+    try {
+        cancelDocument(documentId)
+    } catch (e: ProviderException) {
+        log.warn("{}, mas o documento {} não pôde ser anulado no provedor: {}", context, documentId, e.message)
+    }
 }
 
 /**
@@ -42,12 +42,12 @@ internal fun SignatureProviderPort.cancelDocumentQuietly(documentId: ProviderDoc
  * transação: estado, auditoria e eventos são gravados juntos (princípio 3).
  */
 class ContractPersister(
-	private val contracts: ContractRepositoryPort,
-	private val publisher: ContractEventPublisherPort,
+    private val contracts: ContractRepositoryPort,
+    private val publisher: ContractEventPublisherPort,
 ) {
-	fun save(contract: Contract) {
-		val events = contract.pullEvents()
-		contracts.save(contract)
-		publisher.publish(events)
-	}
+    fun save(contract: Contract) {
+        val events = contract.pullEvents()
+        contracts.save(contract)
+        publisher.publish(events)
+    }
 }

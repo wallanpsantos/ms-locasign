@@ -2,28 +2,30 @@
 -- Convenções: snake_case, instantes em timestamptz (UTC), dinheiro em numeric(12,2),
 -- status como text com CHECK, chaves primárias uuid geradas no domínio.
 
-CREATE TABLE leases (
-    id                  uuid          PRIMARY KEY,
-    tenant_name         text          NOT NULL,
-    tenant_cpf          text          NOT NULL,
-    tenant_email        text          NOT NULL,
-    agency_signer_name  text          NOT NULL,
-    agency_signer_email text          NOT NULL,
-    property_address    text          NOT NULL,
-    rent_amount         numeric(12,2) NOT NULL,
-    start_date          date          NOT NULL,
-    term_months         integer       NOT NULL,
-    status              text          NOT NULL DEFAULT 'REGISTERED',
+CREATE TABLE leases
+(
+    id                  uuid PRIMARY KEY,
+    tenant_name         text           NOT NULL,
+    tenant_cpf          text           NOT NULL,
+    tenant_email        text           NOT NULL,
+    agency_signer_name  text           NOT NULL,
+    agency_signer_email text           NOT NULL,
+    property_address    text           NOT NULL,
+    rent_amount         numeric(12, 2) NOT NULL,
+    start_date          date           NOT NULL,
+    term_months         integer        NOT NULL,
+    status              text           NOT NULL DEFAULT 'REGISTERED',
     activated_at        timestamptz,
-    row_version         bigint        NOT NULL,
-    created_at          timestamptz   NOT NULL,
+    row_version         bigint         NOT NULL,
+    created_at          timestamptz    NOT NULL,
     CONSTRAINT ck_leases_rent_amount CHECK (rent_amount > 0),
     CONSTRAINT ck_leases_term_months CHECK (term_months BETWEEN 1 AND 120),
     CONSTRAINT ck_leases_status CHECK (status IN ('REGISTERED', 'ACTIVE'))
 );
 
-CREATE TABLE contracts (
-    id                        uuid        PRIMARY KEY,
+CREATE TABLE contracts
+(
+    id                        uuid PRIMARY KEY,
     lease_id                  uuid        NOT NULL REFERENCES leases (id),
     version_number            integer     NOT NULL,
     status                    text        NOT NULL,
@@ -40,8 +42,8 @@ CREATE TABLE contracts (
     updated_at                timestamptz NOT NULL,
     CONSTRAINT ck_contracts_version CHECK (version_number >= 1),
     CONSTRAINT ck_contracts_status CHECK (status IN (
-        'DRAFT', 'GENERATED', 'SENT', 'VIEWED', 'PARTIALLY_SIGNED',
-        'COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED')),
+                                                     'DRAFT', 'GENERATED', 'SENT', 'VIEWED', 'PARTIALLY_SIGNED',
+                                                     'COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED')),
     CONSTRAINT uq_contracts_lease_version UNIQUE (lease_id, version_number),
     CONSTRAINT uq_contracts_provider_document UNIQUE (provider_document_id)
 );
@@ -60,13 +62,14 @@ CREATE INDEX ix_contracts_open_by_update
     ON contracts (updated_at)
     WHERE status NOT IN ('COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED');
 
-CREATE TABLE contract_signers (
-    id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id   uuid        NOT NULL REFERENCES contracts (id) ON DELETE CASCADE,
-    role          text        NOT NULL,
-    name          text        NOT NULL,
-    email         text        NOT NULL,
-    signing_order integer     NOT NULL,
+CREATE TABLE contract_signers
+(
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id   uuid    NOT NULL REFERENCES contracts (id) ON DELETE CASCADE,
+    role          text    NOT NULL,
+    name          text    NOT NULL,
+    email         text    NOT NULL,
+    signing_order integer NOT NULL,
     completed_at  timestamptz,
     CONSTRAINT ck_contract_signers_role CHECK (role IN ('TENANT', 'AGENCY')),
     CONSTRAINT ck_contract_signers_order CHECK (signing_order >= 1),
@@ -74,9 +77,10 @@ CREATE TABLE contract_signers (
 );
 
 -- Trilha de auditoria. `INFO` registra fatos que não mudam o status (assinatura de um signatário, arquivamento...).
-CREATE TABLE contract_status_history (
-    seq             bigint      GENERATED ALWAYS AS IDENTITY,
-    id              uuid        PRIMARY KEY,
+CREATE TABLE contract_status_history
+(
+    seq             bigint GENERATED ALWAYS AS IDENTITY,
+    id              uuid PRIMARY KEY,
     contract_id     uuid        NOT NULL REFERENCES contracts (id) ON DELETE CASCADE,
     from_status     text,
     to_status       text        NOT NULL,
@@ -92,17 +96,19 @@ CREATE TABLE contract_status_history (
 CREATE INDEX ix_history_contract ON contract_status_history (contract_id, seq);
 
 -- R7: entregas de webhook registradas exatamente como chegaram (texto preserva os bytes).
-CREATE TABLE webhook_inbox (
-    id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE webhook_inbox
+(
+    id          uuid PRIMARY KEY     DEFAULT gen_random_uuid(),
     delivery_id text        NOT NULL,
     raw_body    text        NOT NULL,
     received_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT uq_webhook_inbox_delivery UNIQUE (delivery_id)
 );
 
-CREATE TABLE outbox_events (
-    seq            bigint      GENERATED ALWAYS AS IDENTITY,
-    id             text        PRIMARY KEY,
+CREATE TABLE outbox_events
+(
+    seq            bigint GENERATED ALWAYS AS IDENTITY,
+    id             text PRIMARY KEY,
     aggregate_type text        NOT NULL,
     aggregate_id   text        NOT NULL,
     event_type     text        NOT NULL,
@@ -120,7 +126,8 @@ CREATE TABLE outbox_events (
 CREATE INDEX ix_outbox_pending ON outbox_events (seq) WHERE published_at IS NULL;
 
 -- R6: idempotência dos consumidores.
-CREATE TABLE processed_messages (
+CREATE TABLE processed_messages
+(
     consumer_group text        NOT NULL,
     event_id       text        NOT NULL,
     processed_at   timestamptz NOT NULL DEFAULT now(),
@@ -128,8 +135,9 @@ CREATE TABLE processed_messages (
 );
 
 -- R6/R8: efeitos pós-assinatura executados no máximo uma vez por contrato.
-CREATE TABLE post_signature_actions (
-    id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE post_signature_actions
+(
+    id          uuid PRIMARY KEY     DEFAULT gen_random_uuid(),
     contract_id uuid        NOT NULL REFERENCES contracts (id),
     action_type text        NOT NULL,
     status      text        NOT NULL,
@@ -138,8 +146,9 @@ CREATE TABLE post_signature_actions (
     CONSTRAINT uq_post_signature_action UNIQUE (contract_id, action_type)
 );
 
-CREATE TABLE notifications_log (
-    id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE notifications_log
+(
+    id               uuid PRIMARY KEY     DEFAULT gen_random_uuid(),
     contract_id      uuid        NOT NULL,
     event_id         text        NOT NULL,
     event_type       text        NOT NULL,

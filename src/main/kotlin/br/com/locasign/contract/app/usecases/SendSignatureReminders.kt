@@ -11,30 +11,30 @@ import org.slf4j.LoggerFactory
  * contrato que ainda aguarda assinatura. O evento `ContractReminderSent` alimenta as notificações.
  */
 class SendSignatureReminders(
-	private val contracts: ContractRepositoryPort,
-	private val persister: ContractPersister,
-	private val clock: BusinessClock,
-	private val settings: ContractSettings,
-	private val transactions: TransactionRunner,
+    private val contracts: ContractRepositoryPort,
+    private val persister: ContractPersister,
+    private val clock: BusinessClock,
+    private val settings: ContractSettings,
+    private val transactions: TransactionRunner,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	/** Devolve quantos lembretes foram registrados. */
-	fun execute(): Int {
-		val now = clock.now()
-		val ids = contracts.findReminderDueIds(now.minus(settings.reminderAfter), settings.jobBatchSize)
-		return ids.count { remind(it) }
-	}
+    /** Devolve quantos lembretes foram registrados. */
+    fun execute(): Int {
+        val now = clock.now()
+        val ids = contracts.findReminderDueIds(now.minus(settings.reminderAfter), settings.jobBatchSize)
+        return ids.count { remind(it) }
+    }
 
-	private fun remind(id: ContractId): Boolean = try {
-		transactions.run {
-			val contract = contracts.findById(id) ?: return@run false
-			val reminded = contract.markReminderSent(clock.now())
-			if (reminded) persister.save(contract)
-			reminded
-		}
-	} catch (e: RuntimeException) {
-		log.error("Falha ao registrar o lembrete do contrato {}", id, e)
-		false
-	}
+    private fun remind(id: ContractId): Boolean = try {
+        transactions.run {
+            val contract = contracts.findById(id) ?: return@run false
+            val reminded = contract.markReminderSent(clock.now())
+            if (reminded) persister.save(contract)
+            reminded
+        }
+    } catch (e: RuntimeException) {
+        log.error("Falha ao registrar o lembrete do contrato {}", id, e)
+        false
+    }
 }

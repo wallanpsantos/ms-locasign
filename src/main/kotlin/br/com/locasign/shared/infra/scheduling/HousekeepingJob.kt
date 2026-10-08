@@ -13,28 +13,28 @@ import java.time.Clock
 @Component
 @ConditionalOnProperty(prefix = "locasign.jobs.housekeeping", name = ["enabled"], matchIfMissing = true)
 class HousekeepingJob(
-	private val jdbc: JdbcClient,
-	private val clock: Clock,
-	private val properties: LocaSignProperties,
+    private val jdbc: JdbcClient,
+    private val clock: Clock,
+    private val properties: LocaSignProperties,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	@Scheduled(
-		fixedDelayString = "\${locasign.jobs.housekeeping.interval:PT24H}",
-		initialDelayString = "\${locasign.jobs.housekeeping.interval:PT24H}",
-	)
-	fun cleanup() {
-		val cutoff = clock.instant().minus(properties.outbox.retention).toDb()
-		try {
-			val outbox = jdbc.sql("DELETE FROM outbox_events WHERE published_at IS NOT NULL AND published_at < :cutoff")
-				.param("cutoff", cutoff).update()
-			val inbox = jdbc.sql("DELETE FROM webhook_inbox WHERE received_at < :cutoff")
-				.param("cutoff", cutoff).update()
-			val processed = jdbc.sql("DELETE FROM processed_messages WHERE processed_at < :cutoff")
-				.param("cutoff", cutoff).update()
-			log.info("Limpeza concluída: outbox={}, inbox={}, processed_messages={}", outbox, inbox, processed)
-		} catch (e: Exception) {
-			log.error("Falha na limpeza periódica", e)
-		}
-	}
+    @Scheduled(
+        fixedDelayString = "\${locasign.jobs.housekeeping.interval:PT24H}",
+        initialDelayString = "\${locasign.jobs.housekeeping.interval:PT24H}",
+    )
+    fun cleanup() {
+        val cutoff = clock.instant().minus(properties.outbox.retention).toDb()
+        try {
+            val outbox = jdbc.sql("DELETE FROM outbox_events WHERE published_at IS NOT NULL AND published_at < :cutoff")
+                .param("cutoff", cutoff).update()
+            val inbox = jdbc.sql("DELETE FROM webhook_inbox WHERE received_at < :cutoff")
+                .param("cutoff", cutoff).update()
+            val processed = jdbc.sql("DELETE FROM processed_messages WHERE processed_at < :cutoff")
+                .param("cutoff", cutoff).update()
+            log.info("Limpeza concluída: outbox={}, inbox={}, processed_messages={}", outbox, inbox, processed)
+        } catch (e: Exception) {
+            log.error("Falha na limpeza periódica", e)
+        }
+    }
 }

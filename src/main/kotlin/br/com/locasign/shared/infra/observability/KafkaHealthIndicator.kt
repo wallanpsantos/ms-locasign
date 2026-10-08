@@ -11,16 +11,16 @@ import java.util.concurrent.TimeUnit
 @Component("kafka")
 class KafkaHealthIndicator(private val kafkaAdmin: KafkaAdmin) : AbstractHealthIndicator("Kafka health check failed") {
 
-	override fun doHealthCheck(builder: Health.Builder) {
-		Admin.create(kafkaAdmin.configurationProperties).use { admin ->
-			val cluster = admin.describeCluster()
-			val clusterId = cluster.clusterId().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-			val nodes = cluster.nodes().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-			builder.up().withDetail("clusterId", clusterId).withDetail("nodes", nodes.size)
-		}
-	}
+    override fun doHealthCheck(builder: Health.Builder) {
+        Admin.create(kafkaAdmin.configurationProperties).use { admin ->
+            val cluster = admin.describeCluster()
+            val clusterId = cluster.clusterId().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            val nodes = cluster.nodes().get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            builder.up().withDetail("clusterId", clusterId).withDetail("nodes", nodes.size)
+        }
+    }
 
-	private companion object {
-		const val TIMEOUT_SECONDS = 3L
-	}
+    private companion object {
+        const val TIMEOUT_SECONDS = 3L
+    }
 }

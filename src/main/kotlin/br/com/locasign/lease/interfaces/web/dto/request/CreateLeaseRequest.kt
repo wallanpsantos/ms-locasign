@@ -17,33 +17,33 @@ import java.time.LocalDate
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CreateLeaseRequest(
-	@field:Valid val tenant: TenantRequest,
-	@field:Valid val agencySigner: AgencySignerRequest? = null,
-	@field:Valid val property: PropertyRequest,
-	@field:Schema(description = "Valor do aluguel como string decimal com até 2 casas", example = "2500.00")
-	@field:NotBlank val rentAmount: String,
-	@field:Schema(description = "Data de início, igual ou posterior a hoje (America/Sao_Paulo)", example = "2026-11-01")
-	val startDate: LocalDate,
-	@field:Schema(description = "Prazo em meses (1 a 120); padrão 30", example = "30")
-	@field:Min(1) @field:Max(120) val termMonths: Int? = null,
+    @field:Valid val tenant: TenantRequest,
+    @field:Valid val agencySigner: AgencySignerRequest? = null,
+    @field:Valid val property: PropertyRequest,
+    @field:Schema(description = "Valor do aluguel como string decimal com até 2 casas", example = "2500.00")
+    @field:NotBlank val rentAmount: String,
+    @field:Schema(description = "Data de início, igual ou posterior a hoje (America/Sao_Paulo)", example = "2026-11-01")
+    val startDate: LocalDate,
+    @field:Schema(description = "Prazo em meses (1 a 120); padrão 30", example = "30")
+    @field:Min(1) @field:Max(120) val termMonths: Int? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class TenantRequest(
-	@field:NotBlank @field:Size(min = 3, max = 120) val name: String,
-	@field:Schema(description = "CPF com ou sem máscara", example = "529.982.247-25")
-	@field:NotBlank val cpf: String,
-	@field:NotBlank val email: String,
+    @field:NotBlank @field:Size(min = 3, max = 120) val name: String,
+    @field:Schema(description = "CPF com ou sem máscara", example = "529.982.247-25")
+    @field:NotBlank val cpf: String,
+    @field:NotBlank val email: String,
 )
 
 /** Opcional: se ausente, usa o signatário padrão da configuração. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AgencySignerRequest(
-	@field:NotBlank @field:Size(min = 3, max = 120) val name: String,
-	@field:NotBlank val email: String,
+    @field:NotBlank @field:Size(min = 3, max = 120) val name: String,
+    @field:NotBlank val email: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PropertyRequest(
-	@field:NotBlank @field:Size(max = 300) val address: String,
+    @field:NotBlank @field:Size(max = 300) val address: String,
 )

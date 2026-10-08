@@ -23,18 +23,19 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 @RestController
 @RequestMapping("/api/v1/leases")
 class LeaseController(
-	private val registerLease: RegisterLease,
-	private val getLease: GetLease,
+    private val registerLease: RegisterLease,
+    private val getLease: GetLease,
 ) : LeaseApi {
 
-	@PostMapping
-	override fun register(@Valid @RequestBody request: CreateLeaseRequest): ResponseEntity<LeaseCreatedResponse> {
-		val id = registerLease.execute(request.toCommand())
-		val location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id.toString()).toUri()
-		return ResponseEntity.created(location).body(LeaseCreatedResponse(id.toString(), LeaseStatus.REGISTERED.name))
-	}
+    @PostMapping
+    override fun register(@Valid @RequestBody request: CreateLeaseRequest): ResponseEntity<LeaseCreatedResponse> {
+        val id = registerLease.execute(request.toCommand())
+        val location =
+            ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id.toString()).toUri()
+        return ResponseEntity.created(location).body(LeaseCreatedResponse(id.toString(), LeaseStatus.REGISTERED.name))
+    }
 
-	@GetMapping("/{leaseId}")
-	override fun get(@PathVariable leaseId: String): LeaseResponse =
-		getLease.execute(LeaseId.parse(leaseId)).toResponse()
+    @GetMapping("/{leaseId}")
+    override fun get(@PathVariable leaseId: String): LeaseResponse =
+        getLease.execute(LeaseId.parse(leaseId)).toResponse()
 }

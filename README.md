@@ -34,26 +34,26 @@ público para os webhooks). As portas são publicadas apenas em `127.0.0.1`.
 
 ## Configuração
 
-Variáveis de ambiente (defina no ambiente ou em um arquivo `.env` ao lado do `docker-compose.yml`;
+Variáveis de ambiente (defina no ambiente ou em um arquivo `.env` ao lado do `compose.yml`;
 o `.env` nunca deve ser versionado). Sem as de PandaDoc a aplicação sobe, mas não gera nem envia contratos.
 
-| Variável | Padrão | Uso |
-|---|---|---|
-| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | `jdbc:postgresql://localhost:5432/locasign` / `locasign` / `locasign` | Banco |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka (`kafka:29092` dentro do Compose) |
-| `PANDADOC_API_KEY` | vazio | Chave **sandbox** no desenvolvimento; produção só no teste final |
-| `PANDADOC_TEMPLATE_ID` | vazio | UUID do modelo (aparece na URL do editor) |
-| `PANDADOC_WEBHOOK_SHARED_KEY` | vazio | Shared key do webhook. **Sem ela, todo webhook é recusado (401)** |
-| `PANDADOC_BASE_URL` | `https://api.pandadoc.com/public/v1` | API |
-| `PANDADOC_DOWNLOAD_ENABLED` | `false` | `true` somente com chave de produção (download do PDF assinado) |
-| `PANDADOC_RATE_LIMIT_PER_MINUTE` | `8` | Margem abaixo do limite de 10/min do sandbox |
-| `AGENCY_SIGNER_NAME` / `AGENCY_SIGNER_EMAIL` | vazio | Signatário padrão da imobiliária |
-| `CONTRACT_SIGNATURE_DEADLINE_DAYS` | `7` | Prazo de assinatura (R4) |
-| `APP_TIMEZONE` | `America/Sao_Paulo` | Fuso das regras de data |
-| `ADMIN_TOKEN` | vazio | Habilita as operações de operador (reconciliação forçada e replay da DLT), que exigem o header `X-Admin-Token`. **Vazio: ficam desabilitadas (403)** |
-| `HEALTH_SHOW_DETAILS` | `when-authorized` | `always` no perfil `local` |
-| `SWAGGER_ENABLED` | `true` | Defina `false` fora do ambiente local |
-| `ARCHIVE_DIRECTORY` | `./data/signed-documents` | Onde os PDFs assinados são arquivados |
+| Variável                                     | Padrão                                                                | Uso                                                                                                                                                  |
+|----------------------------------------------|-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD`     | `jdbc:postgresql://localhost:5432/locasign` / `locasign` / `locasign` | Banco                                                                                                                                                |
+| `KAFKA_BOOTSTRAP_SERVERS`                    | `localhost:9092`                                                      | Kafka (`kafka:29092` dentro do Compose)                                                                                                              |
+| `PANDADOC_API_KEY`                           | vazio                                                                 | Chave **sandbox** no desenvolvimento; produção só no teste final                                                                                     |
+| `PANDADOC_TEMPLATE_ID`                       | vazio                                                                 | UUID do modelo (aparece na URL do editor)                                                                                                            |
+| `PANDADOC_WEBHOOK_SHARED_KEY`                | vazio                                                                 | Shared key do webhook. **Sem ela, todo webhook é recusado (401)**                                                                                    |
+| `PANDADOC_BASE_URL`                          | `https://api.pandadoc.com/public/v1`                                  | API                                                                                                                                                  |
+| `PANDADOC_DOWNLOAD_ENABLED`                  | `false`                                                               | `true` somente com chave de produção (download do PDF assinado)                                                                                      |
+| `PANDADOC_RATE_LIMIT_PER_MINUTE`             | `8`                                                                   | Margem abaixo do limite de 10/min do sandbox                                                                                                         |
+| `AGENCY_SIGNER_NAME` / `AGENCY_SIGNER_EMAIL` | vazio                                                                 | Signatário padrão da imobiliária                                                                                                                     |
+| `CONTRACT_SIGNATURE_DEADLINE_DAYS`           | `7`                                                                   | Prazo de assinatura (R4)                                                                                                                             |
+| `APP_TIMEZONE`                               | `America/Sao_Paulo`                                                   | Fuso das regras de data                                                                                                                              |
+| `ADMIN_TOKEN`                                | vazio                                                                 | Habilita as operações de operador (reconciliação forçada e replay da DLT), que exigem o header `X-Admin-Token`. **Vazio: ficam desabilitadas (403)** |
+| `HEALTH_SHOW_DETAILS`                        | `when-authorized`                                                     | `always` no perfil `local`                                                                                                                           |
+| `SWAGGER_ENABLED`                            | `true`                                                                | Defina `false` fora do ambiente local                                                                                                                |
+| `ARCHIVE_DIRECTORY`                          | `./data/signed-documents`                                             | Onde os PDFs assinados são arquivados                                                                                                                |
 
 Os jobs podem ser ajustados com `JOB_RECONCILIATION_INTERVAL`, `JOB_EXPIRATION_INTERVAL`,
 `JOB_REMINDER_INTERVAL` e `RECONCILIATION_STALE_AFTER` (veja `application.yaml`).
@@ -98,8 +98,8 @@ POST /leases/{id}/contracts ──► Contract(DRAFT) + outbox(ContractRequested
                        agregado Contract decide a transição (R5) ──► novos eventos
 ```
 
-Princípios: a PandaDoc é a fonte da verdade do **documento**; o LocaSign é a fonte da verdade do
-**contrato**. Nada externo é chamado dentro da requisição do usuário. Todo evento sai pelo **outbox**
+Princípios: a PandaDoc é a fonte da verdade do **documento**; o LocaSign é a fonte da verdade do **contrato**. Nada
+externo é chamado dentro da requisição do usuário. Todo evento sai pelo **outbox**
 e todo webhook entra pelo **inbox**. Tudo é **idempotente**.
 
 ### Ciclo de vida
@@ -111,22 +111,22 @@ ficam na auditoria como `IGNORED_TRANSITION`.
 
 ### API
 
-| Método | Caminho | Descrição |
-|---|---|---|
-| POST | `/api/v1/leases` | Cadastra a locação (201) |
-| GET | `/api/v1/leases/{id}` | Locação e contrato atual |
-| POST | `/api/v1/leases/{id}/contracts` | Solicita o contrato, nova versão (202) |
-| GET | `/api/v1/contracts/{id}` | Status, signatários e prazos |
-| GET | `/api/v1/contracts/{id}/history` | Linha do tempo completa |
-| POST | `/api/v1/contracts/{id}/cancel` | Cancela, com motivo (202) |
-| POST | `/api/v1/contracts/{id}/reconcile` | Força a reconciliação (operador) |
-| POST | `/api/v1/admin/dead-letters/{topic}/replay` | Reprocessa a DLT (operador) |
-| POST | `/webhooks/pandadoc` | Receptor de webhooks |
-| GET | `/actuator/health` | Saúde: banco e Kafka |
+| Método | Caminho                                     | Descrição                              |
+|--------|---------------------------------------------|----------------------------------------|
+| POST   | `/api/v1/leases`                            | Cadastra a locação (201)               |
+| GET    | `/api/v1/leases/{id}`                       | Locação e contrato atual               |
+| POST   | `/api/v1/leases/{id}/contracts`             | Solicita o contrato, nova versão (202) |
+| GET    | `/api/v1/contracts/{id}`                    | Status, signatários e prazos           |
+| GET    | `/api/v1/contracts/{id}/history`            | Linha do tempo completa                |
+| POST   | `/api/v1/contracts/{id}/cancel`             | Cancela, com motivo (202)              |
+| POST   | `/api/v1/contracts/{id}/reconcile`          | Força a reconciliação (operador)       |
+| POST   | `/api/v1/admin/dead-letters/{topic}/replay` | Reprocessa a DLT (operador)            |
+| POST   | `/webhooks/pandadoc`                        | Receptor de webhooks                   |
+| GET    | `/actuator/health`                          | Saúde: banco e Kafka                   |
 
 Erros seguem Problem Details (RFC 9457): `400 /problems/validation`, `422 /problems/business-rule`,
-`404 /problems/not-found`, `409 /problems/active-contract-exists` e `/problems/contract-final`.
-**A API não tem autenticação no MVP** (decisão registrada no plano e no guia); só as operações
+`404 /problems/not-found`, `409 /problems/active-contract-exists` e `/problems/contract-final`. **A API não tem
+autenticação no MVP** (decisão registrada no plano e no guia); só as operações
 de operador são restritas.
 
 ### Testando webhooks sem a PandaDoc

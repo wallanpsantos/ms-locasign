@@ -18,20 +18,28 @@ private fun String.sanitized(): String = replace(EMAIL_IN_TEXT, "***@***").take(
  * (retentável: a correção é de configuração, não do contrato); outros 4xx → rejeitado; 5xx → indisponível.
  */
 fun RestClientException.toProviderException(operation: String): ProviderException = when (this) {
-	is RestClientResponseException -> {
-		val detail = responseBodyAsString.sanitized()
-		val message = "PandaDoc $operation falhou com HTTP ${statusCode.value()}: $detail"
-		when {
-			statusCode.value() == HttpStatus.NOT_FOUND.value() || statusCode.value() == HttpStatus.CONFLICT.value() ->
-				ProviderException.NotReady(message, this)
-			statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value() -> ProviderException.RateLimited(message, this)
-			statusCode.value() == HttpStatus.FORBIDDEN.value() -> ProviderException.Forbidden(message, this)
-			statusCode.value() == HttpStatus.UNAUTHORIZED.value() ->
-				ProviderException.Unavailable("PandaDoc $operation recusou as credenciais (HTTP 401)", this)
-			statusCode.is4xxClientError -> ProviderException.Rejected(statusCode.value(), message, this)
-			else -> ProviderException.Unavailable(message, this)
-		}
-	}
-	is ResourceAccessException -> ProviderException.Unavailable("PandaDoc $operation indisponível: ${message.orEmpty().sanitized()}", this)
-	else -> ProviderException.Unavailable("PandaDoc $operation falhou: ${message.orEmpty().sanitized()}", this)
+    is RestClientResponseException -> {
+        val detail = responseBodyAsString.sanitized()
+        val message = "PandaDoc $operation falhou com HTTP ${statusCode.value()}: $detail"
+        when {
+            statusCode.value() == HttpStatus.NOT_FOUND.value() || statusCode.value() == HttpStatus.CONFLICT.value() ->
+                ProviderException.NotReady(message, this)
+
+            statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value() -> ProviderException.RateLimited(message, this)
+            statusCode.value() == HttpStatus.FORBIDDEN.value() -> ProviderException.Forbidden(message, this)
+            statusCode.value() == HttpStatus.UNAUTHORIZED.value() ->
+                ProviderException.Unavailable("PandaDoc $operation recusou as credenciais (HTTP 401)", this)
+
+            statusCode.is4xxClientError -> ProviderException.Rejected(statusCode.value(), message, this)
+            else -> ProviderException.Unavailable(message, this)
+        }
+    }
+
+    is ResourceAccessException -> ProviderException.Unavailable(
+        "PandaDoc $operation indisponível: ${
+            message.orEmpty().sanitized()
+        }", this
+    )
+
+    else -> ProviderException.Unavailable("PandaDoc $operation falhou: ${message.orEmpty().sanitized()}", this)
 }

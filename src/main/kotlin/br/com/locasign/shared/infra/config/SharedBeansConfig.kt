@@ -16,23 +16,23 @@ import java.time.ZoneId
 @EnableScheduling
 class SharedBeansConfig {
 
-	@Bean
-	fun clock(): Clock = Clock.systemUTC()
+    @Bean
+    fun clock(): Clock = Clock.systemUTC()
 
-	@Bean
-	fun businessClock(clock: Clock, properties: LocaSignProperties): BusinessClock =
-		SystemBusinessClock(clock, ZoneId.of(properties.timezone))
+    @Bean
+    fun businessClock(clock: Clock, properties: LocaSignProperties): BusinessClock =
+        SystemBusinessClock(clock, ZoneId.of(properties.timezone))
 
-	@Bean
-	fun transactionRunner(transactionManager: PlatformTransactionManager): TransactionRunner =
-		SpringTransactionRunner(TransactionTemplate(transactionManager))
+    @Bean
+    fun transactionRunner(transactionManager: PlatformTransactionManager): TransactionRunner =
+        SpringTransactionRunner(TransactionTemplate(transactionManager))
 }
 
 /** Instantes em UTC; "hoje" no fuso da operação (`APP_TIMEZONE`, padrão America/Sao_Paulo). */
 class SystemBusinessClock(private val clock: Clock, private val zone: ZoneId) : BusinessClock {
-	override fun now(): Instant = clock.instant()
+    override fun now(): Instant = clock.instant()
 
-	override fun today(): LocalDate = LocalDate.now(clock.withZone(zone))
+    override fun today(): LocalDate = LocalDate.now(clock.withZone(zone))
 }
 
 /**
@@ -41,5 +41,5 @@ class SystemBusinessClock(private val clock: Clock, private val zone: ZoneId) : 
  */
 class SpringTransactionRunner(private val template: TransactionTemplate) : TransactionRunner {
 
-	override fun <T> run(block: () -> T): T = template.execute { block() }
+    override fun <T> run(block: () -> T): T = template.execute { block() }
 }

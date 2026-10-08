@@ -19,15 +19,15 @@ import org.springframework.stereotype.Component
 
 /** O `aggregateId` dos eventos de contrato é o id do contrato; um valor inválido é mensagem ilegível (DLT). */
 private fun EventEnvelope.contractId(): ContractId =
-	ContractId.parseOrNull(aggregateId)
-		?: throw UnreadableMessageException("Evento $eventId com aggregateId inválido: $aggregateId")
+    ContractId.parseOrNull(aggregateId)
+        ?: throw UnreadableMessageException("Evento $eventId com aggregateId inválido: $aggregateId")
 
 /** Trata um evento de contrato com `contractId` no contexto de log, junto da correlação do envelope. */
 private fun EnvelopeReader.handleContractEvent(envelope: EventEnvelope, action: (ContractEventCommand) -> Unit) {
-	val contractId = envelope.contractId()
-	handle(envelope, mapOf(ContextKeys.CONTRACT_ID to contractId.toString())) {
-		action(ContractEventCommand(envelope.eventId, contractId))
-	}
+    val contractId = envelope.contractId()
+    handle(envelope, mapOf(ContextKeys.CONTRACT_ID to contractId.toString())) {
+        action(ContractEventCommand(envelope.eventId, contractId))
+    }
 }
 
 /**
@@ -37,52 +37,52 @@ private fun EnvelopeReader.handleContractEvent(envelope: EventEnvelope, action: 
  */
 @Component
 class OrchestratorConsumer(
-	private val reader: EnvelopeReader,
-	private val createProviderDocument: CreateProviderDocument,
-	private val sendContract: SendContract,
+    private val reader: EnvelopeReader,
+    private val createProviderDocument: CreateProviderDocument,
+    private val sendContract: SendContract,
 ) {
 
-	@KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.ORCHESTRATOR)
-	fun onMessage(message: String) {
-		val envelope = reader.read(message)
-		when (envelope.eventType) {
-			"ContractRequested" -> reader.handleContractEvent(envelope, createProviderDocument::execute)
-			"ContractGenerated" -> reader.handleContractEvent(envelope, sendContract::execute)
-			else -> Unit
-		}
-	}
+    @KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.ORCHESTRATOR)
+    fun onMessage(message: String) {
+        val envelope = reader.read(message)
+        when (envelope.eventType) {
+            "ContractRequested" -> reader.handleContractEvent(envelope, createProviderDocument::execute)
+            "ContractGenerated" -> reader.handleContractEvent(envelope, sendContract::execute)
+            else -> Unit
+        }
+    }
 }
 
 /** Grupo `post-signature`: `ContractCompleted` dispara as ações pós-assinatura (R8). */
 @Component
 class PostSignatureConsumer(
-	private val reader: EnvelopeReader,
-	private val runPostSignatureActions: RunPostSignatureActions,
+    private val reader: EnvelopeReader,
+    private val runPostSignatureActions: RunPostSignatureActions,
 ) {
 
-	@KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.POST_SIGNATURE)
-	fun onMessage(message: String) {
-		val envelope = reader.read(message)
-		if (envelope.eventType == "ContractCompleted") {
-			reader.handleContractEvent(envelope, runPostSignatureActions::execute)
-		}
-	}
+    @KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.POST_SIGNATURE)
+    fun onMessage(message: String) {
+        val envelope = reader.read(message)
+        if (envelope.eventType == "ContractCompleted") {
+            reader.handleContractEvent(envelope, runPostSignatureActions::execute)
+        }
+    }
 }
 
 /** Grupo `provider-events`: cada item de webhook vira uma atualização do contrato (ou o arquivamento do PDF). */
 @Component
 class ProviderEventsConsumer(
-	private val reader: EnvelopeReader,
-	private val processWebhookItem: ProcessProviderWebhookItem,
+    private val reader: EnvelopeReader,
+    private val processWebhookItem: ProcessProviderWebhookItem,
 ) {
-	private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
-	@KafkaListener(topics = [Topics.PANDADOC_WEBHOOKS], groupId = ConsumerGroups.PROVIDER_EVENTS)
-	fun onMessage(message: String) {
-		val envelope = reader.read(message)
-		reader.handle(envelope) {
-			log.debug("Item de webhook {} ({})", envelope.eventId, envelope.eventType)
-			processWebhookItem.execute(WebhookItemCommand(envelope.eventId, reader.payloadJson(envelope)))
-		}
-	}
+    @KafkaListener(topics = [Topics.PANDADOC_WEBHOOKS], groupId = ConsumerGroups.PROVIDER_EVENTS)
+    fun onMessage(message: String) {
+        val envelope = reader.read(message)
+        reader.handle(envelope) {
+            log.debug("Item de webhook {} ({})", envelope.eventId, envelope.eventType)
+            processWebhookItem.execute(WebhookItemCommand(envelope.eventId, reader.payloadJson(envelope)))
+        }
+    }
 }

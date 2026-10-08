@@ -10,7 +10,7 @@ name: locasign
 
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18.6
     environment:
       POSTGRES_DB: ${DB_NAME:-locasign}
       POSTGRES_USER: ${DB_USERNAME:-locasign}
@@ -22,7 +22,7 @@ services:
       # A imagem 18 guarda os dados em /var/lib/postgresql/18/docker: o volume monta o diretório pai.
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -55,7 +55,7 @@ services:
     volumes:
       - kafkadata:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 > /dev/null 2>&1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 > /dev/null 2>&1" ]
       interval: 10s
       timeout: 10s
       retries: 12
@@ -63,7 +63,7 @@ services:
 
   kafka-ui:
     image: ghcr.io/kafbat/kafka-ui:latest
-    profiles: ["tools"]
+    profiles: [ "tools" ]
     depends_on:
       kafka:
         condition: service_healthy
@@ -76,7 +76,7 @@ services:
 
   app:
     build: .
-    profiles: ["app"]
+    profiles: [ "app" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
     # Alternativa: ngrok (`ngrok http 8080`).
     # Alvo padrão: a app rodando na IDE (no host). Com `--profile app`, use TUNNEL_TARGET=app:8080.
     image: cloudflare/cloudflared:latest
-    profiles: ["tunnel"]
+    profiles: [ "tunnel" ]
     command: tunnel --no-autoupdate --url http://${TUNNEL_TARGET:-host.docker.internal:8080}
     extra_hosts:
       - "host.docker.internal:host-gateway"

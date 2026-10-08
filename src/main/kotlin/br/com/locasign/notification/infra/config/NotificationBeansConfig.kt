@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration
 @Configuration(proxyBeanMethods = false)
 class NotificationBeansConfig {
 
-	@Bean
-	fun recordNotifications(
-		recipients: NotificationRecipientsPort,
-		log: NotificationLogPort,
-		processed: ProcessedMessagesPort,
-		transactions: TransactionRunner,
-	): RecordNotifications = RecordNotifications(recipients, log, processed, transactions)
+    @Bean
+    fun recordNotifications(
+        recipients: NotificationRecipientsPort,
+        log: NotificationLogPort,
+        processed: ProcessedMessagesPort,
+        transactions: TransactionRunner,
+    ): RecordNotifications = RecordNotifications(recipients, log, processed, transactions)
 }

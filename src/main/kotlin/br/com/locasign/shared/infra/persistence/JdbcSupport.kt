@@ -9,4 +9,4 @@ import java.time.ZoneOffset
 fun Instant.toDb(): OffsetDateTime = OffsetDateTime.ofInstant(this, ZoneOffset.UTC)
 
 fun ResultSet.getInstant(column: String): Instant? =
-	getObject(column, OffsetDateTime::class.java)?.toInstant()
+    getObject(column, OffsetDateTime::class.java)?.toInstant()

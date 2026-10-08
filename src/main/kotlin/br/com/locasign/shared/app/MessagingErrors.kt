@@ -8,6 +8,6 @@ class UnreadableMessageException(message: String, cause: Throwable? = null) : Ru
 
 /** Reprocessamento manual da fila de erros (DLT) de um tópico. */
 interface DeadLetterReplayPort {
-	/** Republica no tópico original as mensagens da DLT. Devolve quantas foram reenviadas. */
-	fun replay(sourceTopic: String): Int
+    /** Republica no tópico original as mensagens da DLT. Devolve quantas foram reenviadas. */
+    fun replay(sourceTopic: String): Int
 }

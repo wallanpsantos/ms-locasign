@@ -19,33 +19,33 @@ import java.security.MessageDigest
  */
 @Component
 class OperatorAccessGuard(
-	@param:Value("\${locasign.admin.token:}") private val configuredToken: String,
+    @param:Value("\${locasign.admin.token:}") private val configuredToken: String,
 ) {
 
-	/** Falha com HTTP 403 se a requisição atual não trouxer o token de operador correto. */
-	fun requireOperator() {
-		if (configuredToken.isBlank()) {
-			throw ResponseStatusException(
-				HttpStatus.FORBIDDEN,
-				"Operações de operador desabilitadas: defina ADMIN_TOKEN para habilitá-las.",
-			)
-		}
-		val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
-		if (!tokenMatches(request)) {
-			throw ResponseStatusException(HttpStatus.FORBIDDEN, "Operação restrita a operadores.")
-		}
-	}
+    /** Falha com HTTP 403 se a requisição atual não trouxer o token de operador correto. */
+    fun requireOperator() {
+        if (configuredToken.isBlank()) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Operações de operador desabilitadas: defina ADMIN_TOKEN para habilitá-las.",
+            )
+        }
+        val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
+        if (!tokenMatches(request)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Operação restrita a operadores.")
+        }
+    }
 
-	private fun tokenMatches(request: HttpServletRequest): Boolean {
-		val provided = request.getHeader(TOKEN_HEADER) ?: return false
-		// Compara os hashes: tempo constante e sem vazar o tamanho do token.
-		return MessageDigest.isEqual(sha256(provided), sha256(configuredToken))
-	}
+    private fun tokenMatches(request: HttpServletRequest): Boolean {
+        val provided = request.getHeader(TOKEN_HEADER) ?: return false
+        // Compara os hashes: tempo constante e sem vazar o tamanho do token.
+        return MessageDigest.isEqual(sha256(provided), sha256(configuredToken))
+    }
 
-	private fun sha256(value: String): ByteArray =
-		MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+    private fun sha256(value: String): ByteArray =
+        MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
 
-	companion object {
-		const val TOKEN_HEADER = "X-Admin-Token"
-	}
+    companion object {
+        const val TOKEN_HEADER = "X-Admin-Token"
+    }
 }

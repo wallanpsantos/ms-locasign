@@ -44,8 +44,7 @@ class RegisterLeaseTest {
     fun `cadastra locação com signatário da imobiliária padrão quando omitido (R2)`() {
         val leaseId = registerLease.execute(commandWithoutAgencySigner)
 
-        val saved = repository.findById(leaseId)
-        assertNotNull(saved)
+        val saved = assertNotNull(repository.findById(leaseId))
         assertEquals(LeaseStatus.REGISTERED, saved.status)
         assertEquals("Imobiliária Padrão", saved.agencySigner.name)
         assertEquals("padrao@imobiliaria.com", saved.agencySigner.email.value)

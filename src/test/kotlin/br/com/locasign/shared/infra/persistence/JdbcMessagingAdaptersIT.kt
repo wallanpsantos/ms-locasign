@@ -15,19 +15,12 @@ import kotlin.test.assertTrue
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TestcontainersSupport::class)
-class JdbcMessagingAdaptersIT {
-
-    @Autowired
-    private lateinit var processedMessagesAdapter: JdbcProcessedMessagesAdapter
-
-    @Autowired
-    private lateinit var outboxAdapter: JdbcOutboxAdapter
-
-    @Autowired
-    private lateinit var webhookInboxAdapter: JdbcWebhookInboxAdapter
-
-    @Autowired
-    private lateinit var jdbc: JdbcClient
+class JdbcMessagingAdaptersIT(
+    @Autowired private val processedMessagesAdapter: JdbcProcessedMessagesAdapter,
+    @Autowired private val outboxAdapter: JdbcOutboxAdapter,
+    @Autowired private val webhookInboxAdapter: JdbcWebhookInboxAdapter,
+    @Autowired private val jdbc: JdbcClient,
+) {
 
     @Test
     fun `controle de idempotencia registra mensagem e rejeita duplicatas com sucesso`() {

@@ -92,8 +92,7 @@ class RequestContractTest {
 
         val contractId = requestContract.execute(RequestContractCommand(leaseId))
 
-        val saved = contracts.findById(contractId)
-        assertNotNull(saved)
+        val saved = assertNotNull(contracts.findById(contractId))
         assertEquals(ContractStatus.DRAFT, saved.status)
         assertEquals(1, saved.versionNumber)
         assertEquals(2, saved.signers.size)

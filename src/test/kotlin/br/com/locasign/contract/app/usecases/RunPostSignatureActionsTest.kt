@@ -19,6 +19,7 @@ import br.com.locasign.shared.app.fakes.InMemoryProcessedMessages
 import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -71,7 +72,7 @@ class RunPostSignatureActionsTest {
             providerDocumentId = null,
             providerLastModifiedAt = null,
             sentAt = now,
-            expiresAt = now.plusSeconds(86400 * 7),
+            expiresAt = now.plus(Duration.ofDays(7)),
             reminderSentAt = null,
             lastReconciledAt = null,
             cancelReason = null,

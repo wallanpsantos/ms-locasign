@@ -74,11 +74,8 @@ class PandaDocSignatureProviderAdapterTest {
             .createClient(PandaDocClient::class.java)
 
         val properties = LocaSignProperties.PandaDocProperties(
-            baseUrl = baseUrl,
-            apiKey = apiKey,
             templateId = templateId,
             downloadEnabled = true,
-            rateLimitPerMinute = 100,
         )
 
         adapter = PandaDocSignatureProviderAdapter(

@@ -7,14 +7,6 @@ import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.postgresql.PostgreSQLContainer
 
 @TestConfiguration(proxyBeanMethods = false)
-class PostgresTestcontainers {
-
-    @Bean
-    @ServiceConnection
-    fun postgresContainer(): PostgreSQLContainer = PostgreSQLContainer("postgres:18.6")
-}
-
-@TestConfiguration(proxyBeanMethods = false)
 class TestcontainersSupport {
 
     @Bean

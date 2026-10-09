@@ -49,11 +49,11 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
         val contractId = ContractId.new()
         given(requestContract.execute(any())).willReturn(contractId)
 
-        val result = mvc.perform(post("/api/v1/leases/${leaseId}/contracts"))
+        val result = mvc.perform(post("/api/v1/leases/$leaseId/contracts"))
 
         assertThat(result)
             .hasStatus(HttpStatus.ACCEPTED)
-            .hasHeader("Location", "http://localhost/api/v1/contracts/${contractId}")
+            .hasHeader("Location", "http://localhost/api/v1/contracts/$contractId")
             .bodyJson()
             .extractingPath("$.status").isEqualTo("DRAFT")
     }
@@ -68,7 +68,7 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
             )
         )
 
-        val result = mvc.perform(post("/api/v1/leases/${leaseId}/contracts"))
+        val result = mvc.perform(post("/api/v1/leases/$leaseId/contracts"))
 
         assertThat(result)
             .hasStatus(HttpStatus.CONFLICT)
@@ -87,7 +87,7 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
         """.trimIndent()
 
         val result = mvc.perform(
-            post("/api/v1/contracts/${contractId}/cancel")
+            post("/api/v1/contracts/$contractId/cancel")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(cancelJson)
         )
@@ -102,7 +102,7 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
     fun `reconciliação sem token de operador responde 403 Forbidden`() {
         val contractId = ContractId.new()
 
-        val result = mvc.perform(post("/api/v1/contracts/${contractId}/reconcile"))
+        val result = mvc.perform(post("/api/v1/contracts/$contractId/reconcile"))
 
         assertThat(result)
             .hasStatus(HttpStatus.FORBIDDEN)

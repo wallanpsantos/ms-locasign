@@ -9,7 +9,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 /**
  * Validação automatizada das fronteiras arquiteturais do monólito modular hexagonal.
  *
- * As regras codificam rigorosamente as restrições descritas no `AGENTS.md` (§4.1, §4.3 e §4.6):
+ * As regras codificam as restrições descritas no `AGENTS.md` (§4.1, §4.3 e §4.6):
  * - Isolamento do Domínio (Kotlin puro, sem dependências de infraestrutura/frameworks nem de camadas externas).
  * - Camada de Aplicação agnóstica de frameworks e tecnologias de transporte/persistência.
  * - Direção de dependências: `interfaces -> app -> domain <- infra`.

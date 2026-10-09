@@ -27,13 +27,10 @@ import kotlin.test.assertNotNull
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TestcontainersSupport::class)
-class ContractRepositoryAdapterIT {
-
-    @Autowired
-    private lateinit var contractRepositoryAdapter: ContractRepositoryAdapter
-
-    @Autowired
-    private lateinit var leaseRepositoryAdapter: LeaseRepositoryAdapter
+class ContractRepositoryAdapterIT(
+    @Autowired private val contractRepositoryAdapter: ContractRepositoryAdapter,
+    @Autowired private val leaseRepositoryAdapter: LeaseRepositoryAdapter,
+) {
 
     private val today = LocalDate.of(2026, 11, 1)
     private val now = Instant.parse("2026-10-09T10:00:00Z")

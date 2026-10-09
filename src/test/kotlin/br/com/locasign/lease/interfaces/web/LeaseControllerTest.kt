@@ -65,7 +65,7 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
 
         assertThat(result)
             .hasStatus(HttpStatus.CREATED)
-            .hasHeader("Location", "http://localhost/api/v1/leases/${createdId}")
+            .hasHeader("Location", "http://localhost/api/v1/leases/$createdId")
             .bodyJson()
             .extractingPath("$.status").isEqualTo("REGISTERED")
     }
@@ -119,7 +119,7 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             DomainException.NotFound("Locação", nonExistentId.toString())
         )
 
-        val result = mvc.perform(get("/api/v1/leases/${nonExistentId}"))
+        val result = mvc.perform(get("/api/v1/leases/$nonExistentId"))
 
         assertThat(result)
             .hasStatus(HttpStatus.NOT_FOUND)
@@ -148,7 +148,7 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
         )
         given(getLease.execute(leaseId)).willReturn(detail)
 
-        val result = mvc.perform(get("/api/v1/leases/${leaseId}"))
+        val result = mvc.perform(get("/api/v1/leases/$leaseId"))
 
         assertThat(result)
             .hasStatus(HttpStatus.OK)

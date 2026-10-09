@@ -129,7 +129,9 @@ class FakeSignedDocumentStorage : SignedDocumentStoragePort {
     }
 }
 
-class FakeLeaseLookup(private val leases: MutableMap<LeaseId, LeaseSnapshot> = mutableMapOf()) : LeaseLookupPort {
+class FakeLeaseLookup : LeaseLookupPort {
+    private val leases = mutableMapOf<LeaseId, LeaseSnapshot>()
+
     fun register(snapshot: LeaseSnapshot) {
         leases[snapshot.leaseId] = snapshot
     }

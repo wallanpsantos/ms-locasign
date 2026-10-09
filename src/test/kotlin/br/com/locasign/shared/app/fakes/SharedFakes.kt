@@ -1,7 +1,6 @@
 package br.com.locasign.shared.app.fakes
 
 import br.com.locasign.shared.app.ports.BusinessClock
-import br.com.locasign.shared.app.ports.CorrelationContext
 import br.com.locasign.shared.app.ports.MetricsPort
 import br.com.locasign.shared.app.ports.OutboxMessage
 import br.com.locasign.shared.app.ports.OutboxPort
@@ -59,13 +58,4 @@ class InMemoryWebhookInbox : WebhookInboxPort {
 
 object NoOpMetricsPort : MetricsPort {
     override fun count(name: String, vararg tags: String) = Unit
-}
-
-object SimpleCorrelationContext : CorrelationContext {
-    override fun <T> with(
-        correlationId: String?,
-        causationId: String?,
-        entries: Map<String, String>,
-        block: () -> T,
-    ): T = block()
 }

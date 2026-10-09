@@ -250,62 +250,61 @@ sequenceDiagram
     participant L as LocaSign (Contract)
     participant P as PandaDoc
     participant J as Jobs
-
-    Note over C,J: Fase 1 - Geração do documento
-    C->>L: Solicita contrato
+    Note over C, J: Fase 1 - Geração do documento
+    C ->> L: Solicita contrato
     Note over L: DRAFT
-    L->>P: Cria documento a partir do template
-    P-->>L: document.uploaded (geração em andamento)
+    L ->> P: Cria documento a partir do template
+    P -->> L: document.uploaded (geração em andamento)
 
     alt Geração bem-sucedida
-        P-->>L: webhook document.draft
+        P -->> L: webhook document.draft
         Note over L: DRAFT → GENERATED
-        L->>P: Envia documento
-        P-->>L: Envio confirmado
+        L ->> P: Envia documento
+        P -->> L: Envio confirmado
         Note over L: GENERATED → SENT
     else Falha na geração
-        P-->>L: webhook document_creation_failed
+        P -->> L: webhook document_creation_failed
         Note over L: DRAFT → CANCELLED (GENERATION_FAILED)
     else Corretor cancela antes do envio
-        C->>L: Cancelar com motivo
+        C ->> L: Cancelar com motivo
         Note over L: DRAFT ou GENERATED → CANCELLED
     end
 
-    Note over C,J: Fase 2 - Assinatura (a partir de SENT)
+    Note over C, J: Fase 2 - Assinatura (a partir de SENT)
     opt Signatário abre o documento
-        P-->>L: webhook document.viewed
+        P -->> L: webhook document.viewed
         Note over L: SENT → VIEWED
     end
 
     alt Caminho feliz
-        P-->>L: webhook recipient_completed (locatário)
+        P -->> L: webhook recipient_completed (locatário)
         Note over L: SENT ou VIEWED → PARTIALLY_SIGNED
-        P-->>L: webhook recipient_completed (imobiliária)
-        P-->>L: webhook document.completed
+        P -->> L: webhook recipient_completed (imobiliária)
+        P -->> L: webhook document.completed
         Note over L: PARTIALLY_SIGNED → COMPLETED (final)
-        L->>L: Dispara ações pós-assinatura
+        L ->> L: Dispara ações pós-assinatura
     else Signatário recusa
-        P-->>L: webhook de recusa
+        P -->> L: webhook de recusa
         Note over L: SENT, VIEWED ou PARTIALLY_SIGNED → DECLINED (final)
     else Prazo de 7 dias vence
-        J->>L: Verifica prazos vencidos
+        J ->> L: Verifica prazos vencidos
         Note over L: SENT, VIEWED ou PARTIALLY_SIGNED → EXPIRED (final)
     else Corretor cancela
-        C->>L: Cancelar com motivo
+        C ->> L: Cancelar com motivo
         Note over L: SENT, VIEWED ou PARTIALLY_SIGNED → CANCELLED (final)
     end
 
-    Note over C,J: Fase 3 - Casos de borda
+    Note over C, J: Fase 3 - Casos de borda
     rect rgba(128, 128, 128, 0.1)
-        Note over P,J: Webhook perdido (a PandaDoc não reenvia)
-        J->>P: Reconciliação consulta o status
-        P-->>J: document.completed
-        J->>L: Aplica atualização (source = RECONCILIATION)
+        Note over P, J: Webhook perdido (a PandaDoc não reenvia)
+        J ->> P: Reconciliação consulta o status
+        P -->> J: document.completed
+        J ->> L: Aplica atualização (source = RECONCILIATION)
         Note over L: SENT → COMPLETED (salto para frente permitido)
     end
     rect rgba(128, 128, 128, 0.1)
-        Note over L,P: Webhook atrasado ou duplicado
-        P-->>L: webhook document.viewed (chega após COMPLETED)
+        Note over L, P: Webhook atrasado ou duplicado
+        P -->> L: webhook document.viewed (chega após COMPLETED)
         Note over L: Ignorado, status não regride (registrado no histórico)
     end
 ```
@@ -331,7 +330,6 @@ stateDiagram-v2
     EM_ASSINATURA --> DECLINED: signatário recusou
     EM_ASSINATURA --> EXPIRED: prazo de 7 dias venceu
     EM_ASSINATURA --> CANCELLED: corretor cancelou
-
     COMPLETED --> [*]
     DECLINED --> [*]
     EXPIRED --> [*]
@@ -463,29 +461,28 @@ sequenceDiagram
     participant CS as Consumidores
     participant PD as PandaDoc
     participant WH as Receptor de webhooks
-
-    C->>API: POST /leases/{id}/contracts
-    API->>DB: Contract(DRAFT) + outbox(ContractRequested)
-    API-->>C: 202 Accepted
-    DB-->>K: relay publica ContractRequested
-    K->>CS: ContractRequested
-    CS->>PD: cria documento (template, roles, variáveis, metadata)
-    PD-->>CS: id + document.uploaded
-    PD->>WH: document_state_changed (document.draft)
-    WH->>DB: valida HMAC, grava inbox + outbox
-    WH-->>PD: 200 OK
-    DB-->>K: relay publica webhook bruto
-    K->>CS: atualização do provedor
-    CS->>DB: Contract → GENERATED + outbox(ContractGenerated)
-    DB-->>K: ContractGenerated
-    K->>CS: ContractGenerated
-    CS->>PD: envia documento
-    CS->>DB: Contract → SENT + outbox(ContractSent)
-    PD->>WH: recipient_completed / document_state_changed (completed)
-    WH->>DB: inbox + outbox
-    K->>CS: atualizações → PARTIALLY_SIGNED → COMPLETED
-    CS->>DB: outbox(ContractCompleted)
-    K->>CS: ContractCompleted → ações pós-assinatura (exatamente uma vez)
+    C ->> API: POST /leases/{id}/contracts
+    API ->> DB: Contract(DRAFT) + outbox(ContractRequested)
+    API -->> C: 202 Accepted
+    DB -->> K: relay publica ContractRequested
+    K ->> CS: ContractRequested
+    CS ->> PD: cria documento (template, roles, variáveis, metadata)
+    PD -->> CS: id + document.uploaded
+    PD ->> WH: document_state_changed (document.draft)
+    WH ->> DB: valida HMAC, grava inbox + outbox
+    WH -->> PD: 200 OK
+    DB -->> K: relay publica webhook bruto
+    K ->> CS: atualização do provedor
+    CS ->> DB: Contract → GENERATED + outbox(ContractGenerated)
+    DB -->> K: ContractGenerated
+    K ->> CS: ContractGenerated
+    CS ->> PD: envia documento
+    CS ->> DB: Contract → SENT + outbox(ContractSent)
+    PD ->> WH: recipient_completed / document_state_changed (completed)
+    WH ->> DB: inbox + outbox
+    K ->> CS: atualizações → PARTIALLY_SIGNED → COMPLETED
+    CS ->> DB: outbox(ContractCompleted)
+    K ->> CS: ContractCompleted → ações pós-assinatura (exatamente uma vez)
 ```
 
 ### 5.5 Dados enviados na criação

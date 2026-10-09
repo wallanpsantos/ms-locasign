@@ -41,6 +41,9 @@ dependencies {
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-postgresql")
 	testImplementation("org.testcontainers:testcontainers-kafka")
+	testImplementation(libs.wiremock)
+	testImplementation(libs.archunit.junit5)
+	testImplementation("org.awaitility:awaitility")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -66,4 +69,5 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	systemProperty("user.timezone", "UTC")
 }

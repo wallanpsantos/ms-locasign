@@ -169,6 +169,45 @@ Todas as classes, interfaces, objetos e enums da aplicação seguem o padrão es
 - **O que a classe faz:** contextualização clara do comportamento técnico e papel no fluxo de negócio.
 - **Responsabilidade:** explicitação da responsabilidade única (SRP), limites na arquitetura hexagonal e garantias/regras de negócio asseguradas.
 
+## Estratégia e Pirâmide de Testes
+
+A aplicação possui uma esteira rigorosa de testes automatizados cobrindo todas as camadas da arquitetura hexagonal (formalizada no [ADR-014](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)), totalizando **97 testes automatizados com 100% de aprovação**:
+
+```text
+              ▲
+             / \
+            /E2E\             LocaSignE2EIT (1 teste)
+           /-----\            Fluxo assíncrono completo: REST ➔ Outbox ➔ Kafka ➔ WireMock ➔ Webhook ➔ Ativação
+          /  IT   \
+         /---------\          Testcontainers (PostgreSQL 18.6 + Kafka 4.3.1 KRaft) (7 testes)
+        / WireMock  \         Persistência real, índices parciais (R1), outbox, inbox e idempotência (R6, R7, R8)
+       /-------------\
+      /   ArchUnit    \       PandaDocSignatureProviderAdapterTest (7 testes)
+     /-----------------\      Contratos REST, resiliência HTTP/1.1, rate limit 429 e backoff exponencial
+    /     Web Slices    \
+   /---------------------\    HexagonalArchitectureTest (13 testes)
+  /   Unitários de Domínio\   Fronteiras arquiteturais do AGENTS.md §4.6 e direção estrita de dependências
+ /_________________________\
+                              @WebMvcTest com MockMvcTester (12 testes)
+                              Validação Jakarta Bean Validation, RFC 9457 Problem Details e segurança do operador
+
+                              Domínio e Aplicação Puros (57 testes)
+                              Agregados Contract e Lease, políticas de transição (R5), value objects (Cpf, Email, Money)
+```
+
+### Como executar os testes
+
+```bash
+# Executa todos os testes da aplicação (unitários, web, wiremock, arquitetura, IT e E2E via Testcontainers)
+./gradlew test
+
+# Executa apenas os testes rápidos que não sobem Docker (unitários, fatias web, wiremock e archunit)
+./gradlew test --tests "*Test"
+
+# Executa o gate completo de qualidade da CI (compila sem warnings, roda todos os testes e gera o JAR)
+./gradlew build
+```
+
 ## Problemas comuns
 
 - **A app conecta no Kafka mas não produz/consome:** quase sempre são os *listeners anunciados*.

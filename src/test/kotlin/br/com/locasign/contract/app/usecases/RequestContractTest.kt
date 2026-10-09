@@ -9,6 +9,7 @@ import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.SignerRole
+import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
@@ -55,6 +56,36 @@ class RequestContractTest {
         termMonths = 30,
     )
 
+    /** Reconstitui a versão salva num status final, simulando o encerramento do ciclo dela. */
+    private fun finishContract(
+        contractId: ContractId,
+        status: ContractStatus,
+        cancelReason: CancelReason? = null,
+        signedDocumentRef: String? = null,
+    ) {
+        val current = assertNotNull(contracts.findById(contractId))
+        contracts.save(
+            Contract.restore(
+                id = current.id,
+                leaseId = current.leaseId,
+                versionNumber = current.versionNumber,
+                status = status,
+                providerDocumentId = null,
+                providerLastModifiedAt = null,
+                sentAt = null,
+                expiresAt = null,
+                reminderSentAt = null,
+                lastReconciledAt = null,
+                cancelReason = cancelReason,
+                signedDocumentRef = signedDocumentRef,
+                signers = current.signers,
+                createdAt = current.createdAt,
+                updatedAt = now,
+                rowVersion = 1L,
+            ),
+        )
+    }
+
     @Test
     fun `solicitação inicial cria versão 1 em DRAFT e emite ContractRequested (R1, R3)`() {
         leases.register(leaseSnapshot)
@@ -89,32 +120,11 @@ class RequestContractTest {
     fun `cria versão 2 após cancelamento, expiração ou recusa da versão 1 (R9)`() {
         leases.register(leaseSnapshot)
         val v1Id = requestContract.execute(RequestContractCommand(leaseId))
-
-        // Simula que v1 foi cancelado
-        val v1 = contracts.findById(v1Id)!!
-        val v1Cancelled = Contract.restore(
-            id = v1.id,
-            leaseId = v1.leaseId,
-            versionNumber = v1.versionNumber,
-            status = ContractStatus.CANCELLED,
-            providerDocumentId = null,
-            providerLastModifiedAt = null,
-            sentAt = null,
-            expiresAt = null,
-            reminderSentAt = null,
-            lastReconciledAt = null,
-            cancelReason = CancelReason.Requested("Cancelado pelo usuário"),
-            signedDocumentRef = null,
-            signers = v1.signers,
-            createdAt = v1.createdAt,
-            updatedAt = now,
-            rowVersion = 1L,
-        )
-        contracts.save(v1Cancelled)
+        finishContract(v1Id, ContractStatus.CANCELLED, cancelReason = CancelReason.Requested("Cancelado pelo usuário"))
 
         // Agora deve permitir criar v2
         val v2Id = requestContract.execute(RequestContractCommand(leaseId))
-        val v2 = contracts.findById(v2Id)!!
+        val v2 = assertNotNull(contracts.findById(v2Id))
         assertEquals(2, v2.versionNumber)
         assertEquals(ContractStatus.DRAFT, v2.status)
     }
@@ -123,28 +133,7 @@ class RequestContractTest {
     fun `impede criação de novo contrato após contrato anterior concluído (R9, ADR-013)`() {
         leases.register(leaseSnapshot)
         val v1Id = requestContract.execute(RequestContractCommand(leaseId))
-
-        // Simula que v1 foi concluído
-        val v1 = contracts.findById(v1Id)!!
-        val v1Completed = Contract.restore(
-            id = v1.id,
-            leaseId = v1.leaseId,
-            versionNumber = v1.versionNumber,
-            status = ContractStatus.COMPLETED,
-            providerDocumentId = null,
-            providerLastModifiedAt = null,
-            sentAt = null,
-            expiresAt = null,
-            reminderSentAt = null,
-            lastReconciledAt = null,
-            cancelReason = null,
-            signedDocumentRef = "/path/doc.pdf",
-            signers = v1.signers,
-            createdAt = v1.createdAt,
-            updatedAt = now,
-            rowVersion = 1L,
-        )
-        contracts.save(v1Completed)
+        finishContract(v1Id, ContractStatus.COMPLETED, signedDocumentRef = "/path/doc.pdf")
 
         assertFailsWith<DomainException.ActiveContractExists> {
             requestContract.execute(RequestContractCommand(leaseId))

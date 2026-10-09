@@ -11,15 +11,14 @@ import br.com.locasign.support.TestcontainersSupport
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.jsonResponse
+import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
@@ -33,6 +32,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersSupport::class)
@@ -85,6 +87,12 @@ class LocaSignE2EIT {
         return HexFormat.of().formatHex(mac.doFinal(data))
     }
 
+    private fun fetchLease(leaseId: String): LeaseResponse? =
+        restClient.get().uri("/api/v1/leases/$leaseId").retrieve().body(LeaseResponse::class.java)
+
+    private fun fetchContract(contractId: String): ContractResponse? =
+        restClient.get().uri("/api/v1/contracts/$contractId").retrieve().body(ContractResponse::class.java)
+
     @Test
     fun `fluxo completo ponta a ponta cadastro de locacao solicitacao de contrato kafka e webhook de conclusao`() {
         val docId = "doc-e2e-" + UUID.randomUUID()
@@ -92,21 +100,11 @@ class LocaSignE2EIT {
         // 1. Stubs no WireMock para a PandaDoc
         wireMockServer.stubFor(
             post(urlEqualTo("/documents"))
-                .willReturn(
-                    aResponse()
-                        .withStatus(201)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"id": "$docId", "status": "document.uploaded"}""")
-                )
+                .willReturn(jsonResponse("""{"id": "$docId", "status": "document.uploaded"}""", 201))
         )
         wireMockServer.stubFor(
             post(urlEqualTo("/documents/$docId/send"))
-                .willReturn(
-                    aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"id": "$docId", "status": "document.sent"}""")
-                )
+                .willReturn(okJson("""{"id": "$docId", "status": "document.sent"}"""))
         )
         wireMockServer.stubFor(
             get(urlEqualTo("/documents/$docId/download-protected"))
@@ -143,38 +141,27 @@ class LocaSignE2EIT {
             .toBodilessEntity()
 
         assertEquals(201, createLeaseResponse.statusCode.value())
-        val leaseLocation = createLeaseResponse.headers.location?.path
-        assertNotNull(leaseLocation)
-        val leaseId = leaseLocation!!.substringAfterLast("/")
+        val leaseLocation = assertNotNull(createLeaseResponse.headers.location?.path)
+        val leaseId = leaseLocation.substringAfterLast("/")
 
         // Verifica estado inicial da locação (REGISTERED)
-        val initialLease = restClient.get()
-            .uri("/api/v1/leases/$leaseId")
-            .retrieve()
-            .body(LeaseResponse::class.java)
-
-        assertNotNull(initialLease)
-        assertEquals("REGISTERED", initialLease?.status)
+        val initialLease = assertNotNull(fetchLease(leaseId))
+        assertEquals("REGISTERED", initialLease.status)
 
         // 3. Solicitação de emissão de contrato via POST /api/v1/leases/{leaseId}/contracts
-        val requestContractResponse = restClient.post()
-            .uri("/api/v1/leases/$leaseId/contracts")
-            .retrieve()
-            .body(ContractAcceptedResponse::class.java)
-
-        assertNotNull(requestContractResponse)
-        val contractId = requestContractResponse!!.id
+        val requestContractResponse = assertNotNull(
+            restClient.post()
+                .uri("/api/v1/leases/$leaseId/contracts")
+                .retrieve()
+                .body(ContractAcceptedResponse::class.java)
+        )
+        val contractId = requestContractResponse.id
         assertEquals("DRAFT", requestContractResponse.status)
 
         // 4. Aguarda o processamento assíncrono (Outbox -> Kafka -> Orchestrator -> PandaDoc create)
         await().atMost(15, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(300)).untilAsserted {
-            val contract = restClient.get()
-                .uri("/api/v1/contracts/$contractId")
-                .retrieve()
-                .body(ContractResponse::class.java)
-
-            assertNotNull(contract)
-            assertEquals(docId, contract?.providerDocumentId)
+            val contract = assertNotNull(fetchContract(contractId))
+            assertEquals(docId, contract.providerDocumentId)
         }
 
         // 5. Envio do Webhook assinado da PandaDoc indicando document.completed
@@ -216,19 +203,8 @@ class LocaSignE2EIT {
         // - Contrato deve transicionar para COMPLETED
         // - Locação deve ser ativada (status ACTIVE)
         await().atMost(15, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(300)).untilAsserted {
-            val completedContract = restClient.get()
-                .uri("/api/v1/contracts/$contractId")
-                .retrieve()
-                .body(ContractResponse::class.java)
-
-            assertEquals("COMPLETED", completedContract?.status)
-
-            val activeLease = restClient.get()
-                .uri("/api/v1/leases/$leaseId")
-                .retrieve()
-                .body(LeaseResponse::class.java)
-
-            assertEquals("ACTIVE", activeLease?.status)
+            assertEquals("COMPLETED", fetchContract(contractId)?.status)
+            assertEquals("ACTIVE", fetchLease(leaseId)?.status)
         }
     }
 }

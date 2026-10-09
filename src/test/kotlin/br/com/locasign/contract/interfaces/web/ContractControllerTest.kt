@@ -12,6 +12,7 @@ import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import br.com.locasign.shared.interfaces.web.ApiExceptionHandler
 import br.com.locasign.shared.interfaces.web.OperatorAccessGuard
 import br.com.locasign.support.any
+import org.assertj.core.api.Assertions.assertThat
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.assertj.MockMvcTester
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import kotlin.test.Test
 
 @WebMvcTest(ContractController::class)
@@ -47,12 +49,9 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
         val contractId = ContractId.new()
         given(requestContract.execute(any())).willReturn(contractId)
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .post("/api/v1/leases/${leaseId}/contracts")
-        )
+        val result = mvc.perform(post("/api/v1/leases/${leaseId}/contracts"))
 
-        org.assertj.core.api.Assertions.assertThat(result)
+        assertThat(result)
             .hasStatus(HttpStatus.ACCEPTED)
             .hasHeader("Location", "http://localhost/api/v1/contracts/${contractId}")
             .bodyJson()
@@ -69,12 +68,9 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
             )
         )
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .post("/api/v1/leases/${leaseId}/contracts")
-        )
+        val result = mvc.perform(post("/api/v1/leases/${leaseId}/contracts"))
 
-        org.assertj.core.api.Assertions.assertThat(result)
+        assertThat(result)
             .hasStatus(HttpStatus.CONFLICT)
             .bodyJson()
             .extractingPath("$.type").isEqualTo("/problems/active-contract-exists")
@@ -91,13 +87,12 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
         """.trimIndent()
 
         val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .post("/api/v1/contracts/${contractId}/cancel")
+            post("/api/v1/contracts/${contractId}/cancel")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(cancelJson)
         )
 
-        org.assertj.core.api.Assertions.assertThat(result)
+        assertThat(result)
             .hasStatus(HttpStatus.ACCEPTED)
             .bodyJson()
             .extractingPath("$.status").isEqualTo("CANCELLED")
@@ -107,12 +102,9 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
     fun `reconciliação sem token de operador responde 403 Forbidden`() {
         val contractId = ContractId.new()
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .post("/api/v1/contracts/${contractId}/reconcile")
-        )
+        val result = mvc.perform(post("/api/v1/contracts/${contractId}/reconcile"))
 
-        org.assertj.core.api.Assertions.assertThat(result)
+        assertThat(result)
             .hasStatus(HttpStatus.FORBIDDEN)
     }
 }

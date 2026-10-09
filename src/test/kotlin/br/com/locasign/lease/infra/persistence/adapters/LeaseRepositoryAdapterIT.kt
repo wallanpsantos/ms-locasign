@@ -9,15 +9,15 @@ import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.support.TestcontainersSupport
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TestcontainersSupport::class)
@@ -56,20 +56,18 @@ class LeaseRepositoryAdapterIT {
 
         leaseRepositoryAdapter.save(lease)
 
-        val retrieved = leaseRepositoryAdapter.findById(lease.id)
-        assertNotNull(retrieved)
-        assertEquals(lease.id, retrieved?.id)
-        assertEquals("Carlos Locatário", retrieved?.tenant?.name)
-        assertEquals(LeaseStatus.REGISTERED, retrieved?.status)
+        val retrieved = assertNotNull(leaseRepositoryAdapter.findById(lease.id))
+        assertEquals(lease.id, retrieved.id)
+        assertEquals("Carlos Locatário", retrieved.tenant.name)
+        assertEquals(LeaseStatus.REGISTERED, retrieved.status)
 
         // Ativação da locação (R8)
-        val activated = retrieved!!.activate(now)
+        val activated = retrieved.activate(now)
         assertTrue(activated, "Locação deve ser ativada pela primeira vez com sucesso")
         leaseRepositoryAdapter.save(retrieved)
 
-        val detail = leaseQueryAdapter.findDetail(lease.id)
-        assertNotNull(detail)
-        assertEquals(LeaseStatus.ACTIVE.name, detail?.status)
-        assertEquals("Avenida Paulista, 1000, Apto 42", detail?.propertyAddress)
+        val detail = assertNotNull(leaseQueryAdapter.findDetail(lease.id))
+        assertEquals(LeaseStatus.ACTIVE.name, detail.status)
+        assertEquals("Avenida Paulista, 1000, Apto 42", detail.propertyAddress)
     }
 }

@@ -8,13 +8,18 @@ import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import br.com.locasign.shared.interfaces.web.ApiExceptionHandler
 import br.com.locasign.support.any
+import org.assertj.core.api.Assertions.assertThat
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.assertj.MockMvcTester
+import org.springframework.test.web.servlet.assertj.MvcTestResult
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -29,35 +34,37 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
     @MockitoBean
     private lateinit var getLease: GetLease
 
+    private val validRequestJson = """
+        {
+            "tenant": {
+                "name": "Maria Silva",
+                "cpf": "529.982.247-25",
+                "email": "maria@example.com"
+            },
+            "property": {
+                "address": "Av Paulista, 1000"
+            },
+            "rentAmount": "3500.00",
+            "startDate": "2026-11-01",
+            "termMonths": 30
+        }
+    """.trimIndent()
+
+    private fun postLease(json: String): MvcTestResult = mvc.perform(
+        post("/api/v1/leases")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json),
+    )
+
     @Test
     fun `cadastro de locação válido responde 201 Created com cabeçalho Location (R2)`() {
         val createdId = LeaseId.new()
         given(registerLease.execute(any())).willReturn(createdId)
 
-        val requestJson = """
-            {
-                "tenant": {
-                    "name": "Maria Silva",
-                    "cpf": "529.982.247-25",
-                    "email": "maria@example.com"
-                },
-                "property": {
-                    "address": "Av Paulista, 1000"
-                },
-                "rentAmount": "3500.00",
-                "startDate": "2026-11-01",
-                "termMonths": 30
-            }
-        """.trimIndent()
+        val result = postLease(validRequestJson)
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/leases")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestJson)
-        )
-
-        org.assertj.core.api.Assertions.assertThat(result)
-            .hasStatus(org.springframework.http.HttpStatus.CREATED)
+        assertThat(result)
+            .hasStatus(HttpStatus.CREATED)
             .hasHeader("Location", "http://localhost/api/v1/leases/${createdId}")
             .bodyJson()
             .extractingPath("$.status").isEqualTo("REGISTERED")
@@ -80,14 +87,10 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             }
         """.trimIndent()
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/leases")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(invalidJson)
-        )
+        val result = postLease(invalidJson)
 
-        org.assertj.core.api.Assertions.assertThat(result)
-            .hasStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
+        assertThat(result)
+            .hasStatus(HttpStatus.BAD_REQUEST)
             .bodyJson()
             .extractingPath("$.type").isEqualTo("/problems/validation")
     }
@@ -101,30 +104,10 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             )
         )
 
-        val requestJson = """
-            {
-                "tenant": {
-                    "name": "Maria Silva",
-                    "cpf": "529.982.247-25",
-                    "email": "maria@example.com"
-                },
-                "property": {
-                    "address": "Av Paulista, 1000"
-                },
-                "rentAmount": "3500.00",
-                "startDate": "2026-11-01",
-                "termMonths": 30
-            }
-        """.trimIndent()
+        val result = postLease(validRequestJson)
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/leases")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestJson)
-        )
-
-        org.assertj.core.api.Assertions.assertThat(result)
-            .hasStatus(org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT)
+        assertThat(result)
+            .hasStatus(HttpStatus.UNPROCESSABLE_CONTENT)
             .bodyJson()
             .extractingPath("$.type").isEqualTo("/problems/business-rule")
     }
@@ -136,12 +119,10 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             DomainException.NotFound("Locação", nonExistentId.toString())
         )
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/leases/${nonExistentId}")
-        )
+        val result = mvc.perform(get("/api/v1/leases/${nonExistentId}"))
 
-        org.assertj.core.api.Assertions.assertThat(result)
-            .hasStatus(org.springframework.http.HttpStatus.NOT_FOUND)
+        assertThat(result)
+            .hasStatus(HttpStatus.NOT_FOUND)
             .bodyJson()
             .extractingPath("$.type").isEqualTo("/problems/not-found")
     }
@@ -167,12 +148,10 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
         )
         given(getLease.execute(leaseId)).willReturn(detail)
 
-        val result = mvc.perform(
-            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/leases/${leaseId}")
-        )
+        val result = mvc.perform(get("/api/v1/leases/${leaseId}"))
 
-        org.assertj.core.api.Assertions.assertThat(result)
-            .hasStatus(org.springframework.http.HttpStatus.OK)
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
             .bodyJson()
             .extractingPath("$.tenant.name").isEqualTo("Maria Silva")
     }

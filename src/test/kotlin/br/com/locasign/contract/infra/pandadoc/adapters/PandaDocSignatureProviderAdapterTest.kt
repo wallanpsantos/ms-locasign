@@ -22,6 +22,8 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.jsonResponse
+import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.patch
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
@@ -31,9 +33,12 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.http.HttpHeaders
+import org.springframework.http.client.BufferingClientHttpRequestFactory
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.support.RestClientAdapter
 import org.springframework.web.service.invoker.HttpServiceProxyFactory
+import java.net.http.HttpClient
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,12 +59,10 @@ class PandaDocSignatureProviderAdapterTest {
         wireMockServer.start()
 
         val baseUrl = wireMockServer.baseUrl()
-        val httpClient = java.net.http.HttpClient.newBuilder()
-            .version(java.net.http.HttpClient.Version.HTTP_1_1)
+        val httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
             .build()
-        val requestFactory = org.springframework.http.client.BufferingClientHttpRequestFactory(
-            org.springframework.http.client.JdkClientHttpRequestFactory(httpClient)
-        )
+        val requestFactory = BufferingClientHttpRequestFactory(JdkClientHttpRequestFactory(httpClient))
         val restClient = RestClient.builder()
             .baseUrl(baseUrl)
             .requestFactory(requestFactory)
@@ -118,12 +121,7 @@ class PandaDocSignatureProviderAdapterTest {
     fun `criação de documento via API envia cabeçalho de autenticação e retorna ID criado`() {
         wireMockServer.stubFor(
             post(urlEqualTo("/documents"))
-                .willReturn(
-                    aResponse()
-                        .withStatus(201)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"id": "doc-created-999", "status": "document.uploaded"}""")
-                )
+                .willReturn(jsonResponse("""{"id": "doc-created-999", "status": "document.uploaded"}""", 201))
         )
 
         val docId = adapter.createDocument(sampleRequest())
@@ -140,18 +138,15 @@ class PandaDocSignatureProviderAdapterTest {
         wireMockServer.stubFor(
             get(urlEqualTo("/documents/doc-created-999/details"))
                 .willReturn(
-                    aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(
-                            """
-                            {
-                                "id": "doc-created-999",
-                                "status": "document.draft",
-                                "recipients": []
-                            }
-                            """.trimIndent()
-                        )
+                    okJson(
+                        """
+                        {
+                            "id": "doc-created-999",
+                            "status": "document.draft",
+                            "recipients": []
+                        }
+                        """.trimIndent()
+                    )
                 )
         )
 
@@ -165,12 +160,7 @@ class PandaDocSignatureProviderAdapterTest {
     fun `envio de documento executa POST no endpoint correspondente`() {
         wireMockServer.stubFor(
             post(urlEqualTo("/documents/doc-created-999/send"))
-                .willReturn(
-                    aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"id": "doc-created-999", "status": "document.sent"}""")
-                )
+                .willReturn(okJson("""{"id": "doc-created-999", "status": "document.sent"}"""))
         )
 
         adapter.send(
@@ -222,12 +212,7 @@ class PandaDocSignatureProviderAdapterTest {
             get(urlEqualTo("/documents/doc-created-999/details"))
                 .inScenario("RateLimitRetry")
                 .whenScenarioStateIs("Retried")
-                .willReturn(
-                    aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"id": "doc-created-999", "status": "document.draft", "recipients": []}""")
-                )
+                .willReturn(okJson("""{"id": "doc-created-999", "status": "document.draft", "recipients": []}"""))
         )
 
         val state = adapter.fetchState(ProviderDocumentId.of("doc-created-999"))

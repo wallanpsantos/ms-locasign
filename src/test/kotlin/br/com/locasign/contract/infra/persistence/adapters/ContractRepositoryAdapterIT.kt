@@ -15,15 +15,15 @@ import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.support.TestcontainersSupport
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TestcontainersSupport::class)
@@ -73,11 +73,10 @@ class ContractRepositoryAdapterIT {
 
         contractRepositoryAdapter.save(contract)
 
-        val retrieved = contractRepositoryAdapter.findById(contract.id)
-        assertNotNull(retrieved)
-        assertEquals(contract.id, retrieved?.id)
-        assertEquals(ContractStatus.DRAFT, retrieved?.status)
-        assertEquals(1, retrieved?.versionNumber)
+        val retrieved = assertNotNull(contractRepositoryAdapter.findById(contract.id))
+        assertEquals(contract.id, retrieved.id)
+        assertEquals(ContractStatus.DRAFT, retrieved.status)
+        assertEquals(1, retrieved.versionNumber)
     }
 
     @Test
@@ -88,7 +87,7 @@ class ContractRepositoryAdapterIT {
 
         contractRepositoryAdapter.save(contract1)
 
-        val exception = assertThrows(DomainException.ActiveContractExists::class.java) {
+        val exception = assertFailsWith<DomainException.ActiveContractExists> {
             contractRepositoryAdapter.save(contract2)
         }
         assertEquals(lease.id.toString(), exception.leaseId)
@@ -101,7 +100,7 @@ class ContractRepositoryAdapterIT {
         contractRepositoryAdapter.save(contract1)
 
         // Recarrega o contrato com rowVersion atribuído pelo banco para efetuar o update
-        val toCancel = contractRepositoryAdapter.findById(contract1.id)!!
+        val toCancel = assertNotNull(contractRepositoryAdapter.findById(contract1.id))
         toCancel.cancel("Cancelado para novo teste", Instant.now())
         contractRepositoryAdapter.save(toCancel)
 
@@ -111,9 +110,8 @@ class ContractRepositoryAdapterIT {
         val contract2 = createContract(lease, versionNumber = nextVersion)
         contractRepositoryAdapter.save(contract2)
 
-        val retrieved2 = contractRepositoryAdapter.findById(contract2.id)
-        assertNotNull(retrieved2)
-        assertEquals(ContractStatus.DRAFT, retrieved2?.status)
-        assertEquals(2, retrieved2?.versionNumber)
+        val retrieved2 = assertNotNull(contractRepositoryAdapter.findById(contract2.id))
+        assertEquals(ContractStatus.DRAFT, retrieved2.status)
+        assertEquals(2, retrieved2.versionNumber)
     }
 }

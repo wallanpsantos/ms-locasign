@@ -33,7 +33,9 @@ Content-Type: application/json
   "termMonths": 30
 }
 
-> {% client.global.set("leaseId", response.body.id); %}
+> {%
+    client.global.set("leaseId", response.body.id);
+%}
 
 ### 3. Consulta a locação (mostra o contrato atual)
 GET {{host}}/api/v1/leases/{{leaseId}}
@@ -42,7 +44,9 @@ GET {{host}}/api/v1/leases/{{leaseId}}
 # @name solicitarContrato
 POST {{host}}/api/v1/leases/{{leaseId}}/contracts
 
-> {% client.global.set("contractId", response.body.id); %}
+> {%
+    client.global.set("contractId", response.body.id);
+%}
 
 ### 5. Acompanha o status (DRAFT -> GENERATED -> SENT -> VIEWED -> PARTIALLY_SIGNED -> COMPLETED)
 GET {{host}}/api/v1/contracts/{{contractId}}

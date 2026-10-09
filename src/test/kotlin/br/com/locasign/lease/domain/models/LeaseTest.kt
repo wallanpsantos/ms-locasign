@@ -29,18 +29,23 @@ class LeaseTest {
         email = Email.of("carlos@imobiliaria.com"),
     )
 
+    private fun register(
+        propertyAddress: String = "Rua das Flores, 123",
+        startDate: LocalDate = today,
+    ): Lease = Lease.register(
+        tenant = tenant,
+        agencySigner = agencySigner,
+        propertyAddress = propertyAddress,
+        rentAmount = Money.positive("2800.00"),
+        startDate = startDate,
+        term = LeaseTerm.of(30),
+        today = today,
+        now = now,
+    )
+
     @Test
     fun `cadastro de locação bem-sucedido cria agregado com status REGISTERED (R2)`() {
-        val lease = Lease.register(
-            tenant = tenant,
-            agencySigner = agencySigner,
-            propertyAddress = "Rua das Flores, 123 - Apto 402",
-            rentAmount = Money.positive("2800.00"),
-            startDate = today,
-            term = LeaseTerm.of(30),
-            today = today,
-            now = now,
-        )
+        val lease = register(propertyAddress = "Rua das Flores, 123 - Apto 402")
 
         assertEquals(LeaseStatus.REGISTERED, lease.status)
         assertEquals("Rua das Flores, 123 - Apto 402", lease.propertyAddress)
@@ -53,16 +58,7 @@ class LeaseTest {
         val pastDate = today.minusDays(1)
 
         val ex = assertFailsWith<DomainException.BusinessRuleViolation> {
-            Lease.register(
-                tenant = tenant,
-                agencySigner = agencySigner,
-                propertyAddress = "Rua das Flores, 123",
-                rentAmount = Money.positive("2800.00"),
-                startDate = pastDate,
-                term = LeaseTerm.of(30),
-                today = today,
-                now = now,
-            )
+            register(startDate = pastDate)
         }
         assertEquals("startDate", ex.field)
         assertTrue(ex.message.orEmpty().contains("A data de início deve ser igual ou posterior à data do cadastro."))
@@ -71,45 +67,18 @@ class LeaseTest {
     @Test
     fun `cadastro rejeita endereço em branco ou que exceda 300 caracteres (R2)`() {
         assertFailsWith<DomainException.BusinessRuleViolation> {
-            Lease.register(
-                tenant = tenant,
-                agencySigner = agencySigner,
-                propertyAddress = "   ",
-                rentAmount = Money.positive("2800.00"),
-                startDate = today,
-                term = LeaseTerm.of(30),
-                today = today,
-                now = now,
-            )
+            register(propertyAddress = "   ")
         }
 
         val longAddress = "A".repeat(301)
         assertFailsWith<DomainException.BusinessRuleViolation> {
-            Lease.register(
-                tenant = tenant,
-                agencySigner = agencySigner,
-                propertyAddress = longAddress,
-                rentAmount = Money.positive("2800.00"),
-                startDate = today,
-                term = LeaseTerm.of(30),
-                today = today,
-                now = now,
-            )
+            register(propertyAddress = longAddress)
         }
     }
 
     @Test
     fun `ativação da locação transiciona para ACTIVE e segunda chamada é idempotente (R8)`() {
-        val lease = Lease.register(
-            tenant = tenant,
-            agencySigner = agencySigner,
-            propertyAddress = "Rua das Flores, 123",
-            rentAmount = Money.positive("2800.00"),
-            startDate = today,
-            term = LeaseTerm.of(30),
-            today = today,
-            now = now,
-        )
+        val lease = register()
 
         assertTrue(lease.activate(now))
         assertEquals(LeaseStatus.ACTIVE, lease.status)

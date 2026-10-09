@@ -28,21 +28,21 @@ class RegisterLeaseTest {
         agencyDefaults = agencyDefaults,
     )
 
+    private val commandWithoutAgencySigner = RegisterLeaseCommand(
+        tenantName = "Pedro Alvares",
+        tenantCpf = "529.982.247-25",
+        tenantEmail = "pedro@example.com",
+        agencySignerName = null,
+        agencySignerEmail = null,
+        propertyAddress = "Av Paulista, 1000",
+        rentAmount = "3500.00",
+        startDate = clock.today(),
+        termMonths = 30,
+    )
+
     @Test
     fun `cadastra locação com signatário da imobiliária padrão quando omitido (R2)`() {
-        val command = RegisterLeaseCommand(
-            tenantName = "Pedro Alvares",
-            tenantCpf = "529.982.247-25",
-            tenantEmail = "pedro@example.com",
-            agencySignerName = null,
-            agencySignerEmail = null,
-            propertyAddress = "Av Paulista, 1000",
-            rentAmount = "3500.00",
-            startDate = clock.today(),
-            termMonths = 30,
-        )
-
-        val leaseId = registerLease.execute(command)
+        val leaseId = registerLease.execute(commandWithoutAgencySigner)
 
         val saved = repository.findById(leaseId)
         assertNotNull(saved)
@@ -53,17 +53,7 @@ class RegisterLeaseTest {
 
     @Test
     fun `rejeita cadastro com preenchimento parcial de signatário da imobiliária (R2)`() {
-        val command = RegisterLeaseCommand(
-            tenantName = "Pedro Alvares",
-            tenantCpf = "529.982.247-25",
-            tenantEmail = "pedro@example.com",
-            agencySignerName = "Apenas Nome",
-            agencySignerEmail = null,
-            propertyAddress = "Av Paulista, 1000",
-            rentAmount = "3500.00",
-            startDate = clock.today(),
-            termMonths = 30,
-        )
+        val command = commandWithoutAgencySigner.copy(agencySignerName = "Apenas Nome")
 
         val ex = assertFailsWith<DomainException.BusinessRuleViolation> {
             registerLease.execute(command)

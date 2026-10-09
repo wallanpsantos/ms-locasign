@@ -51,13 +51,13 @@ class InMemoryContractRepository : ContractRepositoryPort {
 
     override fun findOverdueIds(now: Instant, limit: Int): List<ContractId> =
         contracts.values
-            .filter { it.status.isAwaitingSignatures && it.expiresAt != null && it.expiresAt!!.isBefore(now) }
+            .filter { it.status.isAwaitingSignatures && it.expiresAt?.isBefore(now) == true }
             .take(limit)
             .map { it.id }
 
     override fun findReminderDueIds(sentBefore: Instant, limit: Int): List<ContractId> =
         contracts.values
-            .filter { it.status.isAwaitingSignatures && it.sentAt != null && it.sentAt!!.isBefore(sentBefore) }
+            .filter { it.status.isAwaitingSignatures && it.sentAt?.isBefore(sentBefore) == true }
             .take(limit)
             .map { it.id }
 

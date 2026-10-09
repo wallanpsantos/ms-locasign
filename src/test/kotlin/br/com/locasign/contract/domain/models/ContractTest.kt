@@ -37,6 +37,25 @@ class ContractTest {
         order = SigningOrder.of(2),
     )
 
+    private fun restoreWithStatus(status: ContractStatus): Contract = Contract.restore(
+        id = ContractId.new(),
+        leaseId = leaseId,
+        versionNumber = 1,
+        status = status,
+        providerDocumentId = ProviderDocumentId.of("doc-abc"),
+        providerLastModifiedAt = now,
+        sentAt = now,
+        expiresAt = now.plus(Duration.ofDays(7)),
+        reminderSentAt = null,
+        lastReconciledAt = null,
+        cancelReason = null,
+        signedDocumentRef = null,
+        signers = listOf(tenantSigner, agencySigner),
+        createdAt = now,
+        updatedAt = now,
+        rowVersion = 1L,
+    )
+
     @Test
     fun `solicitação de contrato exige locatário em primeiro e imobiliária em segundo (R3)`() {
         val validSigners = listOf(tenantSigner, agencySigner)
@@ -101,24 +120,7 @@ class ContractTest {
 
     @Test
     fun `transição para COMPLETED emite ContractCompleted (R5)`() {
-        val contract = Contract.restore(
-            id = ContractId.new(),
-            leaseId = leaseId,
-            versionNumber = 1,
-            status = ContractStatus.SENT,
-            providerDocumentId = ProviderDocumentId.of("doc-abc"),
-            providerLastModifiedAt = now,
-            sentAt = now,
-            expiresAt = now.plus(Duration.ofDays(7)),
-            reminderSentAt = null,
-            lastReconciledAt = null,
-            cancelReason = null,
-            signedDocumentRef = null,
-            signers = listOf(tenantSigner, agencySigner),
-            createdAt = now,
-            updatedAt = now,
-            rowVersion = 1L,
-        )
+        val contract = restoreWithStatus(ContractStatus.SENT)
 
         contract.apply(
             StatusChange(
@@ -138,24 +140,7 @@ class ContractTest {
 
     @Test
     fun `transição com status anterior ou inválido registra IGNORED_TRANSITION na auditoria (R5)`() {
-        val contract = Contract.restore(
-            id = ContractId.new(),
-            leaseId = leaseId,
-            versionNumber = 1,
-            status = ContractStatus.VIEWED,
-            providerDocumentId = ProviderDocumentId.of("doc-abc"),
-            providerLastModifiedAt = now,
-            sentAt = now,
-            expiresAt = now.plus(Duration.ofDays(7)),
-            reminderSentAt = null,
-            lastReconciledAt = null,
-            cancelReason = null,
-            signedDocumentRef = null,
-            signers = listOf(tenantSigner, agencySigner),
-            createdAt = now,
-            updatedAt = now,
-            rowVersion = 1L,
-        )
+        val contract = restoreWithStatus(ContractStatus.VIEWED)
 
         contract.apply(
             StatusChange(

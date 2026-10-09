@@ -8,8 +8,16 @@
       "status": "document.viewed",
       "metadata": {},
       "recipients": [
-        { "email": "maria@example.com", "role": "Locatario", "has_completed": false },
-        { "email": "agencia@example.com", "role": "Imobiliaria", "has_completed": false }
+        {
+          "email": "maria@example.com",
+          "role": "Locatario",
+          "has_completed": false
+        },
+        {
+          "email": "agencia@example.com",
+          "role": "Imobiliaria",
+          "has_completed": false
+        }
       ]
     }
   }

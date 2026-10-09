@@ -1,11 +1,8 @@
 package br.com.locasign.contract.domain.services
 
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.ContractStatus.CANCELLED
 import br.com.locasign.contract.domain.models.ContractStatus.COMPLETED
-import br.com.locasign.contract.domain.models.ContractStatus.DECLINED
 import br.com.locasign.contract.domain.models.ContractStatus.DRAFT
-import br.com.locasign.contract.domain.models.ContractStatus.EXPIRED
 import br.com.locasign.contract.domain.models.ContractStatus.GENERATED
 import br.com.locasign.contract.domain.models.ContractStatus.PARTIALLY_SIGNED
 import br.com.locasign.contract.domain.models.ContractStatus.SENT

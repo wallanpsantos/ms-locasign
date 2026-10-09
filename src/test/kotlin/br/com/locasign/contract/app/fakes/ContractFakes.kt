@@ -11,11 +11,8 @@ import br.com.locasign.contract.app.ports.out.lease.LeaseActivationPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseLookupPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.app.ports.out.messaging.ContractEventPublisherPort
-import br.com.locasign.contract.app.ports.out.repository.ContractQueryPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.app.ports.out.repository.PostSignatureActionsPort
-import br.com.locasign.contract.app.queries.ContractDetailView
-import br.com.locasign.contract.app.queries.HistoryEntryView
 import br.com.locasign.contract.domain.events.ContractEvent
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus

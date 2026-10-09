@@ -95,7 +95,10 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
     @Test
     fun `violação de regra de negócio no domínio responde 422 com problems business-rule`() {
         given(registerLease.execute(any())).willThrow(
-            DomainException.BusinessRuleViolation("startDate", "A data de início deve ser igual ou posterior à data do cadastro.")
+            DomainException.BusinessRuleViolation(
+                "startDate",
+                "A data de início deve ser igual ou posterior à data do cadastro."
+            )
         )
 
         val requestJson = """

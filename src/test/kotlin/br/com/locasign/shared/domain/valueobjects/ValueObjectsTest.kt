@@ -31,14 +31,16 @@ class ValueObjectsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = [
-        "111.111.111-11",
-        "00000000000",
-        "123.456.789-00",
-        "abc",
-        "529.982.247-24", // dígito verificador incorreto
-        "12345",
-    ])
+    @ValueSource(
+        strings = [
+            "111.111.111-11",
+            "00000000000",
+            "123.456.789-00",
+            "abc",
+            "529.982.247-24", // dígito verificador incorreto
+            "12345",
+        ]
+    )
     fun `CPF inválido lança violação de regra de negócio (R2)`(invalidCpf: String) {
         val ex = assertFailsWith<DomainException.BusinessRuleViolation> {
             Cpf.of(invalidCpf)

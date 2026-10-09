@@ -2,7 +2,6 @@ package br.com.locasign.lease.app.fakes
 
 import br.com.locasign.lease.app.ports.out.repository.LeaseQueryPort
 import br.com.locasign.lease.app.ports.out.repository.LeaseRepositoryPort
-import br.com.locasign.lease.app.queries.CurrentContractView
 import br.com.locasign.lease.app.queries.LeaseDetailView
 import br.com.locasign.lease.domain.models.Lease
 import br.com.locasign.lease.domain.valueobjects.LeaseId

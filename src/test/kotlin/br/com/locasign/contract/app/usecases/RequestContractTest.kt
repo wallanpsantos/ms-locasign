@@ -8,10 +8,7 @@ import br.com.locasign.contract.domain.events.ContractRequested
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
-import br.com.locasign.contract.domain.valueobjects.ContractId
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner

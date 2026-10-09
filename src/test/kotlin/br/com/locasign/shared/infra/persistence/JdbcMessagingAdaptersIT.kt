@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TestcontainersSupport::class)
@@ -42,7 +42,10 @@ class JdbcMessagingAdaptersIT {
         assertTrue(processedMessagesAdapter.isProcessed(consumerGroup, eventId))
 
         val secondInsert = processedMessagesAdapter.markProcessed(consumerGroup, eventId)
-        assertFalse(secondInsert, "Segunda tentativa com mesmo par (group, eventId) deve ser ignorada e retornar false (R6)")
+        assertFalse(
+            secondInsert,
+            "Segunda tentativa com mesmo par (group, eventId) deve ser ignorada e retornar false (R6)"
+        )
     }
 
     @Test
@@ -80,6 +83,9 @@ class JdbcMessagingAdaptersIT {
         assertTrue(firstStore, "Primeiro armazenamento do webhook deve retornar true")
 
         val secondStore = webhookInboxAdapter.store(deliveryId, rawBody)
-        assertFalse(secondStore, "Tentativa subsequente com mesmo deliveryId deve ser deduplicada e retornar false (R7)")
+        assertFalse(
+            secondStore,
+            "Tentativa subsequente com mesmo deliveryId deve ser deduplicada e retornar false (R7)"
+        )
     }
 }

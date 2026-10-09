@@ -22,7 +22,6 @@ import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

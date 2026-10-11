@@ -70,7 +70,7 @@ class PandaDocSignatureProviderAdapter(
             }
             throw e
         }
-        if (response.statusCode.value() == HttpStatus.ACCEPTED.value()) {
+        if (response.statusCode == HttpStatus.ACCEPTED) {
             throw ProviderException.NotReady("PDF assinado do documento $documentId ainda está sendo gerado")
         }
         val bytes = response.body ?: return SignedDocument.Unavailable("resposta sem corpo")

@@ -50,17 +50,14 @@ CREATE TABLE contracts
 
 -- R1: uma locação só pode ter um contrato não final por vez.
 CREATE UNIQUE INDEX ux_contracts_one_active_per_lease
-    ON contracts (lease_id)
-    WHERE status NOT IN ('COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED');
+    ON contracts (lease_id) WHERE status NOT IN ('COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED');
 
 -- Apoio aos jobs de expiração, lembrete e reconciliação (somente contratos não finais).
 CREATE INDEX ix_contracts_open_by_expiry
-    ON contracts (expires_at)
-    WHERE status IN ('SENT', 'VIEWED', 'PARTIALLY_SIGNED');
+    ON contracts (expires_at) WHERE status IN ('SENT', 'VIEWED', 'PARTIALLY_SIGNED');
 
 CREATE INDEX ix_contracts_open_by_update
-    ON contracts (updated_at)
-    WHERE status NOT IN ('COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED');
+    ON contracts (updated_at) WHERE status NOT IN ('COMPLETED', 'DECLINED', 'EXPIRED', 'CANCELLED');
 
 CREATE TABLE contract_signers
 (

@@ -11,6 +11,7 @@ import br.com.locasign.contract.infra.pandadoc.dto.request.RecipientRequest
 import br.com.locasign.contract.infra.pandadoc.dto.request.TokenRequest
 import br.com.locasign.contract.infra.pandadoc.dto.response.DocumentDetailsResponse
 import br.com.locasign.shared.infra.config.LocaSignProperties
+import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.Instant
@@ -102,7 +103,7 @@ private fun ProviderRecipient.toPandaDoc(properties: LocaSignProperties.PandaDoc
 }
 
 /** `2500.00` vira `R$ 2.500,00`. */
-internal fun java.math.BigDecimal.formatBrl(): String =
+internal fun BigDecimal.formatBrl(): String =
     "R$ " + DecimalFormat("#,##0.00", DecimalFormatSymbols(PT_BR)).format(this)
 
 internal fun Int.formatTerm(): String = if (this == 1) "1 mês" else "$this meses"

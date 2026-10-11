@@ -1,7 +1,6 @@
 package br.com.locasign.contract.infra.pandadoc.exceptions
 
 import br.com.locasign.contract.app.ports.out.integration.ProviderException
-import org.springframework.http.HttpStatus
 import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestClientResponseException
@@ -27,26 +26,21 @@ private fun String.sanitized(): String = replace(EMAIL_IN_TEXT, "***@***").take(
  */
 fun RestClientException.toProviderException(operation: String): ProviderException = when (this) {
     is RestClientResponseException -> {
+        val status = statusCode.value()
         val detail = responseBodyAsString.sanitized()
-        val message = "PandaDoc $operation falhou com HTTP ${statusCode.value()}: $detail"
-        when {
-            statusCode.value() == HttpStatus.NOT_FOUND.value() || statusCode.value() == HttpStatus.CONFLICT.value() ->
-                ProviderException.NotReady(message, this)
-
-            statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value() -> ProviderException.RateLimited(message, this)
-            statusCode.value() == HttpStatus.FORBIDDEN.value() -> ProviderException.Forbidden(message, this)
-            statusCode.value() == HttpStatus.UNAUTHORIZED.value() ->
-                ProviderException.Unavailable("PandaDoc $operation recusou as credenciais (HTTP 401)", this)
-
-            statusCode.is4xxClientError -> ProviderException.Rejected(statusCode.value(), message, this)
+        val message = "PandaDoc $operation falhou com HTTP $status: $detail"
+        when (status) {
+            404, 409 -> ProviderException.NotReady(message, this)
+            429 -> ProviderException.RateLimited(message, this)
+            403 -> ProviderException.Forbidden(message, this)
+            401 -> ProviderException.Unavailable("PandaDoc $operation recusou as credenciais (HTTP 401)", this)
+            in 400..499 -> ProviderException.Rejected(status, message, this)
             else -> ProviderException.Unavailable(message, this)
         }
     }
 
     is ResourceAccessException -> ProviderException.Unavailable(
-        "PandaDoc $operation indisponível: ${
-            message.orEmpty().sanitized()
-        }", this
+        "PandaDoc $operation indisponível: ${message.orEmpty().sanitized()}", this
     )
 
     else -> ProviderException.Unavailable("PandaDoc $operation falhou: ${message.orEmpty().sanitized()}", this)

@@ -54,7 +54,7 @@ jobs:
       # Relatórios de teste de todos os módulos, só quando algo falha.
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: test-reports
           path: '**/build/reports/tests/'
@@ -64,7 +64,7 @@ jobs:
       # Projeto de módulo único: o único jar é o bootJar (app.jar); a task `jar` está desabilitada.
       - name: Archive bootJar
         if: success()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ms-locasign-jar
           path: build/libs/app.jar

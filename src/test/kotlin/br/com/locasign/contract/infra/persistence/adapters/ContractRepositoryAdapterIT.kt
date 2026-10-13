@@ -14,10 +14,8 @@ import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
-import br.com.locasign.support.TestcontainersSupport
+import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -25,12 +23,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Import(TestcontainersSupport::class)
 class ContractRepositoryAdapterIT(
     @Autowired private val contractRepositoryAdapter: ContractRepositoryAdapter,
     @Autowired private val leaseRepositoryAdapter: LeaseRepositoryAdapter,
-) {
+) : IntegrationTestSupport() {
 
     private val today = LocalDate.of(2026, 11, 1)
     private val now = Instant.parse("2026-10-09T10:00:00Z")
@@ -77,7 +73,7 @@ class ContractRepositoryAdapterIT(
     }
 
     @Test
-    fun `regra R1 proibe segundo contrato ativo para a mesma locacao lancando ActiveContractExists`() {
+    fun `segundo contrato ativo para a mesma locação lança ActiveContractExists (R1)`() {
         val lease = createAndSaveLease()
         val contract1 = createContract(lease, versionNumber = 1)
         val contract2 = createContract(lease, versionNumber = 2)
@@ -91,14 +87,14 @@ class ContractRepositoryAdapterIT(
     }
 
     @Test
-    fun `apos finalizar contrato anterior permite criacao de nova versao`() {
+    fun `após finalizar contrato anterior permite criação de nova versão`() {
         val lease = createAndSaveLease()
         val contract1 = createContract(lease, versionNumber = 1)
         contractRepositoryAdapter.save(contract1)
 
         // Recarrega o contrato com rowVersion atribuído pelo banco para efetuar o update
         val toCancel = assertNotNull(contractRepositoryAdapter.findById(contract1.id))
-        toCancel.cancel("Cancelado para novo teste", Instant.now())
+        toCancel.cancel("Cancelado para novo teste", now)
         contractRepositoryAdapter.save(toCancel)
 
         val nextVersion = contractRepositoryAdapter.nextVersionNumber(lease.id)

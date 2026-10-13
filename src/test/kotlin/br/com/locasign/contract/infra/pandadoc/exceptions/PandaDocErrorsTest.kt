@@ -21,7 +21,7 @@ class PandaDocErrorsTest {
             "",
             null,
             body.toByteArray(),
-            Charsets.UTF_8
+            Charsets.UTF_8,
         )
 
     @Test
@@ -53,7 +53,7 @@ class PandaDocErrorsTest {
     }
 
     @Test
-    fun `demais 4xx, inclusive codigo fora do padrao, viram Rejected com o status`() {
+    fun `demais 4xx, inclusive código fora do padrão, viram Rejected com o status`() {
         listOf(400, 422, 499).forEach { status ->
             val translated = httpError(status).toProviderException("create")
             assertIs<ProviderException.Rejected>(translated)
@@ -78,14 +78,14 @@ class PandaDocErrorsTest {
     }
 
     @Test
-    fun `falha de conexao vira Unavailable`() {
+    fun `falha de conexão vira Unavailable`() {
         val translated = ResourceAccessException("timeout ao falar com a@b.com").toProviderException("send")
         assertIs<ProviderException.Unavailable>(translated)
         assertEquals("PandaDoc send indisponível: timeout ao falar com ***@***", translated.message)
     }
 
     @Test
-    fun `outra falha do cliente vira Unavailable generica`() {
+    fun `outra falha do cliente vira Unavailable genérica`() {
         val translated = RestClientException("conversor ausente").toProviderException("details")
         assertIs<ProviderException.Unavailable>(translated)
         assertEquals("PandaDoc details falhou: conversor ausente", translated.message)

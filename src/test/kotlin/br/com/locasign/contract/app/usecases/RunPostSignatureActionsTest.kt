@@ -10,7 +10,7 @@ import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
-import br.com.locasign.contract.domain.valueobjects.ContractId
+import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
@@ -63,31 +63,17 @@ class RunPostSignatureActionsTest {
         termMonths = 30,
     )
 
-    private fun createContract(status: ContractStatus): Contract {
-        val contract = Contract.restore(
-            id = ContractId.new(),
-            leaseId = leaseId,
-            versionNumber = 1,
-            status = status,
-            providerDocumentId = null,
-            providerLastModifiedAt = null,
-            sentAt = now,
-            expiresAt = now.plus(Duration.ofDays(7)),
-            reminderSentAt = null,
-            lastReconciledAt = null,
-            cancelReason = null,
-            signedDocumentRef = null,
-            signers = listOf(
-                Signer(SignerRole.TENANT, "Juliana", Email.of("juliana@example.com"), SigningOrder.of(1)),
-                Signer(SignerRole.AGENCY, "Alfa", Email.of("alfa@imobiliaria.com"), SigningOrder.of(2)),
-            ),
-            createdAt = now,
-            updatedAt = now,
-            rowVersion = 1L,
-        )
-        contracts.save(contract)
-        return contract
-    }
+    private fun createContract(status: ContractStatus): Contract = restoreContract(
+        status = status,
+        leaseId = leaseId,
+        signers = listOf(
+            Signer(SignerRole.TENANT, "Juliana", Email.of("juliana@example.com"), SigningOrder.of(1)),
+            Signer(SignerRole.AGENCY, "Alfa", Email.of("alfa@imobiliaria.com"), SigningOrder.of(2)),
+        ),
+        now = now,
+        sentAt = now,
+        expiresAt = now.plus(Duration.ofDays(7)),
+    ).also(contracts::save)
 
     @Test
     fun `não executa ações pós-assinatura se o contrato não estiver COMPLETED (R8)`() {
@@ -96,7 +82,7 @@ class RunPostSignatureActionsTest {
 
         runPostSignatureActions.execute(ContractEventCommand("evt-1", contract.id))
 
-        assertFalse(leaseActivation.activated.contains(leaseId))
+        assertFalse(leaseId in leaseActivation.activated)
     }
 
     @Test
@@ -106,7 +92,7 @@ class RunPostSignatureActionsTest {
 
         runPostSignatureActions.execute(ContractEventCommand("evt-1", contract.id))
 
-        assertTrue(leaseActivation.activated.contains(leaseId))
+        assertTrue(leaseId in leaseActivation.activated)
     }
 
     @Test
@@ -115,12 +101,12 @@ class RunPostSignatureActionsTest {
         val contract = createContract(ContractStatus.COMPLETED)
 
         runPostSignatureActions.execute(ContractEventCommand("evt-dup", contract.id))
-        assertTrue(leaseActivation.activated.contains(leaseId))
+        assertTrue(leaseId in leaseActivation.activated)
 
         // Limpa o registro de ativações simulado para verificar que na segunda chamada nada roda
         leaseActivation.activated.clear()
         runPostSignatureActions.execute(ContractEventCommand("evt-dup", contract.id))
 
-        assertFalse(leaseActivation.activated.contains(leaseId))
+        assertFalse(leaseId in leaseActivation.activated)
     }
 }

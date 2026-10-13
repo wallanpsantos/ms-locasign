@@ -48,6 +48,13 @@ class ContractTransitionPolicyTest {
     @ParameterizedTest
     @EnumSource(ContractStatus::class, names = ["DECLINED", "EXPIRED", "CANCELLED", "COMPLETED"])
     fun `qualquer estado não-final pode transicionar para estados finais aplicáveis (R5)`(target: ContractStatus) {
-        assertEquals(TransitionDecision.Apply, ContractTransitionPolicy.decide(SENT, target))
+        // Origens explícitas: derivá-las de isFinal esconderia um status marcado como final por engano.
+        listOf(DRAFT, GENERATED, SENT, VIEWED, PARTIALLY_SIGNED).forEach { current ->
+            assertEquals(
+                TransitionDecision.Apply,
+                ContractTransitionPolicy.decide(current, target),
+                "de $current para $target"
+            )
+        }
     }
 }

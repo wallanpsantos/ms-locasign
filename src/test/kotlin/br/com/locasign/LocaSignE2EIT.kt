@@ -23,20 +23,25 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.RestClient
 import java.time.Duration
 import java.time.LocalDate
 import java.util.*
-import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
+/**
+ * Fluxo ponta a ponta com o adapter real da PandaDoc apontado para o WireMock, em vez do fake da seção 6.6 do
+ * AGENTS.md (ADR-014). As demais regras da seção vêm do perfil `test`.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 @Import(TestcontainersSupport::class)
 class LocaSignE2EIT {
 
@@ -76,7 +81,6 @@ class LocaSignE2EIT {
             registry.add("locasign.pandadoc.download-enabled") { "true" }
             registry.add("locasign.agency-signer.name") { "Imobiliária Prime E2E" }
             registry.add("locasign.agency-signer.email") { "assinaturas@imobiliaria.com" }
-            registry.add("locasign.outbox.relay-interval") { "200ms" }
         }
     }
 
@@ -93,8 +97,12 @@ class LocaSignE2EIT {
     private fun fetchContract(contractId: String): ContractResponse? =
         restClient.get().uri("/api/v1/contracts/$contractId").retrieve().body(ContractResponse::class.java)
 
+    private fun awaitAsserted(assertion: () -> Unit) {
+        await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(300)).untilAsserted { assertion() }
+    }
+
     @Test
-    fun `fluxo completo ponta a ponta cadastro de locacao solicitacao de contrato kafka e webhook de conclusao`() {
+    fun `fluxo completo ponta a ponta com cadastro de locação, solicitação de contrato, Kafka e webhook de conclusão`() {
         val docId = "doc-e2e-" + UUID.randomUUID()
 
         // 1. Stubs no WireMock para a PandaDoc
@@ -159,7 +167,7 @@ class LocaSignE2EIT {
         assertEquals("DRAFT", requestContractResponse.status)
 
         // 4. Aguarda o processamento assíncrono (Outbox -> Kafka -> Orchestrator -> PandaDoc create)
-        await().atMost(15, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(300)).untilAsserted {
+        awaitAsserted {
             val contract = assertNotNull(fetchContract(contractId))
             assertEquals(docId, contract.providerDocumentId)
         }
@@ -202,7 +210,7 @@ class LocaSignE2EIT {
         // 6. Aguarda a efetivação das ações assíncronas pós-assinatura (R8)
         // - Contrato deve transicionar para COMPLETED
         // - Locação deve ser ativada (status ACTIVE)
-        await().atMost(15, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(300)).untilAsserted {
+        awaitAsserted {
             assertEquals("COMPLETED", fetchContract(contractId)?.status)
             assertEquals("ACTIVE", fetchLease(leaseId)?.status)
         }

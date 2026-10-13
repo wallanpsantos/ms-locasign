@@ -61,7 +61,7 @@ class LeaseTest {
             register(startDate = pastDate)
         }
         assertEquals("startDate", ex.field)
-        assertTrue(ex.message.orEmpty().contains("A data de início deve ser igual ou posterior à data do cadastro."))
+        assertEquals("A data de início deve ser igual ou posterior à data do cadastro.", ex.message)
     }
 
     @Test
@@ -84,7 +84,6 @@ class LeaseTest {
         assertEquals(LeaseStatus.ACTIVE, lease.status)
         assertEquals(now, lease.activatedAt)
 
-        // Segunda chamada
         assertFalse(lease.activate(now.plusSeconds(10)))
         assertEquals(LeaseStatus.ACTIVE, lease.status)
     }

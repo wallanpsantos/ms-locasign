@@ -6,7 +6,6 @@ import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentStatus
 import br.com.locasign.contract.app.ports.out.integration.ProviderSendRequest
 import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.integration.SignedDocument
-import br.com.locasign.contract.app.ports.out.integration.SignedDocumentStoragePort
 import br.com.locasign.contract.app.ports.out.lease.LeaseActivationPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseLookupPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
@@ -74,8 +73,6 @@ class RecordingContractEventPublisher : ContractEventPublisherPort {
     override fun publish(events: List<ContractEvent>) {
         published.addAll(events)
     }
-
-    fun clear() = published.clear()
 }
 
 class InMemoryPostSignatureActions : PostSignatureActionsPort {
@@ -89,44 +86,26 @@ class InMemoryPostSignatureActions : PostSignatureActionsPort {
     ): Boolean = recorded.add(Triple(contractId, actionType, status))
 }
 
-class FakeSignatureProvider : SignatureProviderPort {
-    var nextDocumentId: ProviderDocumentId = ProviderDocumentId.of("doc-123")
-    val createdRequests = mutableListOf<ProviderDocumentRequest>()
-    val sentRequests = mutableListOf<Pair<ProviderDocumentId, ProviderSendRequest>>()
-    val cancelledDocuments = mutableListOf<ProviderDocumentId>()
-    var stubbedState: ProviderDocumentState = ProviderDocumentState(
-        documentId = ProviderDocumentId.of("doc-123"),
-        status = ProviderDocumentStatus.DRAFT,
-        completedRoles = emptySet(),
-        modifiedAt = null,
-    )
-    var stubbedDownload: SignedDocument = SignedDocument.Available(ByteArray(10) { 1 })
+/**
+ * Provedor de assinatura com respostas fixas, que substitui o adapter da PandaDoc nos testes com contexto Spring.
+ *
+ * **Responsabilidade:**
+ * - Garantir que nenhum teste automatizado chame a PandaDoc, nem o sandbox (AGENTS.md, seção 6.6).
+ * - Devolver um id de documento por contrato, para não violar `uq_contracts_provider_document`.
+ */
+class FixedSignatureProvider : SignatureProviderPort {
+    override fun createDocument(request: ProviderDocumentRequest): ProviderDocumentId =
+        ProviderDocumentId.of("doc-${request.contractId.value}")
 
-    override fun createDocument(request: ProviderDocumentRequest): ProviderDocumentId {
-        createdRequests.add(request)
-        return nextDocumentId
-    }
+    override fun fetchState(documentId: ProviderDocumentId): ProviderDocumentState =
+        ProviderDocumentState(documentId, ProviderDocumentStatus.DRAFT, emptySet(), modifiedAt = null)
 
-    override fun fetchState(documentId: ProviderDocumentId): ProviderDocumentState = stubbedState
+    override fun send(documentId: ProviderDocumentId, request: ProviderSendRequest) = Unit
 
-    override fun send(documentId: ProviderDocumentId, request: ProviderSendRequest) {
-        sentRequests.add(documentId to request)
-    }
+    override fun cancelDocument(documentId: ProviderDocumentId) = Unit
 
-    override fun cancelDocument(documentId: ProviderDocumentId) {
-        cancelledDocuments.add(documentId)
-    }
-
-    override fun downloadSigned(documentId: ProviderDocumentId): SignedDocument = stubbedDownload
-}
-
-class FakeSignedDocumentStorage : SignedDocumentStoragePort {
-    val stored = mutableMapOf<ContractId, ByteArray>()
-
-    override fun store(contractId: ContractId, bytes: ByteArray): String {
-        stored[contractId] = bytes
-        return "/storage/contracts/${contractId.value}.pdf"
-    }
+    override fun downloadSigned(documentId: ProviderDocumentId): SignedDocument =
+        SignedDocument.Unavailable("Provedor fixo de teste: sem PDF.")
 }
 
 class FakeLeaseLookup : LeaseLookupPort {

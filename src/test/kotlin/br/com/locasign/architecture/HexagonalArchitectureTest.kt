@@ -1,5 +1,12 @@
 package br.com.locasign.architecture
 
+import br.com.locasign.contract.infra.persistence.adapters.LeaseActivationAdapter
+import br.com.locasign.contract.infra.persistence.adapters.LeaseLookupAdapter
+import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
+import com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf
+import com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage
+import com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameMatching
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.junit.AnalyzeClasses
 import com.tngtech.archunit.junit.ArchTest
@@ -14,12 +21,20 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
  * - Camada de Aplicação agnóstica de frameworks e tecnologias de transporte/persistência.
  * - Direção de dependências: `interfaces -> app -> domain <- infra`.
  * - Isolamento modular e acoplamento estrito entre `lease`, `contract`, `notification` e `shared`.
+ *
+ * Limite: o ArchUnit lê as dependências do bytecode, não os imports. O Kotlin apaga value classes das assinaturas
+ * mangled e copia `const val` para quem as usa, então esses usos não aparecem aqui. A busca da §4.6 continua
+ * obrigatória como complemento.
  */
 @AnalyzeClasses(
     packages = ["br.com.locasign"],
     importOptions = [ImportOption.DoNotIncludeTests::class],
 )
 class HexagonalArchitectureTest {
+
+    /** As classes da ponte `LeaseBridgeAdapters` (e as aninhadas nelas), únicas autorizadas a usar `lease` além de `LeaseId`. */
+    private val leaseBridge: DescribedPredicate<JavaClass> =
+        belongToAnyOf(LeaseLookupAdapter::class.java, LeaseActivationAdapter::class.java)
 
     @ArchTest
     val `camada domain nao depende de frameworks nem bibliotecas externas`: ArchRule =
@@ -130,21 +145,18 @@ class HexagonalArchitectureTest {
     val `modulo contract nao importa modelos nem VOs de lease exceto LeaseId`: ArchRule =
         noClasses()
             .that().resideInAPackage("br.com.locasign.contract..")
-            .and().doNotHaveSimpleName("LeaseLookupAdapter")
-            .and().doNotHaveSimpleName("LeaseActivationAdapter")
-            .should().dependOnClassesThat()
-            .resideInAnyPackage(
-                "br.com.locasign.lease.domain.models..",
-                "br.com.locasign.lease.domain.valueobjects.LeaseTerm..",
+            .and(DescribedPredicate.not(leaseBridge))
+            .should().dependOnClassesThat(
+                resideInAPackage("br.com.locasign.lease.domain..")
+                    .and(DescribedPredicate.not(nameMatching("""br\.com\.locasign\.lease\.domain\.valueobjects\.LeaseId(\$.*)?"""))),
             )
-            .`as`("O módulo contract só pode importar LeaseId de lease.domain, nunca outros modelos ou VOs (exceto a ponte LeaseBridgeAdapters)")
+            .`as`("O módulo contract só pode depender de LeaseId em lease.domain, nunca de outros modelos ou VOs (exceto a ponte LeaseBridgeAdapters)")
 
     @ArchTest
     val `modulo contract so acessa lease app via ponte LeaseBridgeAdapters`: ArchRule =
         noClasses()
             .that().resideInAPackage("br.com.locasign.contract..")
-            .and().doNotHaveSimpleName("LeaseLookupAdapter")
-            .and().doNotHaveSimpleName("LeaseActivationAdapter")
+            .and(DescribedPredicate.not(leaseBridge))
             .should().dependOnClassesThat()
             .resideInAPackage("br.com.locasign.lease.app..")
             .`as`("O acesso de contract a lease.app deve ocorrer exclusivamente via LeaseBridgeAdapters")

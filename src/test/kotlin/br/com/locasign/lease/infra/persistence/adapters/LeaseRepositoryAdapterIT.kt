@@ -8,10 +8,8 @@ import br.com.locasign.lease.domain.valueobjects.LeaseTerm
 import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
-import br.com.locasign.support.TestcontainersSupport
+import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -19,18 +17,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Import(TestcontainersSupport::class)
 class LeaseRepositoryAdapterIT(
     @Autowired private val leaseRepositoryAdapter: LeaseRepositoryAdapter,
     @Autowired private val leaseQueryAdapter: LeaseQueryAdapter,
-) {
+) : IntegrationTestSupport() {
 
     private val today = LocalDate.of(2026, 12, 1)
     private val now = Instant.parse("2026-10-09T10:00:00Z")
 
     @Test
-    fun `persiste locacao, recupera por id e atualiza status para ativo`() {
+    fun `persiste locação, recupera por id e atualiza status para ativo`() {
         val tenant = Tenant(
             name = "Carlos Locatário",
             cpf = Cpf.of("529.982.247-25"),

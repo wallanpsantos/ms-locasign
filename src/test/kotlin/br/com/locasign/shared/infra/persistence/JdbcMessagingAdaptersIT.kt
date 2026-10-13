@@ -1,10 +1,8 @@
 package br.com.locasign.shared.infra.persistence
 
 import br.com.locasign.shared.app.ports.OutboxMessage
-import br.com.locasign.support.TestcontainersSupport
+import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.time.Instant
 import java.util.*
@@ -13,17 +11,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Import(TestcontainersSupport::class)
 class JdbcMessagingAdaptersIT(
     @Autowired private val processedMessagesAdapter: JdbcProcessedMessagesAdapter,
     @Autowired private val outboxAdapter: JdbcOutboxAdapter,
     @Autowired private val webhookInboxAdapter: JdbcWebhookInboxAdapter,
     @Autowired private val jdbc: JdbcClient,
-) {
+) : IntegrationTestSupport() {
 
     @Test
-    fun `controle de idempotencia registra mensagem e rejeita duplicatas com sucesso`() {
+    fun `controle de idempotência registra mensagem e rejeita duplicatas com sucesso`() {
         val eventId = UUID.randomUUID().toString()
         val consumerGroup = "test-group-idempotency"
 
@@ -37,7 +33,7 @@ class JdbcMessagingAdaptersIT(
         val secondInsert = processedMessagesAdapter.markProcessed(consumerGroup, eventId)
         assertFalse(
             secondInsert,
-            "Segunda tentativa com mesmo par (group, eventId) deve ser ignorada e retornar false (R6)"
+            "Segunda tentativa com mesmo par (group, eventId) deve ser ignorada e retornar false (R6)",
         )
     }
 
@@ -58,17 +54,31 @@ class JdbcMessagingAdaptersIT(
 
         outboxAdapter.append(message)
 
-        val count = jdbc.sql("SELECT count(*) FROM outbox_events WHERE id = :id AND aggregate_id = :aggId")
+        val row = jdbc.sql(
+            """
+			SELECT aggregate_id,
+			       payload ->> 'eventId'                 AS event_id,
+			       payload ->> 'eventType'               AS event_type,
+			       (payload ->> 'schemaVersion')::int    AS schema_version,
+			       payload -> 'payload' ->> 'contractId' AS contract_id
+			FROM outbox_events
+			WHERE id = :id
+			""".trimIndent(),
+        )
             .param("id", eventId)
-            .param("aggId", aggregateId)
-            .query(Int::class.java)
-            .single()
+            .query()
+            .singleRow()
 
-        assertEquals(1, count)
+        assertEquals(aggregateId, row["aggregate_id"])
+        assertEquals(eventId, row["event_id"])
+        assertEquals("ContractRequested", row["event_type"])
+        assertEquals(1, row["schema_version"])
+        // O payload do evento fica aninhado no envelope como JSON, não como string escapada.
+        assertEquals(aggregateId, row["contract_id"])
     }
 
     @Test
-    fun `inbox de webhook armazena requisicao e deduplica por deliveryId`() {
+    fun `inbox de webhook armazena requisição e deduplica por deliveryId`() {
         val deliveryId = "deliv-" + UUID.randomUUID()
         val rawBody = """{"event": "document_state_changed"}"""
 
@@ -78,7 +88,7 @@ class JdbcMessagingAdaptersIT(
         val secondStore = webhookInboxAdapter.store(deliveryId, rawBody)
         assertFalse(
             secondStore,
-            "Tentativa subsequente com mesmo deliveryId deve ser deduplicada e retornar false (R7)"
+            "Tentativa subsequente com mesmo deliveryId deve ser deduplicada e retornar false (R7)",
         )
     }
 }

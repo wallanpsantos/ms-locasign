@@ -6,9 +6,9 @@ import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
 import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.domain.events.ContractRequested
 import br.com.locasign.contract.domain.models.CancelReason
-import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.SignerRole
+import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
@@ -17,6 +17,8 @@ import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -65,23 +67,16 @@ class RequestContractTest {
     ) {
         val current = assertNotNull(contracts.findById(contractId))
         contracts.save(
-            Contract.restore(
-                id = current.id,
-                leaseId = current.leaseId,
-                versionNumber = current.versionNumber,
+            restoreContract(
                 status = status,
-                providerDocumentId = null,
-                providerLastModifiedAt = null,
-                sentAt = null,
-                expiresAt = null,
-                reminderSentAt = null,
-                lastReconciledAt = null,
+                leaseId = current.leaseId,
+                signers = current.signers,
+                now = now,
+                id = current.id,
+                versionNumber = current.versionNumber,
                 cancelReason = cancelReason,
                 signedDocumentRef = signedDocumentRef,
-                signers = current.signers,
                 createdAt = current.createdAt,
-                updatedAt = now,
-                rowVersion = 1L,
             ),
         )
     }
@@ -108,24 +103,26 @@ class RequestContractTest {
         leases.register(leaseSnapshot)
         requestContract.execute(RequestContractCommand(leaseId))
 
-        // Tentativa de solicitar segundo contrato para a mesma locação
         val ex = assertFailsWith<DomainException.ActiveContractExists> {
             requestContract.execute(RequestContractCommand(leaseId))
         }
         assertEquals(leaseId.toString(), ex.leaseId)
     }
 
-    @Test
-    fun `cria versão 2 após cancelamento, expiração ou recusa da versão 1 (R9)`() {
+    @ParameterizedTest
+    @EnumSource(ContractStatus::class, names = ["CANCELLED", "EXPIRED", "DECLINED"])
+    fun `cria versão 2 após cancelamento, expiração ou recusa da versão 1 (R9)`(finalStatus: ContractStatus) {
         leases.register(leaseSnapshot)
         val v1Id = requestContract.execute(RequestContractCommand(leaseId))
-        finishContract(v1Id, ContractStatus.CANCELLED, cancelReason = CancelReason.Requested("Cancelado pelo usuário"))
+        val cancelReason =
+            if (finalStatus == ContractStatus.CANCELLED) CancelReason.Requested("Cancelado pelo usuário") else null
+        finishContract(v1Id, finalStatus, cancelReason = cancelReason)
 
-        // Agora deve permitir criar v2
         val v2Id = requestContract.execute(RequestContractCommand(leaseId))
         val v2 = assertNotNull(contracts.findById(v2Id))
         assertEquals(2, v2.versionNumber)
         assertEquals(ContractStatus.DRAFT, v2.status)
+        assertEquals(finalStatus, contracts.findById(v1Id)?.status)
     }
 
     @Test

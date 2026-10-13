@@ -1,0 +1,21 @@
+# Perfil dos testes com contexto Spring completo (@ActiveProfiles("test")), conforme o AGENTS.md, seção 6.6.
+# Não crie application.yaml aqui: ele substituiria o de main no classpath.
+locasign:
+  outbox:
+    relay-interval: 200ms
+  archive:
+    directory: ${java.io.tmpdir}/locasign-test/signed-documents
+  jobs:
+    reconciliation:
+      enabled: false
+    expiration:
+      enabled: false
+    reminder:
+      enabled: false
+    housekeeping:
+      enabled: false
+  pandadoc:
+    # Endereço local sem servidor: mesmo um caminho sem fake nunca chega à PandaDoc real.
+    # O E2E aponta para o WireMock via @DynamicPropertySource.
+    base-url: http://localhost:1
+    webhook-shared-key: test-webhook-shared-key

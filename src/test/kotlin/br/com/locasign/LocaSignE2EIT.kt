@@ -37,8 +37,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
- * Fluxo ponta a ponta com o adapter real da PandaDoc apontado para o WireMock, em vez do fake da seção 6.6 do
- * AGENTS.md (ADR-014). As demais regras da seção vêm do perfil `test`.
+ * Fluxo ponta a ponta com o adapter real da PandaDoc apontado para o WireMock, em vez do fake da seção 7 do
+ * AGENTS.md e docs/agents/testes.md §6 (ADR-014). As demais regras de integração vêm do perfil `test`.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")

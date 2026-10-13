@@ -1,7 +1,8 @@
 # ADR-014: estratégia de testes, convenção de localização e inclusão de WireMock e ArchUnit
 
 - **Status:** proposta
-- **Relação com o guia:** complementa a seção 15 ("Estratégia de testes") e formaliza a seção 6 do `AGENTS.md`
+- **Relação com o guia:** complementa a seção 15 ("Estratégia de testes") e formaliza o `AGENTS.md` §7 (detalhado em
+  `docs/agents/testes.md`)
 
 ## Contexto
 
@@ -34,7 +35,7 @@ integração, webhooks, persistência/Kafka com Testcontainers e arquitetura com
     - Usar `postgres:18.6` e `apache/kafka:4.3.1` via `@ServiceConnection` em uma `@TestConfiguration` reutilizável em
       `br.com.locasign.support.TestcontainersSupport`.
     - Configurar `systemProperty("user.timezone", "UTC")` nas tarefas de teste no `build.gradle.kts`.
-4. **Testes com contexto Spring completo (seção 6.6 do `AGENTS.md`):**
+4. **Testes com contexto Spring completo (AGENTS.md §7 e docs/agents/testes.md §6):**
     - O perfil `test` (`src/test/resources/application-test.yaml`, ativado com `@ActiveProfiles("test")`) desliga os
       quatro jobs, usa `locasign.outbox.relay-interval=200ms`, define uma chave de webhook de teste, grava os PDFs em
       `${java.io.tmpdir}/locasign-test/signed-documents` e aponta `locasign.pandadoc.base-url` para um endereço local
@@ -50,9 +51,12 @@ integração, webhooks, persistência/Kafka com Testcontainers e arquitetura com
 
 - O ciclo de feedback rápido de desenvolvimento local pode ser executado via `./gradlew test --tests "*Test"` sem
   necessidade de inicializar contêineres Docker.
-- A conformidade com a arquitetura hexagonal e as regras de importação do `AGENTS.md` (§4.6) passa a ser verificada de
-  forma contínua via ArchUnit, que lê as dependências do bytecode. Value classes em assinaturas mangled e `const val`
-  não aparecem para ele, então a busca da §4.6 continua como complemento.
+- A conformidade com a arquitetura hexagonal e as regras de importação do `AGENTS.md` (§5 e `docs/agents/arquitetura.md`
+  §6)
+  passa a ser verificada de forma contínua via ArchUnit, que lê as dependências do bytecode. Value classes em
+  assinaturas mangled
+  e `const val` não aparecem para ele, então a busca textual de `docs/agents/arquitetura.md` §6 continua como
+  complemento.
 - A integração com a API externa da PandaDoc é testada em profundidade (incluindo retentativas 429 e fluxos de erro) sem
   acionar chamadas reais ao sandbox externo.
 - A paridade entre os testes de integração e o ambiente de contêineres local (`compose.yml`) é mantida para PostgreSQL e

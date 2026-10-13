@@ -90,7 +90,7 @@ class InMemoryPostSignatureActions : PostSignatureActionsPort {
  * Provedor de assinatura com respostas fixas, que substitui o adapter da PandaDoc nos testes com contexto Spring.
  *
  * **Responsabilidade:**
- * - Garantir que nenhum teste automatizado chame a PandaDoc, nem o sandbox (AGENTS.md, seção 6.6).
+ * - Garantir que nenhum teste automatizado chame a PandaDoc, nem o sandbox (AGENTS.md §7 e docs/agents/testes.md §6).
  * - Devolver um id de documento por contrato, para não violar `uq_contracts_provider_document`.
  */
 class FixedSignatureProvider : SignatureProviderPort {

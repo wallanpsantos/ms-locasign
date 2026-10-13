@@ -1,4 +1,4 @@
-# Perfil dos testes com contexto Spring completo (@ActiveProfiles("test")), conforme o AGENTS.md, seção 6.6.
+# Perfil dos testes com contexto Spring completo (@ActiveProfiles("test")), conforme o AGENTS.md §7 e docs/agents/testes.md §6.
 # Não crie application.yaml aqui: ele substituiria o de main no classpath.
 locasign:
   outbox:

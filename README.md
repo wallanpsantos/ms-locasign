@@ -169,7 +169,8 @@ As decisões que detalham ou refinam o guia técnico estão registradas em [`doc
 
 ### Documentação de Classes (KDoc Estruturado)
 
-Todas as classes, interfaces, objetos e enums da aplicação seguem o padrão estruturado de KDoc em português brasileiro:
+Todas as classes, interfaces, objetos e enums da aplicação seguem o padrão estruturado de KDoc em português brasileiro
+formalizado no [ADR-015](docs/adr/0015-convencao-de-kdoc.md):
 
 - **O que a classe faz:** contextualização clara do comportamento técnico e papel no fluxo de negócio.
 - **Responsabilidade:** explicitação da responsabilidade única (SRP), limites na arquitetura hexagonal e
@@ -194,7 +195,7 @@ com 100% de aprovação**:
      /-----------------\      Contratos REST, resiliência HTTP/1.1, rate limit 429, backoff e tradução de erros
     /     Web Slices    \
    /---------------------\    HexagonalArchitectureTest (13 testes)
-  /   Unitários de Domínio\   Fronteiras arquiteturais do AGENTS.md §4.6 e direção estrita de dependências
+  /   Unitários de Domínio\   Fronteiras arquiteturais do AGENTS.md §5 (docs/agents/arquitetura.md §6)
  /_________________________\
                               @WebMvcTest com MockMvcTester (12 testes)
                               Validação Jakarta Bean Validation, RFC 9457 Problem Details e segurança do operador

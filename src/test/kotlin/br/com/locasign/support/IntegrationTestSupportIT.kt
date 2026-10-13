@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** Garante que [IntegrationTestSupport] aplica a seção 6.6 do AGENTS.md a todo `*IT` que herda dela. */
+/** Garante que [IntegrationTestSupport] aplica o AGENTS.md §7 e docs/agents/testes.md §6 a todo `*IT` que herda dela. */
 class IntegrationTestSupportIT(
     @Autowired private val context: ApplicationContext,
     @Autowired private val properties: LocaSignProperties,

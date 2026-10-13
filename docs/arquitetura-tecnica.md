@@ -131,7 +131,7 @@ A regra é verificada automaticamente por testes de arquitetura (ArchUnit ou Kon
 │   ├── arquitetura-tecnica.md    # este documento
 │   └── adr/                      # decisões de arquitetura
 ├── http/                         # requisições de exemplo (.http do IntelliJ) para testes manuais
-├── AGENTS.md                     # diretrizes e regras para agentes de IA (ver seção 17)
+├── AGENTS.md                     # diretrizes e regras para agentes de IA (ver AGENTS.md, docs/agents/ e §17)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example                  # variáveis sem valores secretos
@@ -931,6 +931,11 @@ consumidor atualizando o status. Isso bate com o corte mínimo do plano de negó
 ---
 
 ## 17. Regras para agentes de IA (conteúdo do `AGENTS.md`)
+
+> **Nota de governança:** As regras e diretrizes ativas para agentes de IA residem no arquivo raiz [
+`AGENTS.md`](../AGENTS.md)
+> e são detalhadas nos documentos modulares em [`docs/agents/`](agents/). As diretrizes do `AGENTS.md` e os ADRs
+> prevalecem sobre o resumo histórico desta seção (conforme §0 deste guia).
 
 - Antes de qualquer tarefa, ler `docs/plano-de-negocio.md` e `docs/arquitetura-tecnica.md`.
 - Este é um **projeto de estudo de Kotlin**:

@@ -16,15 +16,15 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 /**
  * Validação automatizada das fronteiras arquiteturais do monólito modular hexagonal.
  *
- * As regras codificam as restrições descritas no `AGENTS.md` (§4.1, §4.3 e §4.6):
+ * As regras codificam as restrições descritas no `AGENTS.md` (§5) e `docs/agents/arquitetura.md` (§1, §3 e §6):
  * - Isolamento do Domínio (Kotlin puro, sem dependências de infraestrutura/frameworks nem de camadas externas).
  * - Camada de Aplicação agnóstica de frameworks e tecnologias de transporte/persistência.
  * - Direção de dependências: `interfaces -> app -> domain <- infra`.
  * - Isolamento modular e acoplamento estrito entre `lease`, `contract`, `notification` e `shared`.
  *
  * Limite: o ArchUnit lê as dependências do bytecode, não os imports. O Kotlin apaga value classes das assinaturas
- * mangled e copia `const val` para quem as usa, então esses usos não aparecem aqui. A busca da §4.6 continua
- * obrigatória como complemento.
+ * mangled e copia `const val` para quem as usa, então esses usos não aparecem aqui. A busca textual de
+ * `docs/agents/arquitetura.md` §6 continua obrigatória como complemento.
  */
 @AnalyzeClasses(
     packages = ["br.com.locasign"],

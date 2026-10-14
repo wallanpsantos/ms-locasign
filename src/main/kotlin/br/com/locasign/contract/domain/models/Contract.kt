@@ -281,13 +281,13 @@ class Contract private constructor(
         touch(now)
         eventFor(change, now)?.let { pendingEvents += it }
         appendHistory(
-            from,
-            change.target,
-            HistoryOutcome.APPLIED,
-            change.source,
-            change.sourceEventId,
-            change.note,
-            now,
+            from = from,
+            to = change.target,
+            outcome = HistoryOutcome.APPLIED,
+            source = change.source,
+            sourceEventId = change.sourceEventId,
+            note = change.note,
+            now = now,
         )
     }
 
@@ -310,18 +310,25 @@ class Contract private constructor(
         change.cancelReason ?: CancelReason.Requested(change.note ?: DEFAULT_CANCEL_NOTE)
 
     private fun recordRejected(change: StatusChange, reason: String, now: Instant) = appendHistory(
-        status,
-        change.target,
-        HistoryOutcome.IGNORED_TRANSITION,
-        change.source,
-        change.sourceEventId,
-        reason,
-        now,
+        from = status,
+        to = change.target,
+        outcome = HistoryOutcome.IGNORED_TRANSITION,
+        source = change.source,
+        sourceEventId = change.sourceEventId,
+        note = reason,
+        now = now,
     )
 
     /** Fato que não muda o status (assinatura, arquivamento, anomalia...): origem e destino são o status atual. */
-    private fun recordInfo(note: String, source: ChangeSource, sourceEventId: String?, now: Instant) =
-        appendHistory(status, status, HistoryOutcome.INFO, source, sourceEventId, note, now)
+    private fun recordInfo(note: String, source: ChangeSource, sourceEventId: String?, now: Instant) = appendHistory(
+        from = status,
+        to = status,
+        outcome = HistoryOutcome.INFO,
+        source = source,
+        sourceEventId = sourceEventId,
+        note = note,
+        now = now,
+    )
 
     /** Único ponto que monta [StatusHistoryEntry]: acumula a linha de auditoria entregue por [pullHistory]. */
     private fun appendHistory(
@@ -355,8 +362,8 @@ class Contract private constructor(
         private const val DEFAULT_CANCEL_NOTE = "Cancelado."
 
         /**
-         * Estados finais não abrem prazo de assinatura: o prazo (R4) só é calculado ao entrar em SENT, VIEWED ou
-         * PARTIALLY_SIGNED.
+         * Prazo passado nas transições para estados finais, que o ignoram: o prazo de assinatura (R4) só é calculado ao
+         * entrar em `SENT`, `VIEWED` ou `PARTIALLY_SIGNED`.
          */
         private val NO_SIGNATURE_DEADLINE: Duration = Duration.ZERO
 

@@ -23,6 +23,10 @@ import kotlin.test.assertTrue
 class ContractTest {
 
     private val now = Instant.parse("2026-10-09T10:00:00Z")
+
+    /** Instante da operação sob teste, distinto do `now` usado para montar o contrato. */
+    private val later = now.plusSeconds(60)
+
     private val leaseId = LeaseId.new()
 
     private val tenantSigner = Signer(
@@ -61,9 +65,6 @@ class ContractTest {
         sourceEventId = eventId,
     )
 
-    /** Instante da operação sob teste, distinto do `now` usado para montar o contrato. */
-    private val later = now.plusSeconds(60)
-
     /** Confere a única linha de histórico pendente, campo a campo (o `id` é aleatório). */
     private fun assertSingleHistory(
         contract: Contract,
@@ -73,6 +74,7 @@ class ContractTest {
         source: ChangeSource,
         sourceEventId: String?,
         note: String?,
+        occurredAt: Instant = later,
     ) {
         val entry = contract.pullHistory().single()
         val expected = StatusHistoryEntry(
@@ -84,7 +86,7 @@ class ContractTest {
             source = source,
             sourceEventId = sourceEventId,
             note = note,
-            occurredAt = later,
+            occurredAt = occurredAt,
         )
         assertEquals(expected, entry)
     }
@@ -392,7 +394,7 @@ class ContractTest {
     }
 
     @Test
-    fun `cancelamento sem motivo nem nota grava o texto padrão Cancelado e mantém a nota vazia no histórico`() {
+    fun `cancelamento sem motivo nem nota grava o texto padrão Cancelado e não grava nota no histórico`() {
         val contract = restoreWithStatus(ContractStatus.SENT)
 
         contract.apply(StatusChange(ContractStatus.CANCELLED, ChangeSource.API), later, signatureDeadline)
@@ -413,6 +415,25 @@ class ContractTest {
         assertEquals(CancelReason.Requested("Anulado no provedor."), contract.cancelReason)
         val event = assertIs<ContractCancelled>(contract.pullEvents().single())
         assertEquals("Anulado no provedor.", event.reason)
+        assertEquals("Anulado no provedor.", contract.pullHistory().single().note)
+    }
+
+    @Test
+    fun `motivo explícito prevalece sobre a nota no cancelamento e a nota fica só no histórico`() {
+        val contract = restoreWithStatus(ContractStatus.SENT)
+        val change = StatusChange(
+            target = ContractStatus.CANCELLED,
+            source = ChangeSource.API,
+            note = "Nota do operador.",
+            cancelReason = CancelReason.Requested("Desistência do locatário."),
+        )
+
+        contract.apply(change, later, signatureDeadline)
+
+        assertEquals(CancelReason.Requested("Desistência do locatário."), contract.cancelReason)
+        val event = assertIs<ContractCancelled>(contract.pullEvents().single())
+        assertEquals("Desistência do locatário.", event.reason)
+        assertEquals("Nota do operador.", contract.pullHistory().single().note)
     }
 
     @Test
@@ -440,7 +461,7 @@ class ContractTest {
             outcome = HistoryOutcome.APPLIED,
             source = ChangeSource.SCHEDULER,
             sourceEventId = null,
-            note = "Prazo de assinatura vencido em $deadline.",
+            note = "Prazo de assinatura vencido em 2026-10-09T10:00:00Z.",
         )
     }
 

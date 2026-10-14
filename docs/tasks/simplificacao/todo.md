@@ -1083,6 +1083,8 @@ vazios, citando regra, ADR ou seção).
 - [ ] `ContractQueryAdapter.kt:18` ("projeções otimizadas") e `LeaseBridgeAdapters.kt:41` ("de forma limpa e
   desacoplada"): texto factual.
 - [ ] `ContractEntityMappers.kt:84`: KDoc de uma linha para `ContractSignerEntity.toDomain()`.
+- [ ] `ContractEntityMappers.kt:62` (KDoc de `ContractEntity.toDomain()`): `[CancelReason]` aparece entre os "Value
+  Objects tipados", mas é uma interface selada sem validação (achado da revisão da Fase 1).
 
 **Verificação:** `compileKotlin` sem warnings novos e testes rápidos.
 
@@ -1165,5 +1167,5 @@ vazios, citando regra, ADR ou seção).
 ## Linha de base (preencher na T00)
 
 - Testes aprovados: 112 (0 falhas, 0 erros, 0 ignorados), em `.\gradlew.bat clean build --console=plain` sobre
-  `d013479` (2026-10-14), com Docker do Rancher Desktop 29.5.3.
+  `d013479` (2026-10-14), com Docker Engine 29.5.3 (Rancher Desktop).
 - Warnings do `compileKotlin`: nenhum.

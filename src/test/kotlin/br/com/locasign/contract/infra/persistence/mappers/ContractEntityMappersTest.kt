@@ -37,7 +37,9 @@ class ContractEntityMappersTest {
             CancelReason.GenerationFailed("") to "GENERATION_FAILED",
             CancelReason.GenerationFailed("   ") to "GENERATION_FAILED",
             CancelReason.GenerationFailed("modelo inválido") to "GENERATION_FAILED: modelo inválido",
+            CancelReason.GenerationFailed("erro: timeout") to "GENERATION_FAILED: erro: timeout",
             CancelReason.Requested("desistência do locatário") to "REQUESTED: desistência do locatário",
+            CancelReason.Requested("cliente: desistiu") to "REQUESTED: cliente: desistiu",
             CancelReason.Requested("") to "REQUESTED: ",
         )
 
@@ -52,8 +54,11 @@ class ContractEntityMappersTest {
         val expectedReasons = mapOf(
             "GENERATION_FAILED" to CancelReason.GenerationFailed(null),
             "GENERATION_FAILED: modelo inválido" to CancelReason.GenerationFailed("modelo inválido"),
+            "GENERATION_FAILED: erro: timeout" to CancelReason.GenerationFailed("erro: timeout"),
             "GENERATION_FAILED: " to CancelReason.GenerationFailed(""),
             "REQUESTED: desistência do locatário" to CancelReason.Requested("desistência do locatário"),
+            "REQUESTED: cliente: desistiu" to CancelReason.Requested("cliente: desistiu"),
+            "REQUESTED: GENERATION_FAILED: falso" to CancelReason.Requested("GENERATION_FAILED: falso"),
             "REQUESTED: " to CancelReason.Requested(""),
         )
 
@@ -64,16 +69,20 @@ class ContractEntityMappersTest {
     }
 
     @Test
-    fun `falha de geração com detalhe vazio volta do banco sem detalhe`() {
-        val stored = cancelledWith(CancelReason.GenerationFailed("")).toEntity()
+    fun `falha de geração com detalhe em branco volta do banco sem detalhe`() {
+        listOf("", "   ").forEach { blank ->
+            val stored = cancelledWith(CancelReason.GenerationFailed(blank)).toEntity()
 
-        assertEquals(CancelReason.GenerationFailed(null), stored.toDomain().cancelReason)
+            assertEquals(CancelReason.GenerationFailed(null), stored.toDomain().cancelReason, "detalhe '$blank'")
+        }
     }
 
     @Test
-    fun `valor legado sem prefixo conhecido é lido como cancelamento pedido`() {
-        assertEquals(CancelReason.Requested("texto livre"), readColumn("texto livre"))
-        assertEquals(CancelReason.Requested("REQUESTED"), readColumn("REQUESTED"))
-        assertEquals(CancelReason.Requested("GENERATION_FAILED:sem espaço"), readColumn("GENERATION_FAILED:sem espaço"))
+    fun `valor sem prefixo conhecido é lido como cancelamento pedido`() {
+        val unprefixed = listOf("texto livre", "", "REQUESTED", "REQUESTED:sem espaço", "GENERATION_FAILED:sem espaço")
+
+        unprefixed.forEach { column ->
+            assertEquals(CancelReason.Requested(column), readColumn(column), "leitura de '$column'")
+        }
     }
 }

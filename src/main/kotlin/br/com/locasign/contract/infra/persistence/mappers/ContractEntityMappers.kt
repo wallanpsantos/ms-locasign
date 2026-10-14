@@ -98,7 +98,10 @@ private fun CancelReason.toStorage(): String = when (this) {
     is CancelReason.Requested -> "$REQUESTED: $text"
 }
 
-/** Inverso de [toStorage]; valor sem prefixo conhecido (legado) é lido como [CancelReason.Requested]. */
+/**
+ * Lê a coluna gravada por [toStorage]: `GENERATION_FAILED` sem detalhe volta com `detail` nulo, e valor sem prefixo
+ * conhecido vira [CancelReason.Requested].
+ */
 private fun String.toCancelReason(): CancelReason = when {
     this == GENERATION_FAILED -> CancelReason.GenerationFailed(null)
     startsWith("$GENERATION_FAILED: ") -> CancelReason.GenerationFailed(removePrefix("$GENERATION_FAILED: "))

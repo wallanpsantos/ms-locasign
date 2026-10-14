@@ -32,13 +32,27 @@ fun ContractDetailView.toResponse(): ContractResponse = ContractResponse(
 /**
  * Converte a visão de signatário ([SignerView]) no DTO de resposta [SignerResponse].
  */
-fun SignerView.toResponse(): SignerResponse = SignerResponse(role, name, email, signingOrder, completedAt)
+fun SignerView.toResponse(): SignerResponse = SignerResponse(
+    role = role,
+    name = name,
+    email = email,
+    signingOrder = signingOrder,
+    completedAt = completedAt,
+)
 
 /**
  * Converte a visão de entrada histórica ([HistoryEntryView]) no DTO [HistoryEntryResponse].
  */
-fun HistoryEntryView.toResponse(): HistoryEntryResponse =
-    HistoryEntryResponse(id, fromStatus, toStatus, outcome, source, sourceEventId, note, occurredAt)
+fun HistoryEntryView.toResponse(): HistoryEntryResponse = HistoryEntryResponse(
+    id = id,
+    fromStatus = fromStatus,
+    toStatus = toStatus,
+    outcome = outcome,
+    source = source,
+    sourceEventId = sourceEventId,
+    note = note,
+    occurredAt = occurredAt,
+)
 
 /**
  * Converte a lista de entradas históricas no DTO consolidado [ContractHistoryResponse].

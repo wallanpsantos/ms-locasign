@@ -601,11 +601,11 @@ fun HistoryEntryView.toResponse(): HistoryEntryResponse = HistoryEntryResponse(
 
 **Critérios de aceite:**
 
-- [ ] Mesma ligação de argumentos; JSON de `GET /contracts/{id}` e `/history` idêntico.
+- [x] Mesma ligação de argumentos; JSON de `GET /contracts/{id}` e `/history` idêntico.
 
 **Verificação:**
 
-- [ ] Testes rápidos e `*LocaSignE2EIT` (Docker).
+- [x] Testes rápidos e `*LocaSignE2EIT` (Docker).
 
 **Dependências:** T00. **Arquivos:** `ContractWebMappers.kt`. **Tamanho:** XS.
 

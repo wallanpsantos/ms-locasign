@@ -9,9 +9,11 @@ ficam fora), sem mudar comportamento. O checklist executável, com critérios de
   cujo `src/main` é o mesmo de `07bd715`. Antes da entrega, a `main` recebeu `061b8ec` e `abb0ed6` (formatação dos logs
   no perfil local), que só alteram `src/main/resources/application-local.yaml`, arquivo que nenhuma tarefa toca. A
   referência para conferir desvios passa a ser `abb0ed6`.
-- **Situação:** Fase 0 e Fase 1 (T00 a T03) executadas em 2026-10-14, sem commit, com revisão adversarial e teste de
-  mutação (19 de 20 mutantes mortos; o sobrevivente, o valor de `NO_SIGNATURE_DEADLINE`, é equivalente). Próxima: Fase 2
-  (T04).
+- **Situação:** em 2026-10-14, Fase 0 e Fase 1 (T00 a T03) executadas e commitadas (`c28b581` a `88dc833`), com
+  revisão adversarial e teste de mutação (19 de 20 mutantes mortos; o sobrevivente, o valor de `NO_SIGNATURE_DEADLINE`,
+  é equivalente). Fases 2 e 3 (T04 a T13) executadas e commitadas, uma tarefa por commit, com revisão adversarial, teste
+  de mutação (29 de 30 mutantes mortos; o sobrevivente é equivalente) e prova de que os testes novos passam no código
+  original. Próxima: Fase 4 (T14).
 
 ## 1. Objetivo e escopo
 

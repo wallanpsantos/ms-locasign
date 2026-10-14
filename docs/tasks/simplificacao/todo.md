@@ -366,11 +366,11 @@ Novos imports: `WebhookItem`, `java.time.Instant` e `java.util.HexFormat`.
 
 **Critérios de aceite:**
 
-- [ ] Mesma saída hexadecimal, byte a byte; mesmos campos, ordem e transação das mensagens do outbox.
+- [x] Mesma saída hexadecimal, byte a byte; mesmos campos, ordem e transação das mensagens do outbox.
 
 **Verificação:**
 
-- [ ] `*ReceiveProviderWebhookTest`, testes rápidos, `*HexagonalArchitectureTest` (import novo em `app`).
+- [x] `*ReceiveProviderWebhookTest`, testes rápidos, `*HexagonalArchitectureTest` (import novo em `app`).
 
 **Dependências:** T00. **Arquivos:** `ReceiveProviderWebhook.kt`, teste e fakes novos. **Tamanho:** S.
 

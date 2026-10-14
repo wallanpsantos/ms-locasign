@@ -2,6 +2,7 @@ package br.com.locasign.contract.app.usecases
 
 import br.com.locasign.contract.app.ports.out.integration.MalformedWebhookPayload
 import br.com.locasign.contract.app.ports.out.integration.ProviderWebhookGateway
+import br.com.locasign.contract.app.ports.out.integration.WebhookItem
 import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.Metrics
@@ -12,6 +13,8 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.app.ports.WebhookInboxPort
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
+import java.time.Instant
+import java.util.HexFormat
 
 /**
  * Parâmetros de entrada contendo os bytes brutos e cabeçalhos de uma entrega de webhook do provedor.
@@ -79,21 +82,7 @@ class ReceiveProviderWebhook(
         val isNew = transactions.run {
             val inserted = inbox.store(deliveryId, rawBody)
             if (inserted) {
-                items.forEachIndexed { index, item ->
-                    outbox.append(
-                        OutboxMessage(
-                            id = "$deliveryId:$index",
-                            topic = Topics.PANDADOC_WEBHOOKS,
-                            // Chave = id do documento: garante ordem por documento dentro da partição.
-                            key = item.documentId ?: deliveryId,
-                            aggregateType = AGGREGATE_TYPE,
-                            aggregateId = item.documentId ?: deliveryId,
-                            eventType = item.eventName ?: UNKNOWN_EVENT,
-                            occurredAt = now,
-                            payloadJson = item.json,
-                        ),
-                    )
-                }
+                items.forEachIndexed { index, item -> outbox.append(outboxMessage(deliveryId, index, item, now)) }
             }
             inserted
         }
@@ -106,8 +95,27 @@ class ReceiveProviderWebhook(
         }
     }
 
+    /**
+     * R7: cada item do array vira uma linha do outbox com id `deliveryId:índice` (ADR-006;
+     * docs/agents/regras-de-codigo.md §4).
+     */
+    private fun outboxMessage(deliveryId: String, index: Int, item: WebhookItem, now: Instant): OutboxMessage {
+        // Chave = id do documento: garante ordem por documento dentro da partição.
+        val documentKey = item.documentId ?: deliveryId
+        return OutboxMessage(
+            id = "$deliveryId:$index",
+            topic = Topics.PANDADOC_WEBHOOKS,
+            key = documentKey,
+            aggregateType = AGGREGATE_TYPE,
+            aggregateId = documentKey,
+            eventType = item.eventName ?: UNKNOWN_EVENT,
+            occurredAt = now,
+            payloadJson = item.json,
+        )
+    }
+
     private fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes))
 
     private companion object {
         const val AGGREGATE_TYPE = "ProviderWebhook"

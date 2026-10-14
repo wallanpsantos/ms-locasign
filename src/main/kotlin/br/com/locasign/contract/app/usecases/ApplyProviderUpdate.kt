@@ -70,11 +70,7 @@ class ApplyProviderUpdate(
         when (signal) {
             is ProviderSignal.StatusChanged -> handleStatus(contract, signal, command, now)
             is ProviderSignal.RecipientCompleted -> handleRecipients(contract, signal, command, now)
-            is ProviderSignal.CreationFailed ->
-                count(
-                    contract.failGeneration(signal.detail, command.source, command.sourceEventId, now),
-                    ContractStatus.CANCELLED
-                )
+            is ProviderSignal.CreationFailed -> failGeneration(contract, signal.detail, command, now)
             // O arquivamento do PDF é tratado por ArchiveSignedDocument, não altera o status.
             is ProviderSignal.PdfReady -> Unit
             is ProviderSignal.DocumentDeleted -> handleRemoved(contract, "documento removido no provedor", command, now)
@@ -103,14 +99,7 @@ class ApplyProviderUpdate(
             ProviderDocumentStatus.VOIDED -> handleRemoved(contract, "documento anulado no provedor", command, now)
             ProviderDocumentStatus.ERROR ->
                 if (contract.status == ContractStatus.DRAFT) {
-                    val result = contract.failGeneration(
-                        ERROR_DETAIL,
-                        command.source,
-                        command.sourceEventId,
-                        now,
-                        signal.modifiedAt
-                    )
-                    count(result, ContractStatus.CANCELLED)
+                    failGeneration(contract, ERROR_DETAIL, command, now, signal.modifiedAt)
                 } else {
                     handleRemoved(contract, "provedor reportou document.error", command, now)
                 }
@@ -143,6 +132,18 @@ class ApplyProviderUpdate(
 
     private fun change(contract: Contract, change: StatusChange, now: Instant) =
         count(contract.apply(change, now, settings.signatureDeadline), change.target)
+
+    /** Pede o cancelamento por falha de geração (a política decide, R5) e conta o resultado como [change]. */
+    private fun failGeneration(
+        contract: Contract,
+        detail: String?,
+        command: ApplyProviderUpdateCommand,
+        now: Instant,
+        modifiedAt: Instant? = null,
+    ) = count(
+        contract.failGeneration(detail, command.source, command.sourceEventId, now, modifiedAt),
+        ContractStatus.CANCELLED,
+    )
 
     private fun count(result: TransitionResult, target: ContractStatus) {
         when (result) {

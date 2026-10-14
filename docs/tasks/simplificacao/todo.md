@@ -307,11 +307,11 @@ com `ERROR_DETAIL` e respeita `modifiedAt`; `ERROR` fora de `DRAFT` registra a a
 
 **Critérios de aceite:**
 
-- [ ] Mesmos argumentos para `Contract.failGeneration`, mesmas métricas e tags, uma única transação.
+- [x] Mesmos argumentos para `Contract.failGeneration`, mesmas métricas e tags, uma única transação.
 
 **Verificação:**
 
-- [ ] `*ApplyProviderUpdateTest`, testes rápidos.
+- [x] `*ApplyProviderUpdateTest`, testes rápidos.
 
 **Dependências:** T00. **Arquivos:** `ApplyProviderUpdate.kt`, teste e fake novos. **Tamanho:** S.
 

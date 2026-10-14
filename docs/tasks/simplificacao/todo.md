@@ -523,11 +523,11 @@ Import novo no teste: `com.github.tomakehurst.wiremock.client.WireMock.equalToJs
 
 **Critérios de aceite:**
 
-- [ ] JSON enviado idêntico; construção do DTO continua dentro do lambda de `call`.
+- [x] JSON enviado idêntico; construção do DTO continua dentro do lambda de `call`.
 
 **Verificação:**
 
-- [ ] `*PandaDocSignatureProviderAdapterTest`, testes rápidos.
+- [x] `*PandaDocSignatureProviderAdapterTest`, testes rápidos.
 
 **Dependências:** T09 (mesmo teste). **Arquivos:** adapter, mappers, teste do adapter. **Tamanho:** XS.
 

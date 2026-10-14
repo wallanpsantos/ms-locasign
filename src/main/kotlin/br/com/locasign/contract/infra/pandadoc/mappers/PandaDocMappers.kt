@@ -4,10 +4,12 @@ import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentReques
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentState
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentStatus
 import br.com.locasign.contract.app.ports.out.integration.ProviderRecipient
+import br.com.locasign.contract.app.ports.out.integration.ProviderSendRequest
 import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.contract.infra.pandadoc.dto.request.CreateDocumentRequest
 import br.com.locasign.contract.infra.pandadoc.dto.request.RecipientRequest
+import br.com.locasign.contract.infra.pandadoc.dto.request.SendDocumentRequest
 import br.com.locasign.contract.infra.pandadoc.dto.request.TokenRequest
 import br.com.locasign.contract.infra.pandadoc.dto.response.DocumentDetailsResponse
 import br.com.locasign.shared.infra.config.LocaSignProperties
@@ -101,6 +103,9 @@ private fun ProviderRecipient.toPandaDoc(properties: LocaSignProperties.PandaDoc
         signingOrder = signingOrder,
     )
 }
+
+/** Corpo de `POST /documents/{id}/send`; `silent` fica no padrão `false` (o provedor notifica por e-mail). */
+fun ProviderSendRequest.toPandaDoc(): SendDocumentRequest = SendDocumentRequest(subject = subject, message = message)
 
 /** `2500.00` vira `R$ 2.500,00`. */
 internal fun BigDecimal.formatBrl(): String =

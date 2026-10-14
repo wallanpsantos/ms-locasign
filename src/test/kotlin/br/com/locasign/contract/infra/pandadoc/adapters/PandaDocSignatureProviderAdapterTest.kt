@@ -21,6 +21,7 @@ import br.com.locasign.shared.infra.config.LocaSignProperties
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.jsonResponse
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
@@ -280,5 +281,25 @@ class PandaDocSignatureProviderAdapterTest {
         )
 
         assertFailsWith<ProviderException.Unavailable> { adapter.createDocument(sampleRequest()) }
+    }
+
+    @Test
+    fun `envio de documento manda assunto, mensagem e silent false no corpo JSON`() {
+        wireMockServer.stubFor(
+            post(urlEqualTo("/documents/doc-created-999/send"))
+                .willReturn(okJson("""{"id": "doc-created-999", "status": "document.sent"}"""))
+        )
+
+        adapter.send(
+            ProviderDocumentId.of("doc-created-999"),
+            ProviderSendRequest("Assunto do Teste", "Corpo da Mensagem"),
+        )
+
+        wireMockServer.verify(
+            postRequestedFor(urlEqualTo("/documents/doc-created-999/send"))
+                .withRequestBody(
+                    equalToJson("""{"subject":"Assunto do Teste","message":"Corpo da Mensagem","silent":false}""")
+                )
+        )
     }
 }

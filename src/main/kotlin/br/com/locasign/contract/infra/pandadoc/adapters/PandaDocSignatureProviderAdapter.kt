@@ -9,7 +9,6 @@ import br.com.locasign.contract.app.ports.out.integration.SignedDocument
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.contract.infra.pandadoc.PandaDocClient
 import br.com.locasign.contract.infra.pandadoc.SlidingWindowRateLimiter
-import br.com.locasign.contract.infra.pandadoc.dto.request.SendDocumentRequest
 import br.com.locasign.contract.infra.pandadoc.dto.request.StatusChangeRequest
 import br.com.locasign.contract.infra.pandadoc.exceptions.toProviderException
 import br.com.locasign.contract.infra.pandadoc.mappers.toPandaDoc
@@ -50,7 +49,7 @@ class PandaDocSignatureProviderAdapter(
         call("details") { client.details(documentId.value) }.toState(properties)
 
     override fun send(documentId: ProviderDocumentId, request: ProviderSendRequest) {
-        call("send") { client.send(documentId.value, SendDocumentRequest(request.subject, request.message)) }
+        call("send") { client.send(documentId.value, request.toPandaDoc()) }
     }
 
     override fun cancelDocument(documentId: ProviderDocumentId) {

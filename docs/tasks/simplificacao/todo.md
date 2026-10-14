@@ -155,12 +155,12 @@ E `apply(..., now, NO_SIGNATURE_DEADLINE)` nos três pontos.
 
 **Critérios de aceite:**
 
-- [ ] Mesmos eventos (tipo e campos), mesmo `cancel_reason` e mesma nota de histórico em todos os casos.
-- [ ] Nenhum `else` nem ramo `null` no `when` sobre `CancelReason`.
+- [x] Mesmos eventos (tipo e campos), mesmo `cancel_reason` e mesma nota de histórico em todos os casos.
+- [x] Nenhum `else` nem ramo `null` no `when` sobre `CancelReason`.
 
 **Verificação:**
 
-- [ ] `ContractTest`, testes rápidos e `*ContractRepositoryAdapterIT`.
+- [x] `ContractTest`, testes rápidos e `*ContractRepositoryAdapterIT`.
 
 **Dependências:** T01 (mesmo arquivo). **Arquivos:** `Contract.kt`, `ContractTest.kt`. **Tamanho:** S.
 

@@ -172,7 +172,7 @@ class Contract private constructor(
                 cancelReason = CancelReason.Requested(reason),
             ),
             now,
-            Duration.ZERO,
+            NO_SIGNATURE_DEADLINE,
         )
     }
 
@@ -193,7 +193,7 @@ class Contract private constructor(
             cancelReason = CancelReason.GenerationFailed(detail),
         ),
         now,
-        Duration.ZERO,
+        NO_SIGNATURE_DEADLINE,
     )
 
     /** R4: expira o contrato cujo prazo venceu. Não faz nada se ele já mudou de estado. */
@@ -209,7 +209,7 @@ class Contract private constructor(
                 note = "Prazo de assinatura vencido em $deadline.",
             ),
             now,
-            Duration.ZERO,
+            NO_SIGNATURE_DEADLINE,
         )
     }
 
@@ -274,8 +274,7 @@ class Contract private constructor(
             }
 
             ContractStatus.COMPLETED -> signers = signers.map { it.copy(completedAt = it.completedAt ?: now) }
-            ContractStatus.CANCELLED ->
-                cancelReason = change.cancelReason ?: CancelReason.Requested(change.note ?: "Cancelado.")
+            ContractStatus.CANCELLED -> cancelReason = effectiveCancelReason(change)
 
             ContractStatus.DRAFT, ContractStatus.GENERATED, ContractStatus.DECLINED, ContractStatus.EXPIRED -> Unit
         }
@@ -300,12 +299,15 @@ class Contract private constructor(
         ContractStatus.COMPLETED -> ContractCompleted(id, leaseId, now)
         ContractStatus.DECLINED -> ContractDeclined(id, change.note, now)
         ContractStatus.EXPIRED -> ContractExpired(id, now)
-        ContractStatus.CANCELLED -> when (val reason = cancelReason) {
+        ContractStatus.CANCELLED -> when (val reason = effectiveCancelReason(change)) {
             is CancelReason.GenerationFailed -> ContractGenerationFailed(id, reason.detail, now)
             is CancelReason.Requested -> ContractCancelled(id, reason.text, now)
-            null -> ContractCancelled(id, change.note ?: "Cancelado.", now)
         }
     }
+
+    /** Motivo gravado e publicado no cancelamento: o explícito da mudança ou, na falta dele, a nota como pedido. */
+    private fun effectiveCancelReason(change: StatusChange): CancelReason =
+        change.cancelReason ?: CancelReason.Requested(change.note ?: DEFAULT_CANCEL_NOTE)
 
     private fun recordRejected(change: StatusChange, reason: String, now: Instant) = appendHistory(
         status,
@@ -350,6 +352,13 @@ class Contract private constructor(
 
     companion object {
         private const val DEFAULT_GENERATION_FAILURE_NOTE = "O provedor reportou falha na criação do documento."
+        private const val DEFAULT_CANCEL_NOTE = "Cancelado."
+
+        /**
+         * Estados finais não abrem prazo de assinatura: o prazo (R4) só é calculado ao entrar em SENT, VIEWED ou
+         * PARTIALLY_SIGNED.
+         */
+        private val NO_SIGNATURE_DEADLINE: Duration = Duration.ZERO
 
         /** Cria o contrato em `DRAFT` (nova versão da locação) e emite `ContractRequested`. */
         fun request(leaseId: LeaseId, versionNumber: Int, signers: List<Signer>, now: Instant): Contract {

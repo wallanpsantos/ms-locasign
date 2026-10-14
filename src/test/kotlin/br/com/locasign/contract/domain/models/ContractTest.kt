@@ -1,6 +1,9 @@
 package br.com.locasign.contract.domain.models
 
+import br.com.locasign.contract.domain.events.ContractCancelled
 import br.com.locasign.contract.domain.events.ContractCompleted
+import br.com.locasign.contract.domain.events.ContractExpired
+import br.com.locasign.contract.domain.events.ContractGenerationFailed
 import br.com.locasign.contract.domain.events.ContractRequested
 import br.com.locasign.contract.domain.events.ContractSent
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
@@ -14,6 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ContractTest {
@@ -328,5 +332,126 @@ class ContractTest {
             "evt-rec",
             "ANOMALIA: documento removido no provedor",
         )
+    }
+
+    @Test
+    fun `cancelamento pedido grava o motivo, emite ContractCancelled e não abre prazo de assinatura`() {
+        val contract = restoreContract(ContractStatus.DRAFT, leaseId, signers, now)
+
+        assertEquals(TransitionResult.APPLIED, contract.cancel("motivo", later))
+
+        assertEquals(ContractStatus.CANCELLED, contract.status)
+        assertEquals(CancelReason.Requested("motivo"), contract.cancelReason)
+        assertNull(contract.sentAt)
+        assertNull(contract.expiresAt)
+        val event = assertIs<ContractCancelled>(contract.pullEvents().single())
+        assertEquals(ContractCancelled(contract.id, "motivo", later, event.eventId), event)
+        assertSingleHistory(
+            contract,
+            from = ContractStatus.DRAFT,
+            to = ContractStatus.CANCELLED,
+            outcome = HistoryOutcome.APPLIED,
+            source = ChangeSource.API,
+            sourceEventId = null,
+            note = "motivo",
+        )
+    }
+
+    @Test
+    fun `falha de geração sem detalhe grava a nota padrão e emite ContractGenerationFailed sem detalhe`() {
+        val contract = restoreContract(ContractStatus.DRAFT, leaseId, signers, now)
+
+        contract.failGeneration(null, ChangeSource.WEBHOOK, "evt-fail", later)
+
+        assertEquals(ContractStatus.CANCELLED, contract.status)
+        assertEquals(CancelReason.GenerationFailed(null), contract.cancelReason)
+        assertNull(contract.expiresAt)
+        val event = assertIs<ContractGenerationFailed>(contract.pullEvents().single())
+        assertEquals(ContractGenerationFailed(contract.id, null, later, event.eventId), event)
+        assertSingleHistory(
+            contract,
+            from = ContractStatus.DRAFT,
+            to = ContractStatus.CANCELLED,
+            outcome = HistoryOutcome.APPLIED,
+            source = ChangeSource.WEBHOOK,
+            sourceEventId = "evt-fail",
+            note = "O provedor reportou falha na criação do documento.",
+        )
+    }
+
+    @Test
+    fun `falha de geração com detalhe usa o detalhe como nota e no evento`() {
+        val contract = restoreContract(ContractStatus.GENERATED, leaseId, signers, now)
+
+        contract.failGeneration("modelo inválido", ChangeSource.WEBHOOK, "evt-fail", later)
+
+        assertEquals(CancelReason.GenerationFailed("modelo inválido"), contract.cancelReason)
+        val event = assertIs<ContractGenerationFailed>(contract.pullEvents().single())
+        assertEquals("modelo inválido", event.detail)
+        assertEquals("modelo inválido", contract.pullHistory().single().note)
+    }
+
+    @Test
+    fun `cancelamento sem motivo nem nota grava o texto padrão Cancelado e mantém a nota vazia no histórico`() {
+        val contract = restoreWithStatus(ContractStatus.SENT)
+
+        contract.apply(StatusChange(ContractStatus.CANCELLED, ChangeSource.API), later, signatureDeadline)
+
+        assertEquals(CancelReason.Requested("Cancelado."), contract.cancelReason)
+        val event = assertIs<ContractCancelled>(contract.pullEvents().single())
+        assertEquals(ContractCancelled(contract.id, "Cancelado.", later, event.eventId), event)
+        assertNull(contract.pullHistory().single().note)
+    }
+
+    @Test
+    fun `cancelamento sem motivo explícito usa a nota da mudança como motivo`() {
+        val contract = restoreWithStatus(ContractStatus.SENT)
+        val change = StatusChange(ContractStatus.CANCELLED, ChangeSource.RECONCILIATION, note = "Anulado no provedor.")
+
+        contract.apply(change, later, signatureDeadline)
+
+        assertEquals(CancelReason.Requested("Anulado no provedor."), contract.cancelReason)
+        val event = assertIs<ContractCancelled>(contract.pullEvents().single())
+        assertEquals("Anulado no provedor.", event.reason)
+    }
+
+    @Test
+    fun `prazo vencido expira o contrato sem alterar a data de expiração (R4)`() {
+        val deadline = now
+        val contract = restoreContract(
+            status = ContractStatus.SENT,
+            leaseId = leaseId,
+            signers = signers,
+            now = now,
+            sentAt = now.minus(signatureDeadline),
+            expiresAt = deadline,
+        )
+
+        assertEquals(TransitionResult.APPLIED, contract.expireIfOverdue(later))
+
+        assertEquals(ContractStatus.EXPIRED, contract.status)
+        assertEquals(deadline, contract.expiresAt)
+        val event = assertIs<ContractExpired>(contract.pullEvents().single())
+        assertEquals(ContractExpired(contract.id, later, event.eventId), event)
+        assertSingleHistory(
+            contract,
+            from = ContractStatus.SENT,
+            to = ContractStatus.EXPIRED,
+            outcome = HistoryOutcome.APPLIED,
+            source = ChangeSource.SCHEDULER,
+            sourceEventId = null,
+            note = "Prazo de assinatura vencido em $deadline.",
+        )
+    }
+
+    @Test
+    fun `prazo ainda aberto não expira o contrato (R4)`() {
+        val contract = restoreWithStatus(ContractStatus.SENT)
+
+        assertEquals(TransitionResult.NO_CHANGE, contract.expireIfOverdue(later))
+
+        assertEquals(ContractStatus.SENT, contract.status)
+        assertTrue(contract.pullEvents().isEmpty())
+        assertTrue(contract.pullHistory().isEmpty())
     }
 }

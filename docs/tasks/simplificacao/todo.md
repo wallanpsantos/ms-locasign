@@ -480,11 +480,14 @@ destinatário que traga `email`, `role` e `has_completed`, conferindo os papéis
 
 **Critérios de aceite:**
 
-- [ ] Os stubs com campos extras continuam aceitos; `id` continua obrigatório.
+- [x] Os stubs com campos extras continuam aceitos; `id` continua obrigatório.
+- Observação da revisão: sem os campos removidos, um `status`, `date_modified` ou `recipients[].email` em formato
+  inesperado (objeto ou array) deixa de quebrar a desserialização, que antes virava `Unavailable` e retentativa. A
+  leitura ficou mais tolerante, sem efeito nas respostas válidas.
 
 **Verificação:**
 
-- [ ] `*PandaDocSignatureProviderAdapterTest`, testes rápidos.
+- [x] `*PandaDocSignatureProviderAdapterTest`, testes rápidos.
 
 **Dependências:** T00. **Arquivos:** `PandaDocResponses.kt`, teste do adapter. **Tamanho:** XS.
 

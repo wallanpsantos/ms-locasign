@@ -39,6 +39,7 @@ import org.springframework.web.client.RestClient
 import org.springframework.web.client.support.RestClientAdapter
 import org.springframework.web.service.invoker.HttpServiceProxyFactory
 import java.net.http.HttpClient
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -226,5 +227,58 @@ class PandaDocSignatureProviderAdapterTest {
         assertFailsWith<ProviderException.Forbidden> {
             adapter.fetchState(ProviderDocumentId.of("doc-forbidden"))
         }
+    }
+
+    @Test
+    fun `detalhes com destinatários trazem só os papéis concluídos e a data de modificação`() {
+        wireMockServer.stubFor(
+            get(urlEqualTo("/documents/doc-created-999/details"))
+                .willReturn(
+                    okJson(
+                        """
+                        {
+                            "id": "doc-created-999",
+                            "status": "document.viewed",
+                            "date_modified": "2026-10-09T10:00:00Z",
+                            "recipients": [
+                                {"email": "locatario@example.com", "role": "Locatario", "has_completed": true},
+                                {"email": "imobiliaria@example.com", "role": "Imobiliaria", "has_completed": false}
+                            ]
+                        }
+                        """.trimIndent()
+                    )
+                )
+        )
+
+        val state = adapter.fetchState(ProviderDocumentId.of("doc-created-999"))
+
+        assertEquals(ProviderDocumentStatus.VIEWED, state.status)
+        assertEquals(setOf(SignerRole.TENANT), state.completedRoles)
+        assertEquals(Instant.parse("2026-10-09T10:00:00Z"), state.modifiedAt)
+    }
+
+    @Test
+    fun `resposta de criação com campos extras é aceita e devolve o id`() {
+        wireMockServer.stubFor(
+            post(urlEqualTo("/documents"))
+                .willReturn(
+                    jsonResponse(
+                        """{"id": "doc-created-999", "status": "document.uploaded", "date_modified": "x"}""",
+                        201,
+                    )
+                )
+        )
+
+        assertEquals("doc-created-999", adapter.createDocument(sampleRequest()).value)
+    }
+
+    @Test
+    fun `resposta de criação sem id falha como indisponibilidade do provedor`() {
+        wireMockServer.stubFor(
+            post(urlEqualTo("/documents"))
+                .willReturn(jsonResponse("""{"status": "document.uploaded"}""", 201))
+        )
+
+        assertFailsWith<ProviderException.Unavailable> { adapter.createDocument(sampleRequest()) }
     }
 }

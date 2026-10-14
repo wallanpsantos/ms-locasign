@@ -5,9 +5,16 @@ management:
     health:
       show-details: always
 
+# Habilita cores ANSI no console mesmo no terminal integrado da IDE ou PowerShell
+spring:
+  output:
+    ansi:
+      enabled: ALWAYS
+
 logging:
   pattern:
-    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%15.15t]){faint} %clr([%X{correlationId:-none}]){magenta} %clr(%-38.38logger{37}){cyan} %clr(:){faint} %m%n%wEx"
   level:
     br.com.locasign: DEBUG
     org.apache.kafka: WARN
+

@@ -1,5 +1,5 @@
 # Perfil de desenvolvimento: app rodando na IDE, infraestrutura no Docker Compose.
-# Uso: ./gradlew bootRun --args='--spring.profiles.active=local'
+# Uso: gradlew clean build bootRun --args='--spring.profiles.active=local'
 management:
   endpoint:
     health:

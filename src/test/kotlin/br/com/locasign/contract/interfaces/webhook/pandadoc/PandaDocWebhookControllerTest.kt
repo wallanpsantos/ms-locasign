@@ -63,4 +63,14 @@ class PandaDocWebhookControllerTest(@Autowired private val mvc: MockMvcTester) {
         assertThat(result)
             .hasStatus(HttpStatus.UNAUTHORIZED)
     }
+
+    @Test
+    fun `rejeição por assinatura responde 401 sem corpo (R7)`() {
+        given(receiveWebhook.execute(any())).willReturn(WebhookReceipt.InvalidSignature)
+
+        val result = postWebhook(signature = "wrong-signature")
+
+        assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED)
+        assertThat(result).body().isEmpty()
+    }
 }

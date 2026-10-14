@@ -562,11 +562,11 @@ anotação).
 
 **Critérios de aceite:**
 
-- [ ] Resposta 401 sem corpo, idêntica; `when` exaustivo; nenhuma resposta 410.
+- [x] Resposta 401 sem corpo, idêntica; `when` exaustivo; nenhuma resposta 410.
 
 **Verificação:**
 
-- [ ] `*PandaDocWebhookControllerTest`, testes rápidos.
+- [x] `*PandaDocWebhookControllerTest`, testes rápidos.
 
 **Dependências:** T00. **Arquivos:** `PandaDocWebhookController.kt`. **Tamanho:** XS.
 

@@ -5,6 +5,7 @@ import br.com.locasign.contract.app.usecases.ReceiveProviderWebhookCommand
 import br.com.locasign.contract.app.usecases.WebhookReceipt
 import br.com.locasign.shared.app.ports.CorrelationContext
 import io.swagger.v3.oas.annotations.Hidden
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -44,12 +45,11 @@ class PandaDocWebhookController(
         }
         return when (receipt) {
             is WebhookReceipt.Accepted, is WebhookReceipt.Duplicate -> ResponseEntity.ok().build()
-            WebhookReceipt.InvalidSignature -> ResponseEntity.status(UNAUTHORIZED).build()
+            WebhookReceipt.InvalidSignature -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         }
     }
 
     private companion object {
         const val DELIVERY_ID_HEADER = "X-PandaDoc-Webhook-Event-Id"
-        const val UNAUTHORIZED = 401
     }
 }

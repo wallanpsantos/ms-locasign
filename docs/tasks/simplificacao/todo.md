@@ -100,16 +100,16 @@ private fun recordInfo(note: String, source: ChangeSource, sourceEventId: String
 
 **Critérios de aceite:**
 
-- [ ] Os testes de caracterização passam antes e depois da mudança, sem alteração.
-- [ ] Mesmos campos e mesma ordem de inserção em `pendingHistory`; ordem touch, evento e histórico inalterada em cada
+- [x] Os testes de caracterização passam antes e depois da mudança, sem alteração.
+- [x] Mesmos campos e mesma ordem de inserção em `pendingHistory`; ordem touch, evento e histórico inalterada em cada
   método.
-- [ ] Nenhuma mudança na API pública do agregado; trailing comma nas listas multilinha reescritas.
+- [x] Nenhuma mudança na API pública do agregado; trailing comma nas listas multilinha reescritas.
 
 **Verificação:**
 
-- [ ] `.\gradlew.bat test --tests "br.com.locasign.contract.domain.models.ContractTest" --console=plain --rerun`.
-- [ ] Testes rápidos e `.\gradlew.bat test --tests "*ContractRepositoryAdapterIT" --console=plain` (Docker).
-- [ ] `compileKotlin` sem warnings novos.
+- [x] `.\gradlew.bat test --tests "br.com.locasign.contract.domain.models.ContractTest" --console=plain --rerun`.
+- [x] Testes rápidos e `.\gradlew.bat test --tests "*ContractRepositoryAdapterIT" --console=plain` (Docker).
+- [x] `compileKotlin` sem warnings novos.
 
 **Dependências:** T00. **Arquivos:** `contract/domain/models/Contract.kt`, `ContractTest.kt`. **Tamanho:** M.
 

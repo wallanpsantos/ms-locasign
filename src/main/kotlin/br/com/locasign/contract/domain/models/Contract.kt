@@ -115,7 +115,7 @@ class Contract private constructor(
         providerDocumentId = documentId
         touch(now)
         pendingEvents += ContractDocumentCreated(id, documentId, now)
-        recordHistory(status, HistoryOutcome.INFO, source, sourceEventId, "Documento criado no provedor.", now)
+        recordInfo("Documento criado no provedor.", source, sourceEventId, now)
         return true
     }
 
@@ -157,7 +157,7 @@ class Contract private constructor(
         signers = signers.map { if (it.role == role) it.copy(completedAt = now) else it }
         touch(now)
         pendingEvents += ContractSignerCompleted(id, role, now)
-        recordHistory(status, HistoryOutcome.INFO, source, sourceEventId, "Signatário $role assinou.", now)
+        recordInfo("Signatário $role assinou.", source, sourceEventId, now)
         return true
     }
 
@@ -219,14 +219,7 @@ class Contract private constructor(
         reminderSentAt = now
         touch(now)
         pendingEvents += ContractReminderSent(id, now)
-        recordHistory(
-            status,
-            HistoryOutcome.INFO,
-            ChangeSource.SCHEDULER,
-            null,
-            "Lembrete de assinatura registrado.",
-            now
-        )
+        recordInfo("Lembrete de assinatura registrado.", ChangeSource.SCHEDULER, null, now)
         return true
     }
 
@@ -242,7 +235,7 @@ class Contract private constructor(
         signedDocumentRef = location
         touch(now)
         pendingEvents += SignedDocumentArchived(id, storage, location, now)
-        recordHistory(status, HistoryOutcome.INFO, source, sourceEventId, "PDF assinado arquivado ($storage).", now)
+        recordInfo("PDF assinado arquivado ($storage).", source, sourceEventId, now)
         return true
     }
 
@@ -251,14 +244,14 @@ class Contract private constructor(
         if (status != ContractStatus.COMPLETED) return false
         touch(now)
         pendingEvents += LeaseActivated(id, leaseId, now)
-        recordHistory(status, HistoryOutcome.INFO, ChangeSource.API, null, "Locação ativada.", now)
+        recordInfo("Locação ativada.", ChangeSource.API, null, now)
         return true
     }
 
     /** Registra uma anomalia (por exemplo, documento removido no provedor sem pedido nosso). */
     fun recordAnomaly(note: String, source: ChangeSource, sourceEventId: String?, now: Instant) {
         touch(now)
-        recordHistory(status, HistoryOutcome.INFO, source, sourceEventId, "ANOMALIA: $note", now)
+        recordInfo("ANOMALIA: $note", source, sourceEventId, now)
     }
 
     /** Marca que a reconciliação consultou o provedor, para não repetir a consulta a cada ciclo. */
@@ -288,16 +281,14 @@ class Contract private constructor(
         }
         touch(now)
         eventFor(change, now)?.let { pendingEvents += it }
-        pendingHistory += StatusHistoryEntry(
-            id = Uuid.random(),
-            contractId = id,
-            fromStatus = from,
-            toStatus = change.target,
-            outcome = HistoryOutcome.APPLIED,
-            source = change.source,
-            sourceEventId = change.sourceEventId,
-            note = change.note,
-            occurredAt = now,
+        appendHistory(
+            from,
+            change.target,
+            HistoryOutcome.APPLIED,
+            change.source,
+            change.sourceEventId,
+            change.note,
+            now,
         )
     }
 
@@ -316,33 +307,35 @@ class Contract private constructor(
         }
     }
 
-    private fun recordRejected(change: StatusChange, reason: String, now: Instant) {
-        pendingHistory += StatusHistoryEntry(
-            id = Uuid.random(),
-            contractId = id,
-            fromStatus = status,
-            toStatus = change.target,
-            outcome = HistoryOutcome.IGNORED_TRANSITION,
-            source = change.source,
-            sourceEventId = change.sourceEventId,
-            note = reason,
-            occurredAt = now,
-        )
-    }
+    private fun recordRejected(change: StatusChange, reason: String, now: Instant) = appendHistory(
+        status,
+        change.target,
+        HistoryOutcome.IGNORED_TRANSITION,
+        change.source,
+        change.sourceEventId,
+        reason,
+        now,
+    )
 
-    private fun recordHistory(
-        current: ContractStatus,
+    /** Fato que não muda o status (assinatura, arquivamento, anomalia...): origem e destino são o status atual. */
+    private fun recordInfo(note: String, source: ChangeSource, sourceEventId: String?, now: Instant) =
+        appendHistory(status, status, HistoryOutcome.INFO, source, sourceEventId, note, now)
+
+    /** Único ponto que monta [StatusHistoryEntry]: acumula a linha de auditoria entregue por [pullHistory]. */
+    private fun appendHistory(
+        from: ContractStatus?,
+        to: ContractStatus,
         outcome: HistoryOutcome,
         source: ChangeSource,
         sourceEventId: String?,
-        note: String,
+        note: String?,
         now: Instant,
     ) {
         pendingHistory += StatusHistoryEntry(
             id = Uuid.random(),
             contractId = id,
-            fromStatus = current,
-            toStatus = current,
+            fromStatus = from,
+            toStatus = to,
             outcome = outcome,
             source = source,
             sourceEventId = sourceEventId,
@@ -380,16 +373,14 @@ class Contract private constructor(
                 rowVersion = null,
             )
             contract.pendingEvents += ContractRequested(contract.id, leaseId, versionNumber, now)
-            contract.pendingHistory += StatusHistoryEntry(
-                id = Uuid.random(),
-                contractId = contract.id,
-                fromStatus = null,
-                toStatus = ContractStatus.DRAFT,
+            contract.appendHistory(
+                from = null,
+                to = ContractStatus.DRAFT,
                 outcome = HistoryOutcome.APPLIED,
                 source = ChangeSource.API,
                 sourceEventId = null,
                 note = "Contrato v$versionNumber solicitado.",
-                occurredAt = now,
+                now = now,
             )
             return contract
         }

@@ -6,8 +6,10 @@ import br.com.locasign.contract.app.ports.out.integration.ProviderException
 import br.com.locasign.contract.app.ports.out.integration.ProviderRecipient
 import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseLookupPort
+import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.ChangeSource
+import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.shared.app.ConsumerGroups
@@ -62,7 +64,12 @@ class CreateProviderDocument(
             return null
         }
         val lease = checkNotNull(leases.find(contract.leaseId)) { "Locação ${contract.leaseId} do contrato não existe" }
-        return ProviderDocumentRequest(
+        return documentRequest(contract, lease)
+    }
+
+    /** Pedido de criação no provedor: signatários na ordem de assinatura (R3) e os campos do modelo (guia, §5). */
+    private fun documentRequest(contract: Contract, lease: LeaseSnapshot): ProviderDocumentRequest =
+        ProviderDocumentRequest(
             contractId = contract.id,
             leaseId = contract.leaseId,
             documentName = "LocaSign contrato ${contract.id} v${contract.versionNumber}",
@@ -78,7 +85,6 @@ class CreateProviderDocument(
                 termMonths = lease.termMonths,
             ),
         )
-    }
 
     private fun complete(command: ContractEventCommand, documentId: ProviderDocumentId) {
         if (!processed.markProcessed(ConsumerGroups.ORCHESTRATOR, command.eventId)) return

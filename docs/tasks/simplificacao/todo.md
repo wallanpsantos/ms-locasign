@@ -406,11 +406,11 @@ a nota atual.
 
 **Critérios de aceite:**
 
-- [ ] Mesma ordem de instruções e mesma transação; a chamada HTTP continua fora dela.
+- [x] Mesma ordem de instruções e mesma transação; a chamada HTTP continua fora dela.
 
 **Verificação:**
 
-- [ ] `*CreateProviderDocumentTest`, testes rápidos.
+- [x] `*CreateProviderDocumentTest`, testes rápidos.
 
 **Dependências:** T00 (reaproveita fakes da T04, se já existirem). **Arquivos:** `CreateProviderDocument.kt`, teste
 novo. **Tamanho:** S.

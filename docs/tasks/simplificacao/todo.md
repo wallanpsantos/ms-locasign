@@ -265,12 +265,12 @@ mensagem atual; contrato inexistente lança `NotFound`.
 
 **Critérios de aceite:**
 
-- [ ] O predicado continua calculado antes de `cancel`, na mesma transação; a anulação continua depois do commit
+- [x] O predicado continua calculado antes de `cancel`, na mesma transação; a anulação continua depois do commit
   (exceção de `arquitetura.md` §7, preservada).
 
 **Verificação:**
 
-- [ ] `*CancelContractTest`, testes rápidos, `compileKotlin`.
+- [x] `*CancelContractTest`, testes rápidos, `compileKotlin`.
 
 **Dependências:** T00. **Arquivos:** `CancelContract.kt`, teste e fake novos. **Tamanho:** S.
 

@@ -2,7 +2,6 @@ package br.com.locasign.contract.app.usecases
 
 import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
-import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
@@ -44,10 +43,11 @@ class CancelContract(
         val documentToVoid = transactions.run {
             val contract = contracts.findById(command.contractId)
                 ?: throw DomainException.NotFound("Contrato", command.contractId.toString())
-            val wasSent = contract.status.progress >= ContractStatus.SENT.progress && !contract.status.isFinal
+            // Só documento já enviado pode ser assinado; rascunho no provedor não precisa ser anulado.
+            val awaitingSignatures = contract.status.isAwaitingSignatures
             contract.cancel(reason, clock.now())
             persister.save(contract)
-            contract.providerDocumentId.takeIf { wasSent }
+            contract.providerDocumentId.takeIf { awaitingSignatures }
         }
         documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato cancelado") }
     }

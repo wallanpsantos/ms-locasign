@@ -2,7 +2,7 @@ package br.com.locasign.contract.infra.persistence.repositories
 
 import br.com.locasign.contract.infra.persistence.entities.ContractEntity
 import org.springframework.data.repository.CrudRepository
-import java.util.*
+import java.util.UUID
 
 /**
  * Repositório Spring Data JDBC para operações básicas de CRUD sobre a tabela `contracts`.

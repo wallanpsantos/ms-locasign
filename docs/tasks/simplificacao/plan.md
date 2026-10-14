@@ -9,11 +9,13 @@ ficam fora), sem mudar comportamento. O checklist executável, com critérios de
   cujo `src/main` é o mesmo de `07bd715`. Antes da entrega, a `main` recebeu `061b8ec` e `abb0ed6` (formatação dos logs
   no perfil local), que só alteram `src/main/resources/application-local.yaml`, arquivo que nenhuma tarefa toca. A
   referência para conferir desvios passa a ser `abb0ed6`.
-- **Situação:** em 2026-10-14, Fase 0 e Fase 1 (T00 a T03) executadas e commitadas (`c28b581` a `88dc833`), com
-  revisão adversarial e teste de mutação (19 de 20 mutantes mortos; o sobrevivente, o valor de `NO_SIGNATURE_DEADLINE`,
-  é equivalente). Fases 2 e 3 (T04 a T13) executadas e commitadas, uma tarefa por commit, com revisão adversarial, teste
-  de mutação (29 de 30 mutantes mortos; o sobrevivente é equivalente) e prova de que os testes novos passam no código
-  original. Próxima: Fase 4 (T14).
+- **Situação:** em 2026-10-14, as fases 0 a 3 (T00 a T13) foram executadas e commitadas, uma tarefa por commit
+  (`c28b581` a `d434510`), com revisão adversarial, teste de mutação (só mutantes equivalentes sobreviveram) e prova de
+  que os testes novos passam no código original. Elas saíram do `todo.md` e do inventário da seção 4; o detalhamento
+  está no histórico do Git. Próxima: Fase 4 (T14).
+- **Registro da T09:** sem os campos removidos dos DTOs da PandaDoc, um `status`, `date_modified` ou
+  `recipients[].email` em formato inesperado (objeto ou array) deixa de quebrar a desserialização, que antes virava
+  `Unavailable` e retentativa. A leitura ficou mais tolerante, sem efeito nas respostas válidas.
 
 ## 1. Objetivo e escopo
 
@@ -46,7 +48,7 @@ conferiram o próprio plano e o checklist contra o código; as 23 correções qu
 
 | ID    | Decisão                                                                                                                                                                                                                                                                                                                                                           |
 |-------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DS-01 | O plano fica em `docs/tasks/simplificacao/`, sem sobrescrever `docs/tasks/plan.md` e `todo.md` (iniciativa do `AGENTS.md`, concluída). O `AGENTS.md` §3 pede confirmação antes de sobrescrevê-los; se preferir o local padrão, basta mover os dois arquivos.                                                                                                      |
+| DS-01 | O plano fica em `docs/tasks/simplificacao/`. A iniciativa anterior (atualização do `AGENTS.md`), concluída, teve seus `docs/tasks/plan.md` e `todo.md` removidos em 2026-10-14; o conteúdo segue no histórico do Git.                                                                                                                                             |
 | DS-02 | Comportamento idêntico é critério de aceite de toda tarefa. Na dúvida sobre preservação, a mudança não entra.                                                                                                                                                                                                                                                     |
 | DS-03 | **Rede de segurança antes da mudança.** Quando o trecho não tem teste que o exercite, a tarefa começa com um teste de caracterização que passa no código atual e continua passando depois. Testes existentes não são alterados, exceto o ajuste mecânico do fake `FakeLeaseActivation` na T16; acrescentar casos novos a classes de teste existentes é permitido. |
 | DS-04 | Ordem: linha de base, domínio, aplicação, adapters e interfaces de `contract`, `lease`/`notification`/`shared`, KDoc e verificação final. O KDoc vem por último para descrever o código já simplificado e não reescrever blocos que outras tarefas mudam.                                                                                                         |
@@ -59,33 +61,21 @@ conferiram o próprio plano e o checklist contra o código; as 23 correções qu
 ## 4. Inventário dos achados aceitos
 
 Risco: B = baixo, M = médio. Verificação: **V** = verificador adversarial; **V2** = confirmado nas duas rodadas e pelo
-verificador; **C** = conferido pelo coordenador (só a primeira rodada viu).
+verificador; **C** = conferido pelo coordenador (só a primeira rodada viu). As tarefas concluídas (T01 a T13) saíram
+desta tabela; ver o histórico do Git.
 
-| Tarefa  | Arquivo(s) principal(is)                                                                               | Simplificação                                                                                                                         | Risco | Verificação    |
-|---------|--------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|-------|----------------|
-| T01     | `contract/domain/models/Contract.kt`                                                                   | Um helper `appendHistory` e o atalho `recordInfo` no lugar de quatro construções de `StatusHistoryEntry`                              | B     | V              |
-| T02     | `Contract.kt`                                                                                          | `effectiveCancelReason()` remove o ramo `null` inalcançável de `eventFor`; constantes `DEFAULT_CANCEL_NOTE` e `NO_SIGNATURE_DEADLINE` | B     | V              |
-| T03     | `ContractParts.kt`, `ContractEntityMappers.kt`                                                         | Formato da coluna `cancel_reason` sai do domínio e vai para os mappers de persistência                                                | B     | V              |
-| T04     | `contract/app/usecases/CancelContract.kt`                                                              | `isAwaitingSignatures` no lugar da aritmética de `progress`                                                                           | B     | V              |
-| T05     | `ApplyProviderUpdate.kt`                                                                               | Helper `failGeneration(...)` paralelo a `change(...)`                                                                                 | B     | V              |
-| T06     | `ReceiveProviderWebhook.kt`                                                                            | Extrai `outboxMessage(...)` (5 níveis de aninhamento) e usa `HexFormat` no SHA-256                                                    | B     | V              |
-| T07     | `CreateProviderDocument.kt`                                                                            | Separa as guardas de idempotência de `prepare` da montagem `documentRequest(...)`                                                     | B     | V              |
-| T08     | `ArchiveSignedDocument.kt`                                                                             | Segunda transação vira `complete(...)`, como nos irmãos de duas transações                                                            | M     | V (ajustado)   |
-| T09     | `contract/infra/pandadoc/dto/response/PandaDocResponses.kt`                                            | Remove campos de resposta nunca lidos, inclusive `RecipientResponse.email` (R10)                                                      | B     | V2             |
-| T10     | `PandaDocSignatureProviderAdapter.kt`, `PandaDocMappers.kt`                                            | `ProviderSendRequest.toPandaDoc()` em `mappers/`                                                                                      | B     | V2             |
-| T11     | `ContractQueryAdapter.kt` → `PostSignatureActionsAdapter.kt`                                           | Adapter de escrita sai do arquivo do adapter de leitura                                                                               | B     | V2             |
-| T12     | `PandaDocWebhookController.kt`                                                                         | `HttpStatus.UNAUTHORIZED` no lugar de `const val UNAUTHORIZED = 401`                                                                  | B     | V2             |
-| T13     | `contract/interfaces/web/mappers/ContractWebMappers.kt`                                                | Argumentos nomeados em `SignerView`/`HistoryEntryView.toResponse()` (até 7 `String` seguidos)                                         | B     | C              |
-| T14     | `shared/interfaces/messaging/EventEnvelope.kt` e os dois consumidores                                  | `EventEnvelope.aggregateUuid()` no lugar da validação duplicada em `contract` e `notification`                                        | B     | V2             |
-| T15     | `notification/**`                                                                                      | `contractId` tipado como `Uuid` até o adapter (sem `UUID.fromString`); porta renomeada para `notificationLog`                         | B     | V2             |
-| T16     | `ActivateLease.kt`, `contract/app/ports/out/lease/LeasePorts.kt`, ponte, fake                          | Remove o retorno `Boolean` que nenhum chamador lê                                                                                     | B     | C              |
-| T17     | `LeaseAdapters.kt`, `LeaseWebMappers.kt`                                                               | `findCurrentContract(...)` nomeia a leitura cruzada; `CurrentContractView.toResponse()`                                               | B     | V2             |
-| T18     | `shared/infra/messaging/OutboxRelay.kt`                                                                | Remove `OutboxRow.eventType` (lido e nunca usado) e extrai `lockNextBatch()`                                                          | B     | V2             |
-| T19     | `DeadLetterReplayer.kt`                                                                                | Extrai a montagem do registro republicado (5 níveis de aninhamento)                                                                   | B     | V2             |
-| T20     | `ApiExceptionHandler.kt`                                                                               | Um `problemDetail(...)` e um `validationProblem(...)` no lugar de três montagens à mão                                                | B     | V2             |
-| T21     | `CorrelationIdFilter.kt`, `OperatorAccessGuard.kt`                                                     | `private companion object` (constantes sem uso externo)                                                                               | B     | V              |
-| T22     | `contract/infra/pandadoc/SlidingWindowRateLimiter.kt`                                                  | **Opcional.** Extrai `tryReserve(...)` e tira o `return` não local de dentro do `synchronized`                                        | B     | C (divergente) |
-| T23–T26 | KDoc de `contract` (domínio e app), `contract` (infra e interfaces), `lease`/`notification` e `shared` | Corrige regras citadas erradas, afirmações falsas, links que não resolvem e adjetivos vazios (ADR-015)                                | B     | V e C          |
+| Tarefa  | Arquivo(s) principal(is)                                                                               | Simplificação                                                                                                 | Risco | Verificação    |
+|---------|--------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|-------|----------------|
+| T14     | `shared/interfaces/messaging/EventEnvelope.kt` e os dois consumidores                                  | `EventEnvelope.aggregateUuid()` no lugar da validação duplicada em `contract` e `notification`                | B     | V2             |
+| T15     | `notification/**`                                                                                      | `contractId` tipado como `Uuid` até o adapter (sem `UUID.fromString`); porta renomeada para `notificationLog` | B     | V2             |
+| T16     | `ActivateLease.kt`, `contract/app/ports/out/lease/LeasePorts.kt`, ponte, fake                          | Remove o retorno `Boolean` que nenhum chamador lê                                                             | B     | C              |
+| T17     | `LeaseAdapters.kt`, `LeaseWebMappers.kt`                                                               | `findCurrentContract(...)` nomeia a leitura cruzada; `CurrentContractView.toResponse()`                       | B     | V2             |
+| T18     | `shared/infra/messaging/OutboxRelay.kt`                                                                | Remove `OutboxRow.eventType` (lido e nunca usado) e extrai `lockNextBatch()`                                  | B     | V2             |
+| T19     | `DeadLetterReplayer.kt`                                                                                | Extrai a montagem do registro republicado (5 níveis de aninhamento)                                           | B     | V2             |
+| T20     | `ApiExceptionHandler.kt`                                                                               | Um `problemDetail(...)` e um `validationProblem(...)` no lugar de três montagens à mão                        | B     | V2             |
+| T21     | `CorrelationIdFilter.kt`, `OperatorAccessGuard.kt`                                                     | `private companion object` (constantes sem uso externo)                                                       | B     | V              |
+| T22     | `contract/infra/pandadoc/SlidingWindowRateLimiter.kt`                                                  | **Opcional.** Extrai `tryReserve(...)` e tira o `return` não local de dentro do `synchronized`                | B     | C (divergente) |
+| T23–T26 | KDoc de `contract` (domínio e app), `contract` (infra e interfaces), `lease`/`notification` e `shared` | Corrige regras citadas erradas, afirmações falsas, links que não resolvem e adjetivos vazios (ADR-015)        | B     | V e C          |
 
 Sobre a T22: as duas rodadas discordaram. A primeira propôs a extração; a segunda considerou o código já direto. Fica
 como opcional, condicionada ao teste de caracterização do limitador.
@@ -192,7 +182,6 @@ que só um analista apontou.
 | D2 | `ContractApi.kt:50-52`                                | `reconcile` não documenta o 403 do token de operador. Corrigir altera o OpenAPI publicado.                                                                                                                                          | confirmado |
 | D3 | `ContractQueryAdapter.kt:61`                          | O GET de contrato devolve `cancel_reason` cru, com os prefixos internos `REQUESTED: `/`GENERATION_FAILED: `: o formato de persistência virou contrato REST implícito (a T03 o preserva).                                            | confirmado |
 | D4 | `docs/arquitetura-tecnica.md:718`                     | A tabela de schema lista `notifications_log` sem a coluna `event_id`, que existe na V1.                                                                                                                                             | confirmado |
-| D5 | `docs/plano-de-testes.md:227` e outras linhas         | Caminho errado do teste do adapter da PandaDoc e referências a MockK/`@MockkBean`, fora do build.                                                                                                                                   | confirmado |
 | D6 | `src/test/.../ContractFakes.kt:78-87`                 | `InMemoryPostSignatureActions` deduplica por (contrato, ação, status), e o banco por (contrato, ação): o fake não cumpre à risca o contrato da porta (LSP).                                                                         | confirmado |
 
 As exceções arquiteturais já documentadas em `docs/agents/arquitetura.md` §7 (cancelamento e reconciliação chamando a
@@ -201,18 +190,19 @@ continuam pendentes de correção ou ADR, fora desta iniciativa.
 
 ## 8. Riscos e mitigação
 
-| Risco                                                                                                                                                          | Mitigação                                                                                                                                                            |
-|----------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Trecho sem teste quebra em silêncio (T02 a T08, T15, T19, T20 e T22 têm cobertura fraca ou nenhuma: só o `LocaSignE2EIT` ou um IT sem asserção sobre o trecho) | DS-03: o teste de caracterização entra primeiro e precisa passar no código atual.                                                                                    |
-| O `LocaSignE2EIT` passa por um fluxo e não o verifica (notificações, payload do outbox)                                                                        | Não contar com ele como única rede: cada tarefa lista o teste direto que a protege.                                                                                  |
-| Mudança de visibilidade ou de arquivo quebra o ArchUnit                                                                                                        | `HexagonalArchitectureTest` na verificação de cada tarefa que move ou cria tipos (T03, T11, T14, T15, T16).                                                          |
-| Texto de exceção ou de log alterado sem querer                                                                                                                 | Critério de aceite explícito nas tarefas que tocam mensagens (T02, T04, T14, T15, T20); os testes de caracterização comparam mensagens.                              |
-| Plano desatualizado quando a execução começar                                                                                                                  | A T00 confere se `src/main` mudou desde `abb0ed6` (`git diff --stat abb0ed6 -- src/main`); havendo mudança nos arquivos de uma tarefa, revalide-a antes de executar. |
+| Risco                                                                                                                                               | Mitigação                                                                                                                                     |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| Trecho sem teste quebra em silêncio (T15, T19, T20 e T22 têm cobertura fraca ou nenhuma: só o `LocaSignE2EIT` ou um IT sem asserção sobre o trecho) | DS-03: o teste de caracterização entra primeiro e precisa passar no código atual.                                                             |
+| O `LocaSignE2EIT` passa por um fluxo e não o verifica (notificações, payload do outbox)                                                             | Não contar com ele como única rede: cada tarefa lista o teste direto que a protege.                                                           |
+| Mudança de visibilidade ou de arquivo quebra o ArchUnit                                                                                             | `HexagonalArchitectureTest` na verificação de cada tarefa que move ou cria tipos (T14, T15, T16).                                             |
+| Texto de exceção ou de log alterado sem querer                                                                                                      | Critério de aceite explícito nas tarefas que tocam mensagens (T14, T15, T20); os testes de caracterização comparam mensagens.                 |
+| Plano desatualizado quando a execução começar                                                                                                       | Antes de cada fase, conferir `git diff --stat d434510 -- src/main`; havendo mudança nos arquivos de uma tarefa, revalide-a antes de executar. |
 
 ## 9. Como retomar
 
 1. Ler este arquivo e o [`todo.md`](todo.md).
-2. Com Docker ligado, executar a **T00** (linha de base).
+2. Com Docker ligado, rodar `.\gradlew.bat build --console=plain` e conferir que tudo está verde antes da próxima
+   tarefa.
 3. Seguir as tarefas na ordem do `todo.md`, marcando `[x]` em cada critério e verificação. Cada tarefa é independente
    para revisão, salvo as dependências indicadas.
 4. Ao terminar cada tarefa, resumir os conceitos de Kotlin/Spring empregados (`AGENTS.md` §3, objetivo didático).

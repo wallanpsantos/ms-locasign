@@ -7,7 +7,7 @@ import br.com.locasign.notification.domain.Audience
 import br.com.locasign.shared.domain.valueobjects.Email
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
-import java.util.*
+import java.util.UUID
 
 /**
  * Adaptador de persistência JDBC para resolução dos destinatários de notificação de um contrato.

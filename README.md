@@ -8,9 +8,9 @@ vistoria, registrar a primeira cobrança e notificar os envolvidos).
 > Projeto de estudo de Kotlin 2.4, Spring Boot 4.1, PostgreSQL 18, Kafka 4.3 e Docker.
 > O negócio está em [`docs/plano-de-negocio.md`](docs/plano-de-negocio.md) e a arquitetura em
 > [`docs/arquitetura-tecnica.md`](docs/arquitetura-tecnica.md). Decisões posteriores ao guia ficam
-> formalizadas em [`docs/adr/`](docs/adr). O planejamento e backlog de tarefas estão em
-> [`docs/tasks/plan.md`](docs/tasks/plan.md) e [`docs/tasks/todo.md`](docs/tasks/todo.md). Use somente **dados
-fictícios** (R10).
+> formalizadas em [`docs/adr/`](docs/adr). O planejamento e o backlog da iniciativa em andamento estão em
+> [`docs/tasks/simplificacao/plan.md`](docs/tasks/simplificacao/plan.md) e
+> [`docs/tasks/simplificacao/todo.md`](docs/tasks/simplificacao/todo.md). Use somente **dados fictícios** (R10).
 
 ## Subindo o ambiente
 

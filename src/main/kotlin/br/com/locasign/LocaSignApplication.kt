@@ -3,7 +3,7 @@ package br.com.locasign
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
-import java.util.*
+import java.util.TimeZone
 
 /**
  * Classe principal de inicialização da aplicação Spring Boot do microsserviço LocaSign.

@@ -5,7 +5,7 @@ import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.MappedCollection
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 /**
  * Entidade de persistência relacional do agregado [Contract] para o Spring Data JDBC (ADR-003).

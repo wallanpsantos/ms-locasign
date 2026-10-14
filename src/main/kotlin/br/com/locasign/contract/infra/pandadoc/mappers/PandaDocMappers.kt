@@ -19,7 +19,7 @@ import java.text.DecimalFormatSymbols
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
-import java.util.*
+import java.util.Locale
 
 private val PT_BR: Locale = Locale.of("pt", "BR")
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")

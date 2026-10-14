@@ -6,7 +6,7 @@ import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 /**
  * Entidade de mapeamento objeto-relacional para persistência de locações na tabela `leases` via Spring Data JDBC.

@@ -29,7 +29,8 @@ import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.RestClient
 import java.time.Duration
 import java.time.LocalDate
-import java.util.*
+import java.util.HexFormat
+import java.util.UUID
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.test.Test

@@ -452,12 +452,12 @@ private fun complete(
 
 **Critérios de aceite:**
 
-- [ ] `markProcessed` continua sendo a primeira instrução da segunda transação e nunca é chamado antes do download
+- [x] `markProcessed` continua sendo a primeira instrução da segunda transação e nunca é chamado antes do download
   (`regras-de-codigo.md` §4).
 
 **Verificação:**
 
-- [ ] `*ArchiveSignedDocumentTest`, testes rápidos.
+- [x] `*ArchiveSignedDocumentTest`, testes rápidos.
 
 **Dependências:** T00. **Arquivos:** `ArchiveSignedDocument.kt`, teste e fake novos. **Tamanho:** S. **Risco:** médio.
 

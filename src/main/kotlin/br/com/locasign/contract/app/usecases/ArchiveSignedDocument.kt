@@ -54,20 +54,7 @@ class ArchiveSignedDocument(
             }
         }
 
-        transactions.run {
-            if (!processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) return@run
-            val contract = contracts.findById(contractId) ?: return@run
-            if (contract.markSignedDocumentArchived(
-                    storageKind,
-                    location,
-                    ChangeSource.WEBHOOK,
-                    command.eventId,
-                    clock.now()
-                )
-            ) {
-                persister.save(contract)
-            }
-        }
+        transactions.run { complete(command, contractId, storageKind, location) }
     }
 
     private fun findCompletedContract(command: ArchiveSignedDocumentCommand): ContractId? {
@@ -89,6 +76,24 @@ class ArchiveSignedDocument(
             "Contrato ${contract.id} ainda não está concluído; o PDF será arquivado na próxima tentativa"
         }
         return contract.id
+    }
+
+    private fun complete(
+        command: ArchiveSignedDocumentCommand,
+        contractId: ContractId,
+        storageKind: String,
+        location: String,
+    ) {
+        if (!processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) return
+        val contract = contracts.findById(contractId) ?: return
+        val archived = contract.markSignedDocumentArchived(
+            storage = storageKind,
+            location = location,
+            source = ChangeSource.WEBHOOK,
+            sourceEventId = command.eventId,
+            now = clock.now(),
+        )
+        if (archived) persister.save(contract)
     }
 
     private fun Contract.endedWithoutCompletion(): Boolean = status.isFinal && status != ContractStatus.COMPLETED

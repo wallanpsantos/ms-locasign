@@ -210,14 +210,14 @@ com contratos montados por `restoreContract(...)`: `GenerationFailed(null)` grav
 
 **Critérios de aceite:**
 
-- [ ] As mesmas strings nos dois sentidos; a resposta do GET de contrato não muda (`ContractQueryAdapter` lê a coluna
+- [x] As mesmas strings nos dois sentidos; a resposta do GET de contrato não muda (`ContractQueryAdapter` lê a coluna
   crua, ver `plan.md` D3).
-- [ ] `git grep -n -E "storageValue|CancelReason(\.|::)fromStorage" -- src` vazio e
+- [x] `git grep -n -E "storageValue|CancelReason(\.|::)fromStorage" -- src` vazio e
   `git grep -n "fromStorage" -- src/main/kotlin/br/com/locasign/contract/domain/models/ContractParts.kt` vazio.
 
 **Verificação:**
 
-- [ ] `*ContractEntityMappersTest`, testes rápidos, `*HexagonalArchitectureTest` e `*ContractRepositoryAdapterIT`.
+- [x] `*ContractEntityMappersTest`, testes rápidos, `*HexagonalArchitectureTest` e `*ContractRepositoryAdapterIT`.
 
 **Dependências:** T02. **Arquivos:** `ContractParts.kt`, `ContractEntityMappers.kt`, teste novo. **Tamanho:** S.
 

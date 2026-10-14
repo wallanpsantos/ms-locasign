@@ -28,31 +28,11 @@ data class Signer(
  *
  * **Responsabilidade:**
  * - Discriminar a causa do cancelamento entre falha técnica na geração ([GenerationFailed]) e cancelamento voluntário solicitado pelo operador ([Requested]).
- * - Prover conversão e serialização consistentes para persistência em coluna de banco de dados.
  */
 sealed interface CancelReason {
-    val storageValue: String
+    data class GenerationFailed(val detail: String?) : CancelReason
 
-    data class GenerationFailed(val detail: String?) : CancelReason {
-        override val storageValue: String
-            get() = if (detail.isNullOrBlank()) GENERATION_FAILED else "$GENERATION_FAILED: $detail"
-    }
-
-    data class Requested(val text: String) : CancelReason {
-        override val storageValue: String get() = "$REQUESTED: $text"
-    }
-
-    companion object {
-        private const val GENERATION_FAILED = "GENERATION_FAILED"
-        private const val REQUESTED = "REQUESTED"
-
-        fun fromStorage(value: String): CancelReason = when {
-            value == GENERATION_FAILED -> GenerationFailed(null)
-            value.startsWith("$GENERATION_FAILED: ") -> GenerationFailed(value.removePrefix("$GENERATION_FAILED: "))
-            value.startsWith("$REQUESTED: ") -> Requested(value.removePrefix("$REQUESTED: "))
-            else -> Requested(value)
-        }
-    }
+    data class Requested(val text: String) : CancelReason
 }
 
 /**

@@ -33,7 +33,7 @@ fun Contract.toEntity(): ContractEntity = ContractEntity(
     expiresAt = expiresAt,
     reminderSentAt = reminderSentAt,
     lastReconciledAt = lastReconciledAt,
-    cancelReason = cancelReason?.storageValue,
+    cancelReason = cancelReason?.toStorage(),
     signedDocumentRef = signedDocumentRef,
     rowVersion = rowVersion,
     createdAt = createdAt,
@@ -73,7 +73,7 @@ fun ContractEntity.toDomain(): Contract = Contract.restore(
     expiresAt = expiresAt,
     reminderSentAt = reminderSentAt,
     lastReconciledAt = lastReconciledAt,
-    cancelReason = cancelReason?.let(CancelReason::fromStorage),
+    cancelReason = cancelReason?.toCancelReason(),
     signedDocumentRef = signedDocumentRef,
     signers = signers.map { it.toDomain() }.sortedBy { it.order.value },
     createdAt = createdAt,
@@ -88,3 +88,20 @@ fun ContractSignerEntity.toDomain(): Signer = Signer(
     order = SigningOrder.of(signingOrder),
     completedAt = completedAt,
 )
+
+private const val GENERATION_FAILED = "GENERATION_FAILED"
+private const val REQUESTED = "REQUESTED"
+
+/** Formato da coluna `cancel_reason`, também devolvido sem conversão pelo GET de contrato. */
+private fun CancelReason.toStorage(): String = when (this) {
+    is CancelReason.GenerationFailed -> if (detail.isNullOrBlank()) GENERATION_FAILED else "$GENERATION_FAILED: $detail"
+    is CancelReason.Requested -> "$REQUESTED: $text"
+}
+
+/** Inverso de [toStorage]; valor sem prefixo conhecido (legado) é lido como [CancelReason.Requested]. */
+private fun String.toCancelReason(): CancelReason = when {
+    this == GENERATION_FAILED -> CancelReason.GenerationFailed(null)
+    startsWith("$GENERATION_FAILED: ") -> CancelReason.GenerationFailed(removePrefix("$GENERATION_FAILED: "))
+    startsWith("$REQUESTED: ") -> CancelReason.Requested(removePrefix("$REQUESTED: "))
+    else -> CancelReason.Requested(this)
+}

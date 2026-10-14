@@ -31,15 +31,15 @@ Regras que valem para todas as tarefas (DS-02 e DS-03):
 
 **Critérios de aceite:**
 
-- [ ] `git status` sem mudanças fora de `docs/tasks/simplificacao/` (os arquivos do plano podem estar não rastreados
+- [x] `git status` sem mudanças fora de `docs/tasks/simplificacao/` (os arquivos do plano podem estar não rastreados
   ou modificados) e `git diff --stat abb0ed6 -- src/main` vazio (`plan.md`, commit base). Se houver diferença em
   `src/main`, revalidar as tarefas que tocam os arquivos alterados antes de executá-las.
-- [ ] Linha de base anotada no fim deste arquivo: número de testes aprovados (relatório em
+- [x] Linha de base anotada no fim deste arquivo: número de testes aprovados (relatório em
   `build/reports/tests/test/index.html`) e warnings existentes do `compileKotlin`, se houver.
 
 **Verificação:**
 
-- [ ] `.\gradlew.bat build --console=plain` verde, com `:test` executando (sem `NO-SOURCE`).
+- [x] `.\gradlew.bat build --console=plain` verde, com `:test` executando (sem `NO-SOURCE`).
 
 **Dependências:** nenhuma. **Arquivos:** nenhum. **Tamanho:** XS.
 
@@ -1164,5 +1164,6 @@ vazios, citando regra, ADR ou seção).
 
 ## Linha de base (preencher na T00)
 
-- Testes aprovados: _a preencher_.
-- Warnings do `compileKotlin`: _a preencher_.
+- Testes aprovados: 112 (0 falhas, 0 erros, 0 ignorados), em `.\gradlew.bat clean build --console=plain` sobre
+  `d013479` (2026-10-14), com Docker do Rancher Desktop 29.5.3.
+- Warnings do `compileKotlin`: nenhum.

@@ -544,11 +544,11 @@ singular cujo KDoc promete só leitura.
 
 **Critérios de aceite:**
 
-- [ ] Mesmo FQN, mesma anotação e mesmo nome de bean (`postSignatureActionsAdapter`); SQL idêntico.
+- [x] Mesmo FQN, mesma anotação e mesmo nome de bean (`postSignatureActionsAdapter`); SQL idêntico.
 
 **Verificação:**
 
-- [ ] `*HexagonalArchitectureTest`, `*IntegrationTestSupportIT` e `*LocaSignE2EIT` (Docker).
+- [x] `*HexagonalArchitectureTest`, `*IntegrationTestSupportIT` e `*LocaSignE2EIT` (Docker).
 
 **Dependências:** T00. **Arquivos:** os dois adapters. **Tamanho:** XS.
 

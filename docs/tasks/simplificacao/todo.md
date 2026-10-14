@@ -229,6 +229,9 @@ Fakes novos desta fase (DS-09), em `src/test/kotlin/br/com/locasign/contract/app
 `RecordingSignatureProvider` (registra pedidos de criação, envios e anulações; resultado de `downloadSigned` e exceções
 configuráveis), `RecordingMetricsPort` (registra nome e tags), `InMemoryOutboxPort`, `InMemoryWebhookInbox`,
 `FixedWebhookGateway` e `InMemorySignedDocumentStorage`. Crie cada um na primeira tarefa que precisar dele.
+A revisão da fase acrescentou o `RecordingTransactionRunner` (`shared/app/fakes`), que informa se há transação aberta,
+e o gancho `beforeEachCall` do `RecordingSignatureProvider`: juntos, provam que as chamadas ao provedor ficam fora
+da transação e antes do `markProcessed` (T04, T07 e T08).
 
 ### Tarefa T04: `CancelContract` usa `isAwaitingSignatures`
 

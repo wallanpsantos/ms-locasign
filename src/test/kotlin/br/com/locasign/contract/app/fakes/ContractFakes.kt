@@ -1,11 +1,17 @@
 package br.com.locasign.contract.app.fakes
 
+import br.com.locasign.contract.app.ports.out.integration.MalformedWebhookPayload
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentRequest
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentState
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentStatus
+import br.com.locasign.contract.app.ports.out.integration.ProviderException
 import br.com.locasign.contract.app.ports.out.integration.ProviderSendRequest
+import br.com.locasign.contract.app.ports.out.integration.ProviderSignal
+import br.com.locasign.contract.app.ports.out.integration.ProviderWebhookGateway
 import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.integration.SignedDocument
+import br.com.locasign.contract.app.ports.out.integration.SignedDocumentStoragePort
+import br.com.locasign.contract.app.ports.out.integration.WebhookItem
 import br.com.locasign.contract.app.ports.out.lease.LeaseActivationPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseLookupPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
@@ -106,6 +112,88 @@ class FixedSignatureProvider : SignatureProviderPort {
 
     override fun downloadSigned(documentId: ProviderDocumentId): SignedDocument =
         SignedDocument.Unavailable("Provedor fixo de teste: sem PDF.")
+}
+
+/**
+ * Provedor de assinatura que registra as chamadas dos casos de uso e devolve respostas configuráveis por teste.
+ *
+ * **Responsabilidade:**
+ * - Guardar pedidos de criação, envios, anulações e downloads, na ordem das chamadas.
+ * - Rodar [beforeEachCall] em cada chamada, para conferir o estado no momento da chamada externa (transação aberta,
+ *   evento marcado por outro consumidor).
+ * - Simular falhas do provedor ([createFailure], [cancelFailure], [downloadFailure]) depois de registrar a chamada.
+ */
+class RecordingSignatureProvider : SignatureProviderPort {
+    val created = mutableListOf<ProviderDocumentRequest>()
+    val sent = mutableListOf<Pair<ProviderDocumentId, ProviderSendRequest>>()
+    val cancelled = mutableListOf<ProviderDocumentId>()
+    val downloaded = mutableListOf<ProviderDocumentId>()
+
+    var beforeEachCall: () -> Unit = {}
+    var documentToCreate: ProviderDocumentId = ProviderDocumentId.of("doc-criado")
+    var createFailure: ProviderException? = null
+    var cancelFailure: ProviderException? = null
+    var signedDocument: SignedDocument = SignedDocument.Unavailable("Sandbox sem download.")
+    var downloadFailure: ProviderException? = null
+
+    override fun createDocument(request: ProviderDocumentRequest): ProviderDocumentId {
+        created += request
+        beforeEachCall()
+        createFailure?.let { throw it }
+        return documentToCreate
+    }
+
+    override fun fetchState(documentId: ProviderDocumentId): ProviderDocumentState {
+        beforeEachCall()
+        return ProviderDocumentState(documentId, ProviderDocumentStatus.DRAFT, emptySet(), modifiedAt = null)
+    }
+
+    override fun send(documentId: ProviderDocumentId, request: ProviderSendRequest) {
+        sent += documentId to request
+        beforeEachCall()
+    }
+
+    override fun cancelDocument(documentId: ProviderDocumentId) {
+        cancelled += documentId
+        beforeEachCall()
+        cancelFailure?.let { throw it }
+    }
+
+    override fun downloadSigned(documentId: ProviderDocumentId): SignedDocument {
+        downloaded += documentId
+        beforeEachCall()
+        downloadFailure?.let { throw it }
+        return signedDocument
+    }
+}
+
+/** Gateway de webhook com assinatura válida e itens fixos; [malformed] simula corpo que não é um array JSON. */
+class FixedWebhookGateway(
+    var items: List<WebhookItem> = emptyList(),
+    var malformed: Boolean = false,
+) : ProviderWebhookGateway {
+    override fun isAuthentic(rawBody: ByteArray, signature: String?): Boolean = signature == VALID_SIGNATURE
+
+    override fun splitItems(rawBody: ByteArray): List<WebhookItem> =
+        if (malformed) throw MalformedWebhookPayload("Corpo do webhook não é um array JSON.") else items
+
+    /** Nenhum item vira sinal: a porta usa `null` para eventos que o LocaSign não usa. */
+    override fun translate(itemJson: String): ProviderSignal? = null
+
+    companion object {
+        const val VALID_SIGNATURE = "assinatura-valida"
+    }
+}
+
+/** Armazena os PDFs em memória e devolve sempre a mesma [location]. */
+class InMemorySignedDocumentStorage(val location: String = "armazenamento/contrato-assinado.pdf") :
+    SignedDocumentStoragePort {
+    val stored = mutableMapOf<ContractId, ByteArray>()
+
+    override fun store(contractId: ContractId, bytes: ByteArray): String {
+        stored[contractId] = bytes
+        return location
+    }
 }
 
 class FakeLeaseLookup : LeaseLookupPort {

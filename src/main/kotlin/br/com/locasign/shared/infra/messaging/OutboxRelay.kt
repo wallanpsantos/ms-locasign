@@ -53,46 +53,51 @@ class OutboxRelay(
     }
 
     /** Publica um lote em uma transação e devolve quantas linhas foram lidas. */
-    fun relayBatch(): Int = transactions.run {
-        val rows = jdbc.sql(
-            """
-			SELECT id, topic, message_key, event_type, payload::text AS payload, headers::text AS headers
-			FROM outbox_events
-			WHERE published_at IS NULL AND available_at <= now()
-			ORDER BY seq
-			LIMIT :limit
-			FOR UPDATE SKIP LOCKED
-			""".trimIndent(),
-        )
-            .param("limit", properties.outbox.batchSize)
-            .query { rs, _ ->
-                OutboxRow(
-                    id = rs.getString("id"),
-                    topic = rs.getString("topic"),
-                    key = rs.getString("message_key"),
-                    eventType = rs.getString("event_type"),
-                    payload = rs.getString("payload"),
-                    headers = rs.getString("headers"),
-                )
-            }
-            .list()
+    private fun relayBatch(): Int = transactions.run {
+        val rows = lockNextBatch()
 
         // Se uma mensagem falha, as seguintes da mesma chave esperam, para não inverter a ordem por chave.
-        val blocked = mutableSetOf<Pair<String, String>>()
+        val blockedKeys = mutableSetOf<Pair<String, String>>()
         for (row in rows) {
-            val partition = row.topic to row.key
-            if (partition in blocked) continue
+            val topicKey = row.topic to row.key
+            if (topicKey in blockedKeys) continue
             try {
                 publish(row)
                 markPublished(row.id)
             } catch (e: Exception) {
-                blocked += partition
+                blockedKeys += topicKey
                 markFailed(row.id, e)
                 log.warn("Falha ao publicar o evento {} no tópico {}: {}", row.id, row.topic, e.message)
             }
         }
         rows.size
     }
+
+    /**
+     * Lê e trava (`FOR UPDATE SKIP LOCKED`) o próximo lote disponível, em ordem de `seq`; roda dentro da transação de
+     * [relayBatch].
+     */
+    private fun lockNextBatch(): List<OutboxRow> = jdbc.sql(
+        """
+		SELECT id, topic, message_key, payload::text AS payload, headers::text AS headers
+		FROM outbox_events
+		WHERE published_at IS NULL AND available_at <= now()
+		ORDER BY seq
+		LIMIT :limit
+		FOR UPDATE SKIP LOCKED
+		""".trimIndent(),
+    )
+        .param("limit", properties.outbox.batchSize)
+        .query { rs, _ ->
+            OutboxRow(
+                id = rs.getString("id"),
+                topic = rs.getString("topic"),
+                key = rs.getString("message_key"),
+                payload = rs.getString("payload"),
+                headers = rs.getString("headers"),
+            )
+        }
+        .list()
 
     private fun publish(row: OutboxRow) {
         val record = ProducerRecord<String, String>(row.topic, row.key, row.payload)
@@ -135,16 +140,16 @@ class OutboxRelay(
     }
 
     /**
-     * Modelo interno de representação de uma linha da tabela `outbox_events` em memória.
+     * Linha de `outbox_events` com os campos usados para montar o `ProducerRecord`; os headers já vêm serializados do
+     * outbox.
      *
      * **Responsabilidade:**
-     * - Mapear os campos relacionais essenciais para montagem do registro Kafka e cálculo de cabeçalhos.
+     * - Transportar tópico, chave, envelope e headers de uma linha travada do lote até a publicação.
      */
     private class OutboxRow(
         val id: String,
         val topic: String,
         val key: String,
-        val eventType: String,
         val payload: String,
         val headers: String,
     )

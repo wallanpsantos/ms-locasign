@@ -1,0 +1,84 @@
+info:
+  name: 03 - Cadastra a locação - Sucesso (201 Created)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "tenant": {
+          "name": "Maria Silva",
+          "cpf": "529.982.247-25",
+          "email": "maria@example.com"
+        },
+        "agencySigner": {
+          "name": "Imobiliária Exemplo",
+          "email": "agencia@example.com"
+        },
+        "property": {
+          "address": "Rua das Flores, 100, São Paulo/SP"
+        },
+        "rentAmount": "2500.00",
+        "startDate": "2026-11-01",
+        "termMonths": 30
+      }
+  auth: inherit
+
+scripts:
+  post-response: |-
+    if (res.getStatus() === 201) {
+      const body = res.getBody();
+      if (body && body.id) {
+        bru.setVar("leaseId", body.id);
+      }
+    }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 03 - Cadastra a locação - Sucesso (201 Created)
+  Cadastra uma nova locação residencial atendendo à regra de negócio **R2**:
+  - Locatário com nome e CPF válido
+  - Endereço do imóvel preenchido
+  - Valor de aluguel estritamente positivo (formato string decimal com 2 casas)
+  - Data de início igual ou posterior a hoje
+  - Prazo em meses (padrão 30)
+  
+  - **Sucesso:** `HTTP 201 Created`
+  - **Header:** `Location: http://localhost:8080/api/v1/leases/{id}`
+  - **Body:** `{"id": "...", "status": "REGISTERED"}`
+  
+  *O script post-response armazena automaticamente o `leaseId` para os passos subsequentes.*
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/leases' \
+    --header 'Content-Type: application/json' \
+    --data '{
+      "tenant": {
+        "name": "Maria Silva",
+        "cpf": "529.982.247-25",
+        "email": "maria@example.com"
+      },
+      "agencySigner": {
+        "name": "Imobiliária Exemplo",
+        "email": "agencia@example.com"
+      },
+      "property": {
+        "address": "Rua das Flores, 100, São Paulo/SP"
+      },
+      "rentAmount": "2500.00",
+      "startDate": "2026-11-01",
+      "termMonths": 30
+    }'
+  ```

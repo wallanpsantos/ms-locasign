@@ -1,0 +1,27 @@
+info:
+  name: 12 - Solicita o contrato - Erro 409 (Regra R1 - Contrato ativo já existente)
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases/{{leaseId}}/contracts"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 12 - Solicita o contrato - Erro 409 (Regra R1 - Contrato ativo já existente)
+  A regra de negócio **R1** estabelece: *"Uma locação só pode ter um contrato não final por vez"*.
+  Como a requisição 10 iniciou com sucesso um contrato para esta mesma locação que ainda está em andamento (não final), qualquer nova solicitação é bloqueada pelo domínio com conflito.
+  
+  - **Erro esperado:** `HTTP 409 CONFLICT`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/active-contract-exists` e mensagem clara orientando o cancelamento formal caso se deseje uma nova versão.
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/leases/{{leaseId}}/contracts"
+  ```

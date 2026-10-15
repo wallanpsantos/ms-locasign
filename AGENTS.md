@@ -91,9 +91,10 @@ docker compose down                                         # passe os mesmos --
 - A CI não constrói a imagem Docker. Ao mexer no `Dockerfile` ou no build, valide com
   `docker compose --profile app build`.
 - Webhook assinado sem a PandaDoc (Git Bash, com `openssl` e `curl`):
-  `PANDADOC_WEBHOOK_SHARED_KEY=segredo bash scripts/send-signed-webhook.sh http/samples/document-state-changed.json`. A
+  `PANDADOC_WEBHOOK_SHARED_KEY=segredo bash scripts/send-signed-webhook.sh scripts/samples/document-state-changed.json`.
+  A
   app precisa estar rodando com a mesma chave. Repita com `DELIVERY_ID=<fixo>` para testar a deduplicação. O roteiro de
-  demonstração está em `http/locasign.http`.
+  demonstração está na coleção do Bruno em `http/demonstracao-do-plano-de-negocio`.
 - **Buscas no código:** caso a ferramenta `rg` (ripgrep) não esteja disponível no PATH do terminal/PowerShell, utilize
   `git grep -n -E "<padrao>"` a partir da raiz do repositório.
 

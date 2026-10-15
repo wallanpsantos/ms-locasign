@@ -1,0 +1,25 @@
+info:
+  name: 30 - Métricas de negócio - Webhooks recebidos (Actuator)
+  type: http
+  seq: 30
+
+http:
+  method: GET
+  url: "{{baseUrl}}/actuator/metrics/locasign.webhook.received"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 30 - Métricas de negócio - Webhooks recebidos (Actuator)
+  Exibe a métrica Micrometer dimensional do contador de webhooks externos recebidos com sucesso e persistidos no inbox de eventos (`locasign.webhook.received`).
+  
+  - **Sucesso:** `HTTP 200 OK`
+  
+  ```bash
+  curl --request GET 'http://localhost:8080/actuator/metrics/locasign.webhook.received'
+  ```

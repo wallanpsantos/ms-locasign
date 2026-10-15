@@ -1,0 +1,43 @@
+info:
+  name: 21 - Cancela o contrato - Sucesso (202 Accepted)
+  type: http
+  seq: 21
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/{{contractId}}/cancel"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "reason": "Dados do locatário precisam de correção (ajuste formal de prazo e valores)"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 21 - Cancela o contrato - Sucesso (202 Accepted)
+  Cancela formalmente o contrato ativo na aplicação (Regra **R9**).
+  
+  **Efeitos de Negócio e Domínio:**
+  - O contrato transiciona para o status terminal `CANCELLED` de forma transacional.
+  - O motivo é persistido na trilha histórica de auditoria.
+  - Caso o documento já estivesse enviado para a PandaDoc, o sistema anula o documento remoto em melhor esforço para impedir assinaturas residuais.
+  - A locação correspondente é liberada para a geração de uma nova versão (Regra R1).
+  
+  - **Sucesso:** `HTTP 202 ACCEPTED`
+  - **Body:** `{"id": "...", "leaseId": null, "status": "CANCELLED"}`
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/contracts/{{contractId}}/cancel" \
+    --header 'Content-Type: application/json' \
+    --data '{"reason": "Dados do locatário precisam de correção (ajuste formal de prazo e valores)"}'
+  ```

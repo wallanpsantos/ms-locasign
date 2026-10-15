@@ -1,0 +1,38 @@
+info:
+  name: 19 - Cancela o contrato - Erro 400 (Motivo em branco)
+  type: http
+  seq: 19
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/{{contractId}}/cancel"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "reason": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 19 - Cancela o contrato - Erro 400 (Motivo em branco)
+  O cancelamento formal de um contrato de locação exige uma justificativa explícita (até 500 caracteres).
+  O envio de motivo vazio ou em branco viola a anotação `@NotBlank` de `CancelContractRequest`.
+  
+  - **Erro esperado:** `HTTP 400 BAD REQUEST`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/validation` e detalhe no campo `"reason"`.
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/contracts/{{contractId}}/cancel" \
+    --header 'Content-Type: application/json' \
+    --data '{"reason": ""}'
+  ```

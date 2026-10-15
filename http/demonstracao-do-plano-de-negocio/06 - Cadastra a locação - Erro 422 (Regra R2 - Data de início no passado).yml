@@ -1,0 +1,68 @@
+info:
+  name: 06 - Cadastra a locação - Erro 422 (Regra R2 - Data de início no passado)
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "tenant": {
+          "name": "Ana Clara",
+          "cpf": "529.982.247-25",
+          "email": "ana@example.com"
+        },
+        "agencySigner": {
+          "name": "Imobiliária Exemplo",
+          "email": "agencia@example.com"
+        },
+        "property": {
+          "address": "Rua Augusta, 500, São Paulo/SP"
+        },
+        "rentAmount": "2800.00",
+        "startDate": "2020-01-01",
+        "termMonths": 30
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 06 - Cadastra a locação - Erro 422 (Regra R2 - Data de início no passado)
+  A regra de negócio **R2** exige que a data de início da locação seja igual ou posterior à data atual (comparada pelo `BusinessClock` no fuso horário oficial `America/Sao_Paulo`).
+  Datas anteriores são rejeitadas pelo domínio.
+  
+  - **Erro esperado:** `HTTP 422 UNPROCESSABLE CONTENT`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/business-rule` e atributo `"field": "startDate"`.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/leases' \
+    --header 'Content-Type: application/json' \
+    --data '{
+      "tenant": {
+        "name": "Ana Clara",
+        "cpf": "529.982.247-25",
+        "email": "ana@example.com"
+      },
+      "agencySigner": {
+        "name": "Imobiliária Exemplo",
+        "email": "agencia@example.com"
+      },
+      "property": {
+        "address": "Rua Augusta, 500, São Paulo/SP"
+      },
+      "rentAmount": "2800.00",
+      "startDate": "2020-01-01",
+      "termMonths": 30
+    }'
+  ```

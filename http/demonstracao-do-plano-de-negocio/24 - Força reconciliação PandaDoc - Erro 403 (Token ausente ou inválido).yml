@@ -1,0 +1,29 @@
+info:
+  name: 24 - Força reconciliação PandaDoc - Erro 403 (Token ausente ou inválido)
+  type: http
+  seq: 24
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/{{contractId}}/reconcile"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 24 - Força reconciliação PandaDoc - Erro 403 (Token ausente ou inválido)
+  A reconciliação manual consome cota direta de requisições por minuto da API da PandaDoc (rate limit do provedor).
+  Por segurança, a operação é restrita a operadores e protegida pelo `OperatorAccessGuard` (ADR-013).
+  
+  Sem o cabeçalho `X-Admin-Token` configurado e correspondente, o acesso falha imediatamente em modo seguro fechado (*fail-closed*).
+  
+  - **Erro esperado:** `HTTP 403 FORBIDDEN`
+  - **Mensagem:** "Operação restrita a operadores."
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/contracts/{{contractId}}/reconcile"
+  ```

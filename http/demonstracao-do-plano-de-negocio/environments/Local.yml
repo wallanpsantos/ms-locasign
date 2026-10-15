@@ -1,0 +1,17 @@
+opencollection: 1.0.0
+
+environment:
+  name: Local
+  variables:
+    - name: baseUrl
+      value: http://localhost:8080
+      type: string
+    - name: adminToken
+      value: abc123
+      type: string
+    - name: leaseId
+      value: 00000000-0000-0000-0000-000000000000
+      type: string
+    - name: contractId
+      value: 00000000-0000-0000-0000-000000000000
+      type: string

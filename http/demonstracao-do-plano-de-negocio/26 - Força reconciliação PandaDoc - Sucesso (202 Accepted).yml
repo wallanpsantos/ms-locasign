@@ -1,0 +1,32 @@
+info:
+  name: 26 - Força reconciliação PandaDoc - Sucesso (202 Accepted)
+  type: http
+  seq: 26
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/{{contractId}}/reconcile"
+  headers:
+    - name: X-Admin-Token
+      value: "{{adminToken}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 26 - Força reconciliação PandaDoc - Sucesso (202 Accepted)
+  Dispara a sincronização manual e sob demanda do contrato com a PandaDoc.
+  É especialmente útil em cenários operacionais de emergência onde a entrega de webhooks foi temporariamente interrompida ou sofreu atrasos externos.
+  
+  - **Requisito:** Cabeçalho `X-Admin-Token` correspondente ao `ADMIN_TOKEN` configurado na aplicação.
+  - **Sucesso:** `HTTP 202 ACCEPTED`
+  - **Body:** `{"id": "...", "leaseId": "...", "status": "..."}`
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/contracts/{{contractId}}/reconcile" \
+    --header "X-Admin-Token: {{adminToken}}"
+  ```

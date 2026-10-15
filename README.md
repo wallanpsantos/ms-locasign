@@ -21,8 +21,8 @@ docker compose up -d                                        # PostgreSQL 18 + Ka
 ```
 
 Verifique em `http://localhost:8080/actuator/health` (banco e Kafka devem estar `UP`) e explore a API em
-`http://localhost:8080/swagger-ui.html`. Requisições prontas para o IntelliJ estão em
-[`http/locasign.http`](http/locasign.http).
+`http://localhost:8080/swagger-ui.html`. A coleção completa de requisições prontas para o **Bruno** está em
+[`http/demonstracao-do-plano-de-negocio`](http/demonstracao-do-plano-de-negocio).
 
 Tudo em containers, com um único comando:
 
@@ -133,7 +133,7 @@ de operador são restritas.
 ### Testando webhooks sem a PandaDoc
 
 ```bash
-PANDADOC_WEBHOOK_SHARED_KEY=segredo scripts/send-signed-webhook.sh http/samples/document-state-changed.json
+PANDADOC_WEBHOOK_SHARED_KEY=segredo scripts/send-signed-webhook.sh scripts/samples/document-state-changed.json
 ```
 
 Edite o `id` do documento no JSON. Reenviar com o mesmo `DELIVERY_ID` testa a deduplicação.

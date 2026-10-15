@@ -1,0 +1,81 @@
+info:
+  name: 17 - Webhook PandaDoc - Sucesso (200 OK - Evento assinado)
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: "{{baseUrl}}/webhooks/pandadoc"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-PandaDoc-Webhook-Event-Id
+      value: delivery-demo-001
+  body:
+    type: json
+    data: |-
+      [
+        {
+          "event": "document_state_changed",
+          "data": {
+            "id": "doc_pandadoc_demo_123",
+            "name": "LocaSign contrato residencial",
+            "date_modified": "2026-10-15T10:00:00.000000Z",
+            "status": "document.viewed",
+            "metadata": {
+              "contract_id": "{{contractId}}"
+            },
+            "recipients": [
+              {
+                "email": "maria@example.com",
+                "role": "Locatario",
+                "has_completed": false
+              },
+              {
+                "email": "agencia@example.com",
+                "role": "Imobiliaria",
+                "has_completed": false
+              }
+            ]
+          }
+        }
+      ]
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 17 - Webhook PandaDoc - Sucesso (200 OK - Evento assinado)
+  Simula a recepção de webhook da PandaDoc notificando alteração de estado (`document_state_changed` -> `document.viewed`).
+  
+  **Conformidade Arquitetural (Regra R7):**
+  - O corpo bruto (`raw bytes`) é persistido na tabela `webhook_inbox` antes de qualquer parsing.
+  - Cada item vira uma mensagem outbox direcionada ao tópico Kafka `locasign.pandadoc.webhooks.v1`.
+  - Responde imediatamente HTTP 200 para a PandaDoc.
+  - O reenvio com o mesmo `X-PandaDoc-Webhook-Event-Id` é reconhecido como duplicado (`WebhookReceipt.Duplicate`) e responde 200 de forma idempotente sem reprocessar (Regra R6).
+  
+  *Nota sobre assinatura HMAC:* Se `PANDADOC_WEBHOOK_SHARED_KEY` estiver configurada na aplicação, inclua o parâmetro `?signature=<hex>` gerado via HMAC-SHA256 sobre os bytes exatos do JSON.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/webhooks/pandadoc' \
+    --header 'Content-Type: application/json' \
+    --header 'X-PandaDoc-Webhook-Event-Id: delivery-demo-001' \
+    --data '[{
+      "event": "document_state_changed",
+      "data": {
+        "id": "doc_pandadoc_demo_123",
+        "name": "LocaSign contrato residencial",
+        "date_modified": "2026-10-15T10:00:00.000000Z",
+        "status": "document.viewed",
+        "metadata": { "contract_id": "'{{contractId}}'" },
+        "recipients": [
+          { "email": "maria@example.com", "role": "Locatario", "has_completed": false },
+          { "email": "agencia@example.com", "role": "Imobiliaria", "has_completed": false }
+        ]
+      }
+    }]'
+  ```

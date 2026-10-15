@@ -1,0 +1,40 @@
+info:
+  name: 23 - Solicita nova versão após cancelamento - Sucesso (202 Accepted)
+  type: http
+  seq: 23
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases/{{leaseId}}/contracts"
+  auth: inherit
+
+scripts:
+  post-response: |-
+    if (res.getStatus() === 202) {
+      const body = res.getBody();
+      if (body && body.id) {
+        bru.setVar("contractId", body.id);
+      }
+    }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 23 - Solicita nova versão após cancelamento - Sucesso (202 Accepted)
+  Demonstra a regra de negócio **R9**: *"Correções após o envio exigem cancelar e gerar uma nova versão; todas as versões ficam no histórico da locação"*.
+  
+  Uma vez que o contrato anterior foi formalmente cancelado (encontra-se em estado final imutável), a regra **R1** não é violada. O sistema permite criar uma nova solicitação para a mesma locação, incrementando automaticamente o `versionNumber` (versão 2).
+  
+  - **Sucesso:** `HTTP 202 ACCEPTED`
+  - **Header:** `Location: http://localhost:8080/api/v1/contracts/{id}`
+  - **Body:** `{"id": "...", "leaseId": "...", "status": "DRAFT"}`
+  
+  *O script post-response atualiza a variável `contractId` para apontar para a nova versão.*
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/leases/{{leaseId}}/contracts"
+  ```

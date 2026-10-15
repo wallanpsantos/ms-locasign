@@ -1,0 +1,37 @@
+info:
+  name: 20 - Cancela o contrato - Erro 404 (Contrato inexistente)
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/00000000-0000-0000-0000-000000000000/cancel"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "reason": "Tentativa de cancelamento de identificador inexistente"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 20 - Cancela o contrato - Erro 404 (Contrato inexistente)
+  Tenta cancelar um contrato cujo identificador UUID não consta na base de dados.
+  
+  - **Erro esperado:** `HTTP 404 NOT FOUND`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/not-found`.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/contracts/00000000-0000-0000-0000-000000000000/cancel' \
+    --header 'Content-Type: application/json' \
+    --data '{"reason": "Tentativa de cancelamento de identificador inexistente"}'
+  ```

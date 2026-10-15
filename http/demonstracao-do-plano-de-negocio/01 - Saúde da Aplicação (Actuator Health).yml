@@ -1,0 +1,26 @@
+info:
+  name: 01 - Saúde da Aplicação (Actuator Health)
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/actuator/health"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 01 - Saúde da Aplicação (Actuator Health)
+  Verifica a disponibilidade operacional e integridade de infraestrutura do LocaSign (PostgreSQL 18 e Kafka 4.3.1 em KRaft).
+  
+  - **Sucesso:** `HTTP 200 OK` com `{"status":"UP", "components": {...}}`
+  - **Falha de infra:** `HTTP 503 SERVICE UNAVAILABLE` caso banco ou broker Kafka estejam inacessíveis.
+  
+  ```bash
+  curl --request GET 'http://localhost:8080/actuator/health'
+  ```

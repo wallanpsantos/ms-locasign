@@ -1,0 +1,50 @@
+info:
+  name: 18 - Webhook PandaDoc - Erro 401 (Assinatura HMAC inválida)
+  type: http
+  seq: 18
+
+http:
+  method: POST
+  url: "{{baseUrl}}/webhooks/pandadoc"
+  params:
+    - name: signature
+      value: assinatura_invalida_hmac_1234567890abcdef
+      type: query
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-PandaDoc-Webhook-Event-Id
+      value: delivery-invalida-002
+  body:
+    type: json
+    data: |-
+      [
+        {
+          "event": "document_state_changed",
+          "data": {
+            "id": "doc_invalido"
+          }
+        }
+      ]
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 18 - Webhook PandaDoc - Erro 401 (Assinatura HMAC inválida)
+  Testa a proteção criptográfica do endpoint receptor contra requisições forjadas (ADR-012).
+  A comparação HMAC-SHA256 é feita em tempo constante (`MessageDigest.isEqual`) sobre os bytes brutos da requisição antes de qualquer desserialização.
+  
+  - **Erro esperado:** `HTTP 401 UNAUTHORIZED`
+  - **Comportamento crítico:** O sistema **nunca** responde HTTP 410 (Gone), prevenindo que provedores externos desativem o registro de entrega de webhooks.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/webhooks/pandadoc?signature=assinatura_invalida_hmac_1234567890abcdef' \
+    --header 'Content-Type: application/json' \
+    --header 'X-PandaDoc-Webhook-Event-Id: delivery-invalida-002' \
+    --data '[{"event": "document_state_changed", "data": {"id": "doc_invalido"}}]'
+  ```

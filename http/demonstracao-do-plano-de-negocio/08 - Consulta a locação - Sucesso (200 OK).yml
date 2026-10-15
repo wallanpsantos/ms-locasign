@@ -1,0 +1,25 @@
+info:
+  name: 08 - Consulta a locação - Sucesso (200 OK)
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/leases/{{leaseId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 08 - Consulta a locação - Sucesso (200 OK)
+  Recupera os dados completos da locação cadastrada (`REGISTERED`), incluindo informações do imóvel, inquilino (com CPF mascarado para conformidade com a LGPD) e dados do contrato ativo quando existente.
+  
+  - **Sucesso:** `HTTP 200 OK`
+  
+  ```bash
+  curl --request GET "http://localhost:8080/api/v1/leases/{{leaseId}}"
+  ```

@@ -2,7 +2,7 @@
 # Envia um webhook de teste assinado com HMAC-SHA256, como a PandaDoc faria.
 #
 # Uso:
-#   PANDADOC_WEBHOOK_SHARED_KEY=segredo scripts/send-signed-webhook.sh http/samples/document-state-changed.json
+#   PANDADOC_WEBHOOK_SHARED_KEY=segredo scripts/send-signed-webhook.sh scripts/samples/document-state-changed.json
 #   ... [url]   (padrão: http://localhost:8080/webhooks/pandadoc)
 #
 # Reenviar o mesmo arquivo com o mesmo X-PandaDoc-Webhook-Event-Id testa a deduplicação:

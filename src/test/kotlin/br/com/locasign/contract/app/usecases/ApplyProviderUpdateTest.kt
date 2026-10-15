@@ -1,7 +1,7 @@
 package br.com.locasign.contract.app.usecases
 
-import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
+import br.com.locasign.contract.app.fakes.RecordingContractRepository
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentStatus
 import br.com.locasign.contract.app.ports.out.integration.ProviderSignal
 import br.com.locasign.contract.domain.events.ContractGenerationFailed
@@ -32,13 +32,14 @@ import kotlin.test.assertTrue
 class ApplyProviderUpdateTest {
 
     private val now = Instant.parse("2026-10-09T10:00:00Z")
-    private val contracts = InMemoryContractRepository()
+    private val contracts = RecordingContractRepository()
     private val publisher = RecordingContractEventPublisher()
     private val metrics = RecordingMetricsPort()
     private val document = ProviderDocumentId.of("doc-1")
 
     private val applyProviderUpdate = ApplyProviderUpdate(
         contracts = contracts,
+        reconciliationMarker = contracts,
         persister = ContractPersister(contracts, publisher),
         clock = FixedBusinessClock(now),
         settings = ContractSettings(
@@ -63,10 +64,17 @@ class ApplyProviderUpdateTest {
         now = now.minusSeconds(3600),
         providerDocumentId = document,
         providerLastModifiedAt = providerLastModifiedAt,
-    ).also(contracts::save)
+    ).also(contracts.storage::save)
 
     private fun receive(signal: ProviderSignal) =
         applyProviderUpdate.execute(ApplyProviderUpdateCommand(listOf(signal), ChangeSource.WEBHOOK, "evt-1"))
+
+    private fun reconcile(signal: ProviderSignal) = applyProviderUpdate.execute(
+        ApplyProviderUpdateCommand(listOf(signal), ChangeSource.RECONCILIATION, "reconcile-1", markReconciled = true),
+    )
+
+    private fun providerStatus(status: ProviderDocumentStatus) =
+        ProviderSignal.StatusChanged(document, null, status, modifiedAt = null)
 
     private fun documentError(modifiedAt: Instant?) =
         ProviderSignal.StatusChanged(document, null, ProviderDocumentStatus.ERROR, modifiedAt)
@@ -164,5 +172,78 @@ class ApplyProviderUpdateTest {
         assertTrue(contract.pullHistory().isEmpty())
         assertTrue(publisher.published.isEmpty())
         assertTrue(metrics.counted.isEmpty())
+    }
+
+    @Test
+    fun `reconciliação que não muda o contrato só grava a marca de consulta (RC2)`() {
+        val contract = contractIn(ContractStatus.SENT)
+
+        reconcile(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(0, contracts.saveCalls)
+        assertEquals(listOf(contract.id to now), contracts.reconciliationMarks)
+        assertEquals(now, contract.lastReconciledAt)
+        assertTrue(contract.pullHistory().isEmpty())
+        assertTrue(publisher.published.isEmpty())
+    }
+
+    @Test
+    fun `reconciliação que muda o contrato grava o agregado inteiro com a marca e sem a gravação enxuta (RC2)`() {
+        val contract = contractIn(ContractStatus.GENERATED)
+
+        reconcile(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(ContractStatus.SENT, contract.status)
+        assertEquals(1, contracts.saveCalls)
+        assertTrue(contracts.reconciliationMarks.isEmpty())
+        assertEquals(now, contract.lastReconciledAt)
+        assertEquals(listOf(transition(Metrics.TRANSITION_APPLIED, ContractStatus.SENT)), metrics.counted)
+    }
+
+    @Test
+    fun `retrato do provedor atrasado em relação ao agregado só marca a consulta na reconciliação (RC2)`() {
+        val contract = contractIn(ContractStatus.PARTIALLY_SIGNED)
+
+        reconcile(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(ContractStatus.PARTIALLY_SIGNED, contract.status)
+        assertTrue(contract.pullHistory().isEmpty())
+        assertEquals(0, contracts.saveCalls)
+        assertEquals(listOf(contract.id to now), contracts.reconciliationMarks)
+        assertTrue(metrics.counted.isEmpty())
+    }
+
+    @Test
+    fun `o mesmo retrato atrasado vindo por webhook registra IGNORED_TRANSITION e conta a transição ignorada (R5)`() {
+        val contract = contractIn(ContractStatus.PARTIALLY_SIGNED)
+
+        receive(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(ContractStatus.PARTIALLY_SIGNED, contract.status)
+        val history = contract.pullHistory().single()
+        assertEquals(HistoryOutcome.IGNORED_TRANSITION, history.outcome)
+        assertEquals(ChangeSource.WEBHOOK, history.source)
+        assertEquals(1, contracts.saveCalls)
+        assertEquals(listOf(transition(Metrics.TRANSITION_IGNORED, ContractStatus.SENT)), metrics.counted)
+    }
+
+    @Test
+    fun `reconciliação de contrato final continua registrando IGNORED_TRANSITION (R5)`() {
+        val contract = contractIn(ContractStatus.COMPLETED)
+
+        reconcile(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(ContractStatus.COMPLETED, contract.status)
+        assertEquals(HistoryOutcome.IGNORED_TRANSITION, contract.pullHistory().single().outcome)
+        assertEquals(1, contracts.saveCalls)
+        assertEquals(listOf(transition(Metrics.TRANSITION_IGNORED, ContractStatus.SENT)), metrics.counted)
+    }
+
+    @Test
+    fun `reconciliação de documento desconhecido não grava nada`() {
+        reconcile(providerStatus(ProviderDocumentStatus.SENT))
+
+        assertEquals(0, contracts.saveCalls)
+        assertTrue(contracts.reconciliationMarks.isEmpty())
     }
 }

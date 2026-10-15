@@ -1,5 +1,6 @@
 package br.com.locasign.contract.interfaces.messaging
 
+import br.com.locasign.contract.app.usecases.AnnulProviderDocument
 import br.com.locasign.contract.app.usecases.ContractEventCommand
 import br.com.locasign.contract.app.usecases.CreateProviderDocument
 import br.com.locasign.contract.app.usecases.ProcessProviderWebhookItem
@@ -81,6 +82,38 @@ class PostSignatureConsumer(
         val envelope = reader.read(message)
         if (envelope.eventType == "ContractCompleted") {
             reader.handleContractEvent(envelope, runPostSignatureActions::execute)
+        }
+    }
+}
+
+/**
+ * Consumidor Kafka do grupo document-annulment responsável por anular na PandaDoc o documento de contratos cancelados ou expirados.
+ *
+ * Escuta [Topics.CONTRACT_EVENTS] e filtra os eventos `ContractCancelled` e `ContractExpired`, delegando ao caso de uso
+ * [AnnulProviderDocument]. Outros `eventType` são ignorados sem validar o `aggregateId`; as falhas transitórias do
+ * provedor sobem para o `DefaultErrorHandler` (retentativa e DLT).
+ *
+ * **Responsabilidade:**
+ * - Adaptador de entrada (driving adapter) de mensageria para o grupo de consumidores [ConsumerGroups.DOCUMENT_ANNULMENT].
+ * - Tirar a chamada à PandaDoc da requisição de cancelamento e do job de expiração (regra inviolável 9, ADR-016).
+ * - Executar o use case com `correlationId`, `causationId`, `eventId` e `contractId` no contexto de log (MDC), via `handleContractEvent`.
+ */
+@Component
+class DocumentAnnulmentConsumer(
+    private val reader: EnvelopeReader,
+    private val annulProviderDocument: AnnulProviderDocument,
+) {
+
+    @KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.DOCUMENT_ANNULMENT)
+    fun onMessage(message: String) {
+        val envelope = reader.read(message)
+        when (envelope.eventType) {
+            "ContractCancelled", "ContractExpired" -> reader.handleContractEvent(
+                envelope,
+                annulProviderDocument::execute
+            )
+
+            else -> Unit
         }
     }
 }

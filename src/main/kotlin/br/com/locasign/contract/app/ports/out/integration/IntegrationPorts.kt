@@ -20,7 +20,10 @@ interface SignatureProviderPort {
     /** Envia o documento pronto aos signatários. */
     fun send(documentId: ProviderDocumentId, request: ProviderSendRequest)
 
-    /** Anula o documento no provedor, para que ninguém mais possa assiná-lo. */
+    /**
+     * Anula o documento no provedor, para que ninguém mais possa assiná-lo. Só vale a partir de `sent`/`viewed` (ADR-012).
+     * É chamado apenas pelo `AnnulProviderDocument`, em consumer Kafka (ADR-016).
+     */
     fun cancelDocument(documentId: ProviderDocumentId)
 
     /** Baixa o PDF assinado, ou informa que está indisponível (sandbox ou flag desligada). */

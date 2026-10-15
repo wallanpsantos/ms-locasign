@@ -6,6 +6,7 @@ import br.com.locasign.shared.infra.persistence.getInstant
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.errors.RetriableException
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.kafka.core.KafkaTemplate
@@ -15,6 +16,7 @@ import tools.jackson.databind.json.JsonMapper
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Componente agendado de infraestrutura responsável pela leitura e publicação de eventos do Transactional Outbox.
@@ -22,6 +24,7 @@ import java.util.concurrent.TimeUnit
  * **Responsabilidade:**
  * - Consultar periodicamente eventos não publicados no PostgreSQL usando concorrência segura (`FOR UPDATE SKIP LOCKED`).
  * - Publicar mensagens ordenadamente no Apache Kafka garantindo entrega at-least-once e registrar timestamp de publicação e telemetria.
+ * - Com o broker indisponível, interromper o lote na primeira falha de transporte, deixando as demais linhas pendentes para o próximo ciclo.
  */
 @Component
 class OutboxRelay(
@@ -43,34 +46,47 @@ class OutboxRelay(
     @Scheduled(fixedDelayString = "\${locasign.outbox.relay-interval:PT1.5S}")
     fun relay() {
         try {
-            // Continua enquanto os lotes vierem cheios, para escoar um acúmulo sem esperar o próximo ciclo.
+            // Continua enquanto os lotes vierem cheios e sem interrupção, para escoar um acúmulo sem esperar o próximo ciclo.
             do {
-                val rowsRead = relayBatch()
-            } while (rowsRead >= properties.outbox.batchSize)
+                val hasMore = relayBatch()
+            } while (hasMore)
         } catch (e: Exception) {
             log.error("Falha no relay do outbox; nova tentativa no próximo ciclo", e)
         }
     }
 
-    /** Publica um lote em uma transação e devolve quantas linhas foram lidas. */
-    private fun relayBatch(): Int = transactions.run {
+    /**
+     * Publica um lote em uma transação e devolve `true` se há mais a escoar: o lote veio cheio e não foi interrompido.
+     *
+     * Falha de transporte (broker fora do ar) registra a falha só da linha e encerra o lote: as demais linhas continuam
+     * pendentes, sem segurar a conexão e os locks por uma espera de envio a mais por linha. Falha de um único registro
+     * só bloqueia as linhas seguintes da mesma chave.
+     */
+    private fun relayBatch(): Boolean = transactions.run {
         val rows = lockNextBatch()
 
         // Se uma mensagem falha, as seguintes da mesma chave esperam, para não inverter a ordem por chave.
         val blockedKeys = mutableSetOf<Pair<String, String>>()
-        for (row in rows) {
+        for ((index, row) in rows.withIndex()) {
             val topicKey = row.topic to row.key
             if (topicKey in blockedKeys) continue
             try {
                 publish(row)
                 markPublished(row.id)
             } catch (e: Exception) {
-                blockedKeys += topicKey
                 markFailed(row.id, e)
                 log.warn("Falha ao publicar o evento {} no tópico {}: {}", row.id, row.topic, e.message)
+                if (e.isBrokerUnavailable()) {
+                    log.warn(
+                        "Broker indisponível; lote interrompido, {} linha(s) ficam pendentes para o próximo ciclo",
+                        rows.size - index - 1
+                    )
+                    return@run false
+                }
+                blockedKeys += topicKey
             }
         }
-        rows.size
+        rows.size >= properties.outbox.batchSize
     }
 
     /**
@@ -129,11 +145,20 @@ class OutboxRelay(
             .update()
     }
 
+    /**
+     * Falha do broker ou da rede (envio sem confirmação no prazo ou erro retentável do Kafka), e não de uma mensagem
+     * específica; o `KafkaTemplate` embrulha a causa em `KafkaException("Send failed")`, por isso a cadeia é percorrida.
+     */
+    private fun Throwable.isBrokerUnavailable(): Boolean =
+        generateSequence(this) { it.cause }.any { it is TimeoutException || it is RetriableException }
+
+    /** Idade da cabeça da fila: a linha pendente de menor `seq`, lida por `ix_outbox_pending` sem varrer o backlog. */
     private fun oldestUnpublishedAgeSeconds(): Double = try {
         val oldest: Instant? =
-            jdbc.sql("SELECT min(created_at) AS oldest FROM outbox_events WHERE published_at IS NULL")
-                .query { rs, _ -> rs.getInstant("oldest") }
-                .single()
+            jdbc.sql("SELECT created_at FROM outbox_events WHERE published_at IS NULL ORDER BY seq LIMIT 1")
+                .query { rs, _ -> rs.getInstant("created_at") }
+                .list()
+                .firstOrNull()
         oldest?.let { Duration.between(it, Instant.now()).toMillis() / MILLIS_PER_SECOND } ?: 0.0
     } catch (_: Exception) {
         0.0

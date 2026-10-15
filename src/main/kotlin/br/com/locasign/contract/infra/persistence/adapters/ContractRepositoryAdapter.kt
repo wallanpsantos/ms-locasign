@@ -1,6 +1,8 @@
 package br.com.locasign.contract.infra.persistence.adapters
 
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationCandidate
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationMarkerPort
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.StatusHistoryEntry
@@ -20,18 +22,19 @@ import java.time.Instant
 import kotlin.uuid.toJavaUuid
 
 /**
- * Adaptador de persistência que implementa a porta de escrita [ContractRepositoryPort].
+ * Adaptador de persistência que implementa a porta de escrita [ContractRepositoryPort] e a marca de reconciliação [ReconciliationMarkerPort].
  *
  * **Responsabilidade:**
  * - Salvar atomicamente o agregado [Contract], os signatários associados e descarregar as linhas de auditoria pendentes na tabela `contract_status_history`.
  * - Converter em [DomainException.ActiveContractExists] (409) as violações de `ux_contracts_one_active_per_lease` (Regra R1) e de `uq_contracts_lease_version` (numeração de versões).
  * - Executar as consultas de expiração, lembretes e reconciliação em lote com `JdbcClient`.
+ * - Marcar a consulta de reconciliação com um `UPDATE` de uma coluna, sem regravar o agregado.
  */
 @Repository
 class ContractRepositoryAdapter(
     private val repository: ContractJdbcRepository,
     private val jdbc: JdbcClient,
-) : ContractRepositoryPort {
+) : ContractRepositoryPort, ReconciliationMarkerPort {
 
     override fun save(contract: Contract) {
         val history = contract.pullHistory()
@@ -105,21 +108,36 @@ class ContractRepositoryAdapter(
             .param("limit", limit)
             .queryIds()
 
-    override fun findReconciliationCandidateIds(staleBefore: Instant, limit: Int): List<ContractId> =
+    override fun findReconciliationCandidates(staleBefore: Instant, limit: Int): List<ReconciliationCandidate> =
         jdbc.sql(
             """
-			SELECT id FROM contracts
+			SELECT id, provider_document_id FROM contracts
 			WHERE status NOT IN (:finalStatuses)
 			  AND provider_document_id IS NOT NULL
-			  AND GREATEST(updated_at, COALESCE(last_reconciled_at, updated_at)) <= :staleBefore
-			ORDER BY GREATEST(updated_at, COALESCE(last_reconciled_at, updated_at))
+			  AND updated_at <= :staleBefore
+			  AND (last_reconciled_at IS NULL OR last_reconciled_at <= :staleBefore)
+			ORDER BY updated_at
 			LIMIT :limit
 			""".trimIndent(),
         )
             .param("finalStatuses", FINAL_STATUSES)
             .param("staleBefore", staleBefore.toDb())
             .param("limit", limit)
-            .queryIds()
+            .query { rs, _ ->
+                ReconciliationCandidate(
+                    id = ContractId(rs.getRequiredKotlinUuid("id")),
+                    providerDocumentId = ProviderDocumentId.of(rs.getString("provider_document_id")),
+                )
+            }
+            .list()
+
+    /** Grava só `last_reconciled_at`: sem `updated_at`, sem `row_version` e sem tocar em signatários nem histórico. */
+    override fun markReconciled(contractId: ContractId, at: Instant) {
+        jdbc.sql("UPDATE contracts SET last_reconciled_at = :at WHERE id = :id")
+            .param("at", at.toDb())
+            .param("id", contractId.value.toJavaUuid())
+            .update()
+    }
 
     private fun insertHistory(entry: StatusHistoryEntry) {
         jdbc.sql(

@@ -7,6 +7,7 @@ import br.com.locasign.contract.app.fakes.InMemoryPostSignatureActions
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
 import br.com.locasign.contract.app.fakes.RecordingSignatureProvider
 import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
+import br.com.locasign.contract.app.usecases.AnnulProviderDocument
 import br.com.locasign.contract.app.usecases.ContractPersister
 import br.com.locasign.contract.app.usecases.ContractSettings
 import br.com.locasign.contract.app.usecases.CreateProviderDocument
@@ -16,6 +17,7 @@ import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
+import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.ConsumerGroups
@@ -29,6 +31,7 @@ import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import br.com.locasign.shared.interfaces.messaging.EnvelopeReader
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import tools.jackson.databind.json.JsonMapper
 import java.time.Duration
@@ -73,6 +76,11 @@ class ContractConsumersTest {
             contracts, leases, FakeLeaseActivation(), InMemoryPostSignatureActions(), persister, processed, clock,
             ImmediateTransactionRunner,
         ),
+    )
+
+    private val annulment = DocumentAnnulmentConsumer(
+        reader = reader,
+        annulProviderDocument = AnnulProviderDocument(contracts, provider, processed, ImmediateTransactionRunner),
     )
 
     private fun message(eventType: String, aggregateId: String) =
@@ -138,5 +146,36 @@ class ContractConsumersTest {
         postSignature.onMessage(message("ContractRequested", "nao-e-uuid"))
 
         assertFalse(processed.isProcessed(ConsumerGroups.POST_SIGNATURE, "evt-1"))
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["ContractCancelled", "ContractExpired"])
+    fun `anulação trata aggregateId inválido como mensagem ilegível (DLT)`(eventType: String) {
+        val ex = assertFailsWith<UnreadableMessageException> {
+            annulment.onMessage(message(eventType, "nao-e-uuid"))
+        }
+
+        assertEquals("Evento evt-1 com aggregateId inválido: nao-e-uuid", ex.message)
+    }
+
+    @Test
+    fun `anulação ignora outros eventos sem validar o aggregateId`() {
+        annulment.onMessage(message("ContractCompleted", "nao-e-uuid"))
+
+        assertFalse(processed.isProcessed(ConsumerGroups.DOCUMENT_ANNULMENT, "evt-1"))
+        assertTrue(provider.cancelled.isEmpty())
+    }
+
+    @ParameterizedTest
+    @CsvSource("ContractCancelled,CANCELLED", "ContractExpired,EXPIRED")
+    fun `anulação repassa o id do contrato do aggregateId ao caso de uso`(eventType: String, status: ContractStatus) {
+        val document = ProviderDocumentId.of("doc-1")
+        val contract = restoreContract(status, providerDocumentId = document, sentAt = now, now = now)
+            .also(contracts::save)
+
+        annulment.onMessage(message(eventType, contract.id.toString()))
+
+        assertEquals(listOf(document), provider.cancelled)
+        assertTrue(processed.isProcessed(ConsumerGroups.DOCUMENT_ANNULMENT, "evt-1"))
     }
 }

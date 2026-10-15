@@ -11,6 +11,7 @@ import br.com.locasign.shared.interfaces.web.ApiExceptionHandler
 import br.com.locasign.support.any
 import org.assertj.core.api.Assertions.assertThat
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
@@ -268,5 +269,85 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
         json.extractingPath("$.type").isEqualTo("/problems/internal")
         json.extractingPath("$.title").isEqualTo("Erro interno")
         json.extractingPath("$.detail").isEqualTo("Erro inesperado ao processar a requisição.")
+    }
+
+    private fun leaseJson(
+        rentAmount: String = "3500.00",
+        cpf: String = "529.982.247-25",
+        email: String = "maria@example.com",
+        agencySignerEmail: String? = null,
+    ): String {
+        val agencySigner = agencySignerEmail
+            ?.let { """"agencySigner": { "name": "Imobiliária Central", "email": "$it" },""" }
+            .orEmpty()
+        return """
+            {
+                "tenant": { "name": "Maria Silva", "cpf": "$cpf", "email": "$email" },
+                $agencySigner
+                "property": { "address": "Av Paulista, 1000" },
+                "rentAmount": "$rentAmount",
+                "startDate": "2026-11-01"
+            }
+        """.trimIndent()
+    }
+
+    @Test
+    fun `rentAmount com mais de 13 caracteres responde 400 e não chama o caso de uso (L1)`() {
+        val json = assertThat(postLease(leaseJson(rentAmount = "1".repeat(14))))
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+
+        json.extractingPath("$.type").isEqualTo("/problems/validation")
+        json.extractingPath("$.errors[*].field").asArray().containsExactly("rentAmount")
+        verifyNoInteractions(registerLease)
+    }
+
+    @Test
+    fun `texto gigante em rentAmount responde 400 sem chegar ao caso de uso (L1)`() {
+        assertThat(postLease(leaseJson(rentAmount = "1".repeat(1_000_000))))
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+            .extractingPath("$.errors[*].field").asArray().containsExactly("rentAmount")
+        verifyNoInteractions(registerLease)
+    }
+
+    @Test
+    fun `cpf com mais de 14 caracteres responde 400 e não chama o caso de uso (L1)`() {
+        val json = assertThat(postLease(leaseJson(cpf = "5".repeat(15))))
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+
+        json.extractingPath("$.errors[*].field").asArray().containsExactly("tenant.cpf")
+        verifyNoInteractions(registerLease)
+    }
+
+    @Test
+    fun `e-mail do locatário ou da imobiliária com mais de 254 caracteres responde 400 e não chama o caso de uso (L1)`() {
+        val tooLongEmail = "a".repeat(243) + "@example.com"
+
+        val json = assertThat(postLease(leaseJson(email = tooLongEmail, agencySignerEmail = tooLongEmail)))
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+
+        json.extractingPath("$.errors[*].field").asArray()
+            .containsExactlyInAnyOrder("tenant.email", "agencySigner.email")
+        verifyNoInteractions(registerLease)
+    }
+
+    @Test
+    fun `campos exatamente nos limites de tamanho (13, 14 e 254) seguem para o caso de uso (L1)`() {
+        given(registerLease.execute(any())).willReturn(LeaseId.new())
+        val emailAtLimit = "a".repeat(242) + "@example.com"
+
+        val result = postLease(
+            leaseJson(
+                rentAmount = "9999999999.99",
+                cpf = "529.982.247-25",
+                email = emailAtLimit,
+                agencySignerEmail = emailAtLimit,
+            ),
+        )
+
+        assertThat(result).hasStatus(HttpStatus.CREATED)
     }
 }

@@ -33,8 +33,22 @@ class ReconcileContracts(
     /** Reconcilia os contratos parados há mais tempo que o limite. Devolve quantos foram consultados. */
     fun executeStale(): Int {
         val staleBefore = clock.now().minus(settings.reconciliationStaleAfter)
-        val ids = contracts.findReconciliationCandidateIds(staleBefore, settings.jobBatchSize)
-        return ids.count { reconcileSafely(it) }
+        val candidates = contracts.findReconciliationCandidates(staleBefore, settings.jobBatchSize)
+        var count = 0
+        for (candidate in candidates) {
+            try {
+                reconcileDocument(candidate.id, candidate.providerDocumentId)
+                count++
+            } catch (e: ProviderException.RateLimited) {
+                log.warn("Reconciliação interrompida por limite de taxa da PandaDoc: {}", e.message)
+                break
+            } catch (e: ProviderException) {
+                log.warn("Reconciliação do contrato {} adiada: {}", candidate.id, e.message)
+            } catch (e: RuntimeException) {
+                log.error("Falha na reconciliação do contrato {}", candidate.id, e)
+            }
+        }
+        return count
     }
 
     /** Reconciliação forçada de um contrato (operação e desenvolvimento). */
@@ -45,22 +59,6 @@ class ReconcileContracts(
             contract.providerDocumentId
         } ?: return
         reconcileDocument(contractId, documentId)
-    }
-
-    private fun reconcileSafely(id: ContractId): Boolean = try {
-        reconcile(id)
-    } catch (e: ProviderException) {
-        log.warn("Reconciliação do contrato {} adiada: {}", id, e.message)
-        false
-    } catch (e: RuntimeException) {
-        log.error("Falha na reconciliação do contrato {}", id, e)
-        false
-    }
-
-    private fun reconcile(id: ContractId): Boolean {
-        val documentId = transactions.run { contracts.findById(id)?.providerDocumentId } ?: return false
-        reconcileDocument(id, documentId)
-        return true
     }
 
     private fun reconcileDocument(id: ContractId, documentId: ProviderDocumentId) {

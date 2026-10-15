@@ -56,8 +56,8 @@ class PandaDocConfig {
             .createClient(PandaDocClient::class.java)
 
     @Bean
-    fun pandaDocRateLimiter(properties: LocaSignProperties): SlidingWindowRateLimiter =
-        SlidingWindowRateLimiter(properties.pandadoc.rateLimitPerMinute)
+    fun pandaDocRateLimiter(properties: LocaSignProperties, metrics: MetricsPort): SlidingWindowRateLimiter =
+        SlidingWindowRateLimiter(properties.pandadoc.rateLimitPerMinute, metrics)
 
     @Bean
     fun signatureProvider(

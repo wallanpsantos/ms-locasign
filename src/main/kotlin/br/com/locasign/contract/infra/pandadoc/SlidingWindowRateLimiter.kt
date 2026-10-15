@@ -1,9 +1,19 @@
 package br.com.locasign.contract.infra.pandadoc
 
 import br.com.locasign.contract.app.ports.out.integration.ProviderException
+import br.com.locasign.shared.app.ports.Metrics
+import br.com.locasign.shared.app.ports.MetricsPort
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+
+/**
+ * Quanto quem chama aceita esperar por uma permissão do [SlidingWindowRateLimiter] antes de receber [ProviderException.RateLimited].
+ *
+ * **Responsabilidade:**
+ * - Separar o chamador que não pode ficar parado ([SHORT]: jobs e endpoint de operador) do consumidor Kafka, que prefere esperar a cota a mandar o evento para a DLT por uma limitação local ([FULL_WINDOW]).
+ */
+enum class RateLimitWait { SHORT, FULL_WINDOW }
 
 /**
  * Limitador de taxa em memória baseado em algoritmo de janela deslizante de 1 minuto para requisições externas à PandaDoc.
@@ -14,16 +24,19 @@ import java.util.concurrent.TimeUnit
  */
 class SlidingWindowRateLimiter(
     private val permitsPerMinute: Int,
+    private val metrics: MetricsPort,
     private val maxWait: Duration = Duration.ofSeconds(30),
+    private val fullWindowMaxWait: Duration = Duration.ofSeconds(70),
     private val nanoTime: () -> Long = System::nanoTime,
     private val sleeper: (Long) -> Unit = { Thread.sleep(it) },
 ) {
     private val windows = ConcurrentHashMap<String, ArrayDeque<Long>>()
 
     /** Bloqueia (thread virtual ou do consumidor) até haver permissão para [operation]. */
-    fun acquire(operation: String) {
+    fun acquire(operation: String, wait: RateLimitWait = RateLimitWait.SHORT) {
         val window = windows.computeIfAbsent(operation) { ArrayDeque() }
-        val deadline = nanoTime() + maxWait.toNanos()
+        val timeout = if (wait == RateLimitWait.FULL_WINDOW) fullWindowMaxWait else maxWait
+        val deadline = nanoTime() + timeout.toNanos()
         while (true) {
             val waitNanos = synchronized(window) {
                 val now = nanoTime()
@@ -35,8 +48,10 @@ class SlidingWindowRateLimiter(
                 window.first() + WINDOW_NANOS - now
             }
             if (nanoTime() + waitNanos > deadline) {
+                metrics.count(Metrics.PROVIDER_LOCAL_RATE_LIMITED, "operation", operation)
                 throw ProviderException.RateLimited("Limite local de $permitsPerMinute requisições/min atingido para '$operation'")
             }
+            metrics.count(Metrics.PROVIDER_LOCAL_RATE_WAITED, "operation", operation)
             sleeper(TimeUnit.NANOSECONDS.toMillis(waitNanos) + 1)
         }
     }

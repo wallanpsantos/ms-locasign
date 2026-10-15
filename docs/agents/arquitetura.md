@@ -115,6 +115,14 @@ importa módulos, `lease` não importa `contract` nem `notification`, `notificat
 - O receptor `contract/interfaces/webhook/pandadoc/PandaDocWebhookController` conhece só o protocolo de entrega (rota
   `/webhooks/pandadoc`, query `signature`, header `X-PandaDoc-Webhook-Event-Id`). Ele repassa os bytes ao use case
   `ReceiveProviderWebhook`, que valida o HMAC pelo gateway. Não valide HMAC nem faça parse no controller.
+- **Anulação do documento (ADR-016):** é assíncrona. `CancelContract` e `ExpireOverdueContracts` só gravam
+  `ContractCancelled` e `ContractExpired` no outbox, na mesma transação da transição, e não recebem
+  `SignatureProviderPort`. O `DocumentAnnulmentConsumer` (grupo `locasign-document-annulment`, em
+  `locasign.contract.events.v1`) reage a esses eventos e delega a `AnnulProviderDocument`, que chama
+  `SignatureProviderPort.cancelDocument` entre duas transações curtas. Só anula contrato `CANCELLED` ou `EXPIRED` com
+  documento e `sentAt`. HTTP 404/409 e falhas definitivas contam como resolvidos; `RateLimited` e `Unavailable` sobem
+  para o `DefaultErrorHandler` (retentativa e DLT). Outro ponto que precise anular um documento segue esse desenho, e
+  não a requisição.
 - Antes de implementar uma chamada nova, consulte `https://developers.pandadoc.com/llms.txt` (acrescente `.md` às URLs
   das páginas) e o ADR-012.
 
@@ -184,10 +192,6 @@ git grep -n -E "^import br\.com\.locasign\.lease\.(app|infra|interfaces)\." -- "
 
 ## 7. Exceções existentes: não use como precedente
 
-- `POST /api/v1/contracts/{id}/cancel` anula o documento na PandaDoc dentro da requisição, depois do commit
-  (`CancelContract`). O ADR-012 decide anular em melhor esforço no cancelamento, mas não diz onde a chamada acontece.
-  Fazê-la na requisição contraria a regra geral de chamadas externas e está pendente de correção ou ADR. A anulação em
-  si deve continuar.
 - `POST /api/v1/contracts/{id}/reconcile` (restrito a operador) chama `SignatureProviderPort.fetchState` dentro da
   requisição (`ReconcileContracts`). O guia prevê esse endpoint (§4.5 e §9.2), mas o princípio 2 do §1 proíbe chamada
   externa na requisição. Não remova o endpoint: a contradição do guia está pendente de ADR.

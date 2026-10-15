@@ -3,6 +3,7 @@ package br.com.locasign.contract.app.usecases
 import br.com.locasign.contract.app.ports.out.integration.ProviderDocumentStatus
 import br.com.locasign.contract.app.ports.out.integration.ProviderSignal
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationMarkerPort
 import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
@@ -38,6 +39,7 @@ data class ApplyProviderUpdateCommand(
  */
 class ApplyProviderUpdate(
     private val contracts: ContractRepositoryPort,
+    private val reconciliationMarker: ReconciliationMarkerPort,
     private val persister: ContractPersister,
     private val clock: BusinessClock,
     private val settings: ContractSettings,
@@ -59,9 +61,16 @@ class ApplyProviderUpdate(
             // O webhook pode chegar antes de gravarmos o id do documento: liga pelo `contractHint` (metadata).
             contract.attachProviderDocument(first.documentId, command.source, command.sourceEventId, now)
             command.signals.forEach { handle(contract, it, command, now) }
-            if (command.markReconciled) contract.markReconciled(now)
-
-            if (command.markReconciled || contract.hasPendingChanges) persister.save(contract)
+            if (command.markReconciled) {
+                contract.markReconciled(now)
+                if (contract.hasPendingChanges) {
+                    persister.save(contract)
+                } else {
+                    reconciliationMarker.markReconciled(contract.id, now)
+                }
+            } else if (contract.hasPendingChanges) {
+                persister.save(contract)
+            }
         }
     }
 

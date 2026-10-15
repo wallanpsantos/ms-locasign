@@ -8,6 +8,7 @@ import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.integration.SignedDocument
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.contract.infra.pandadoc.PandaDocClient
+import br.com.locasign.contract.infra.pandadoc.RateLimitWait
 import br.com.locasign.contract.infra.pandadoc.SlidingWindowRateLimiter
 import br.com.locasign.contract.infra.pandadoc.dto.request.StatusChangeRequest
 import br.com.locasign.contract.infra.pandadoc.exceptions.toProviderException
@@ -46,7 +47,7 @@ class PandaDocSignatureProviderAdapter(
     }
 
     override fun fetchState(documentId: ProviderDocumentId): ProviderDocumentState =
-        call("details") { client.details(documentId.value) }.toState(properties)
+        call("details", wait = RateLimitWait.SHORT) { client.details(documentId.value) }.toState(properties)
 
     override fun send(documentId: ProviderDocumentId, request: ProviderSendRequest) {
         call("send") { client.send(documentId.value, request.toPandaDoc()) }
@@ -77,10 +78,10 @@ class PandaDocSignatureProviderAdapter(
     }
 
     /** Aplica o limite de taxa e traduz falhas HTTP; em 429 espera (backoff exponencial) e tenta de novo. */
-    private fun <T> call(operation: String, block: () -> T): T {
+    private fun <T> call(operation: String, wait: RateLimitWait = RateLimitWait.FULL_WINDOW, block: () -> T): T {
         var attempt = 0
         while (true) {
-            rateLimiter.acquire(operation)
+            rateLimiter.acquire(operation, wait)
             try {
                 return block()
             } catch (e: RestClientException) {

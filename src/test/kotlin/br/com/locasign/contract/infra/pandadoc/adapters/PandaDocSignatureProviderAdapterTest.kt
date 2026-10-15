@@ -83,7 +83,7 @@ class PandaDocSignatureProviderAdapterTest {
         adapter = PandaDocSignatureProviderAdapter(
             client = client,
             properties = properties,
-            rateLimiter = SlidingWindowRateLimiter(100),
+            rateLimiter = SlidingWindowRateLimiter(100, NoOpMetricsPort),
             metrics = NoOpMetricsPort,
             sleeper = { /* No-op para não atrasar o teste */ },
         )

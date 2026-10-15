@@ -4,7 +4,10 @@ import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.app.ports.OutboxMessage
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.infra.persistence.JdbcOutboxAdapter
+import br.com.locasign.shared.infra.persistence.toDb
 import br.com.locasign.support.IntegrationTestSupport
+import br.com.locasign.support.runAndRollback
+import io.micrometer.core.instrument.MeterRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.awaitility.Awaitility.await
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,6 +28,7 @@ class OutboxRelayIT(
     @Autowired private val jdbc: JdbcClient,
     @Autowired private val consumerFactory: ConsumerFactory<String, String>,
     @Autowired private val transactions: TransactionRunner,
+    @Autowired private val registry: MeterRegistry,
 ) : IntegrationTestSupport() {
 
     /**
@@ -114,6 +118,51 @@ class OutboxRelayIT(
         } finally {
             jdbc.sql("DELETE FROM outbox_events WHERE id = :id").param("id", failing).update()
         }
+    }
+
+    @Test
+    fun `gauge de atraso vale zero quando não há linha pendente`() {
+        val age = transactions.runAndRollback {
+            jdbc.sql("DELETE FROM outbox_events WHERE published_at IS NULL").update()
+            oldestUnpublishedAgeSeconds()
+        }
+
+        assertEquals(0.0, age)
+    }
+
+    @Test
+    fun `gauge de atraso mede a linha pendente mais antiga na ordem de seq e ignora as já publicadas`() {
+        val now = Instant.now()
+        val age = transactions.runAndRollback {
+            jdbc.sql("DELETE FROM outbox_events WHERE published_at IS NULL").update()
+            insertRow("gauge-published", createdAt = now.minus(Duration.ofHours(2)), published = true)
+            insertRow("gauge-head", createdAt = now.minus(Duration.ofMinutes(10)), published = false)
+            // seq maior com created_at mais antigo (transações que confirmam fora de ordem): a fila é lida por seq.
+            insertRow("gauge-out-of-order", createdAt = now.minus(Duration.ofHours(1)), published = false)
+            oldestUnpublishedAgeSeconds()
+        }
+
+        assertTrue(age in 600.0..630.0, "esperava a idade da cabeça da fila (cerca de 600 s), mas veio $age")
+    }
+
+    private fun oldestUnpublishedAgeSeconds(): Double =
+        registry.get("locasign.outbox.oldest_unpublished_age_seconds").gauge().value()
+
+    private fun insertRow(id: String, createdAt: Instant, published: Boolean) {
+        jdbc.sql(
+            """
+			INSERT INTO outbox_events
+			    (id, aggregate_type, aggregate_id, event_type, topic, message_key, payload, created_at, published_at)
+			VALUES
+			    (:id, 'Contract', :id, 'RelayProbe', :topic, :id, '{}'::jsonb, CAST(:createdAt AS timestamptz),
+			     CASE WHEN :published THEN CAST(:createdAt AS timestamptz) END)
+			""".trimIndent(),
+        )
+            .param("id", id)
+            .param("topic", Topics.CONTRACT_EVENTS)
+            .param("createdAt", createdAt.toDb())
+            .param("published", published)
+            .update()
     }
 
     private fun publishedAt(id: String): Instant =

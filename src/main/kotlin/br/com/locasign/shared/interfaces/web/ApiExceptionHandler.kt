@@ -22,6 +22,7 @@ import java.net.URI
  * **Responsabilidade:**
  * - Capturar e converter exceções de domínio ([DomainException]), concorrência otimista e falhas sistêmicas no formato padrão RFC 9457 (Problem Details).
  * - Mapear deterministicamente cada subtipo de erro de domínio via `when` exaustivo para seu respectivo código de status HTTP (404, 409, 422).
+ * - Converter [PayloadTooLargeException] (corpo acima do limite do adaptador de entrada) em HTTP 413.
  */
 @RestControllerAdvice
 class ApiExceptionHandler : ResponseEntityExceptionHandler() {
@@ -45,6 +46,10 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         is DomainException.ContractFinal ->
             problem(HttpStatus.CONFLICT, "contract-final", "Contrato em estado final", e.message)
     }
+
+    @ExceptionHandler(PayloadTooLargeException::class)
+    fun handlePayloadTooLarge(e: PayloadTooLargeException): ResponseEntity<ProblemDetail> =
+        problem(HttpStatus.CONTENT_TOO_LARGE, "payload-too-large", "Corpo da requisição grande demais", e.message)
 
     @ExceptionHandler(OptimisticLockingFailureException::class)
     fun handleConcurrentUpdate(e: OptimisticLockingFailureException): ResponseEntity<ProblemDetail> {

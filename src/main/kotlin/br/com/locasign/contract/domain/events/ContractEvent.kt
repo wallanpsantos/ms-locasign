@@ -156,6 +156,7 @@ data class ContractDeclined(
  *
  * **Responsabilidade:**
  * - Encerrar a vigência da proposta de locação e invalidar o documento perante o provedor (Regra R4).
+ * - Não chama o provedor: o `DocumentAnnulmentConsumer` reage a este evento e o `AnnulProviderDocument` anula o documento de forma assíncrona (ADR-016).
  * - Notificar a imobiliária sobre o vencimento do prazo.
  */
 data class ContractExpired(
@@ -169,7 +170,7 @@ data class ContractExpired(
  *
  * **Responsabilidade:**
  * - Registrar a rescisão voluntária do processo de assinatura com justificativa formal informada.
- * - Não cancela no provedor: o `CancelContract` anula o documento na requisição (`docs/agents/arquitetura.md` §7).
+ * - Não chama o provedor: o `DocumentAnnulmentConsumer` reage a este evento e o `AnnulProviderDocument` anula o documento de forma assíncrona (ADR-016).
  * - Notifica só a imobiliária (`NotificationPolicy`, `AGENCY_ONLY`).
  */
 data class ContractCancelled(

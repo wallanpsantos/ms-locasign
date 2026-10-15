@@ -10,6 +10,9 @@ import java.math.RoundingMode
  * **Responsabilidade:**
  * - Garantir precisão monetária de 2 casas decimais utilizando `BigDecimal`, prevenindo erros de arredondamento inerentes a tipos de ponto flutuante (`Double` / `Float`).
  * - Validar montantes estritamente positivos exigidos em aluguéis (regra R2) e manter formato decimal plano estável (`toPlainString`).
+ * - Limitar a entrada a 10 dígitos inteiros e 2 decimais, o que cabe em `numeric(12,2)` (restrição técnica do banco, não regra de
+ *   negócio nova) e rejeita textos gigantes em tempo constante, antes de qualquer construção de `BigDecimal`, cujo parse é
+ *   quadrático no número de dígitos.
  */
 @JvmInline
 value class Money private constructor(val amount: BigDecimal) {
@@ -20,7 +23,8 @@ value class Money private constructor(val amount: BigDecimal) {
     override fun toString(): String = toPlainString()
 
     companion object {
-        private val PATTERN = Regex("""^\d+(\.\d{1,2})?$""")
+        /** Até 10 dígitos inteiros (limite de `numeric(12,2)`); os quantificadores limitados falham no 11º dígito, sem varrer o texto. */
+        private val PATTERN = Regex("""^\d{1,10}(\.\d{1,2})?$""")
 
         /** Valor estritamente positivo, como exigido para o aluguel (R2). */
         fun positive(raw: String, field: String = "rentAmount"): Money {
@@ -28,7 +32,7 @@ value class Money private constructor(val amount: BigDecimal) {
             if (!PATTERN.matches(trimmed)) {
                 throw DomainException.BusinessRuleViolation(
                     field,
-                    "Valor inválido: use ponto decimal e no máximo 2 casas (ex.: 2500.00).",
+                    "Valor inválido: use ponto decimal, até 10 dígitos inteiros e no máximo 2 casas (ex.: 2500.00).",
                 )
             }
             val amount = BigDecimal(trimmed).setScale(2, RoundingMode.UNNECESSARY)

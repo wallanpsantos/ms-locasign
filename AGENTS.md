@@ -61,6 +61,12 @@ Antes de analisar, planejar ou implementar, leia na ordem:
     - [
       **ADR-015:** Convenção estruturada de documentação técnica de classes com KDoc](docs/adr/0015-convencao-de-kdoc.md)
       (`aceita`).
+    - [
+      **ADR-016:** Anulação assíncrona do documento na PandaDoc, com retentativa e DLT](docs/adr/0016-anulacao-assincrona-do-documento-na-pandadoc.md)
+      (`proposta`).
+    - [
+      **ADR-017:** Ajustes de resiliência e performance decorrentes da auditoria de 2026-10-15](docs/adr/0017-ajustes-de-resiliencia-e-performance-da-auditoria-2026-10-15.md)
+      (`proposta`).
 4. **Documentos de detalhamento em [`docs/agents/`](docs/agents/):**
     - [**`divergencias-do-guia.md`**](docs/agents/divergencias-do-guia.md): divergências catalogadas entre o guia
       técnico e o repositório.
@@ -68,7 +74,7 @@ Antes de analisar, planejar ou implementar, leia na ordem:
       checklist de use cases e exceções.
     - [**`regras-de-codigo.md`**](docs/agents/regras-de-codigo.md): nomes, convenção de KDoc, Kotlin idiomático, Spring
       Boot 4/Spring 7, consistência, segurança e Flyway.
-    - [**`testes.md`**](docs/agents/testes.md): pirâmide de testes (234 testes), classpath/BOM, Testcontainers,
+    - [**`testes.md`**](docs/agents/testes.md): pirâmide de testes (341 testes), classpath/BOM, Testcontainers,
       WireMock, ArchUnit, `IntegrationTestSupport`.
     - [**`build-e-ci.md`**](docs/agents/build-e-ci.md): governança de dependências, contratos de build (`app.jar`),
       workflows de CI e Dependabot.
@@ -199,7 +205,7 @@ sequenciais por jornadas**:
 - **Definição de pronto (DoD):**
     1. Em funcionalidade nova ou correção de bug, o teste novo falhava antes da mudança e passa depois; em refatoração,
        os testes existentes continuam verdes;
-    2. `./gradlew build` está verde com Docker ligado e a suíte de testes executa com 100% de aprovação (234 testes);
+    2. `./gradlew build` está verde com Docker ligado e a suíte de testes executa com 100% de aprovação (341 testes);
     3. `./gradlew compileKotlin` não emite warnings novos;
     4. A checagem automatizada de arquitetura (`HexagonalArchitectureTest`) e a verificação de fronteiras passam com
        sucesso.  
@@ -341,7 +347,7 @@ As restrições técnicas abaixo são de observância mandatória em todo o repo
 
 ## 7. Testes automatizados em resumo
 
-A suíte conta com **234 testes automatizados** cobrindo todas as camadas e regras de negócio R1 a R10:
+A suíte conta com **341 testes automatizados** cobrindo todas as camadas e regras de negócio R1 a R10:
 
 - **Convenção de sufixos e execução:**
     - `*Test`: testes rápidos sem Docker (unitários de domínio sem frameworks, use cases com fakes em memória, slices

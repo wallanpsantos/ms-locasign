@@ -234,6 +234,58 @@ class ContractTest {
     }
 
     @Test
+    fun `retrato do provedor atrasado em relação ao contrato aberto não é rejeição na reconciliação (RC2)`() {
+        // O provedor não tem status próprio para PARTIALLY_SIGNED: ele segue em `sent` ou `viewed` enquanto o agregado avançou.
+        val contract = restoreWithStatus(ContractStatus.PARTIALLY_SIGNED)
+        val change = StatusChange(ContractStatus.SENT, ChangeSource.RECONCILIATION, "reconcile-1")
+
+        val result = contract.apply(change, later, signatureDeadline)
+
+        assertEquals(TransitionResult.NO_CHANGE, result)
+        assertEquals(ContractStatus.PARTIALLY_SIGNED, contract.status)
+        assertTrue(contract.pullEvents().isEmpty())
+        assertTrue(contract.pullHistory().isEmpty())
+    }
+
+    @Test
+    fun `o mesmo retrato atrasado vindo de webhook continua registrando IGNORED_TRANSITION (R5)`() {
+        val contract = restoreWithStatus(ContractStatus.PARTIALLY_SIGNED)
+
+        val result = contract.apply(webhookChange(ContractStatus.SENT, "evt-late-sent"), later, signatureDeadline)
+
+        assertEquals(TransitionResult.IGNORED, result)
+        assertSingleHistory(
+            contract,
+            from = ContractStatus.PARTIALLY_SIGNED,
+            to = ContractStatus.SENT,
+            outcome = HistoryOutcome.IGNORED_TRANSITION,
+            source = ChangeSource.WEBHOOK,
+            sourceEventId = "evt-late-sent",
+            note = "A transição PARTIALLY_SIGNED -> SENT regrediria o status.",
+        )
+    }
+
+    @Test
+    fun `contrato final continua imutável e registra a rejeição também na reconciliação (R5)`() {
+        val contract = restoreWithStatus(ContractStatus.COMPLETED)
+        val change = StatusChange(ContractStatus.SENT, ChangeSource.RECONCILIATION, "reconcile-1")
+
+        val result = contract.apply(change, later, signatureDeadline)
+
+        assertEquals(TransitionResult.IGNORED, result)
+        assertEquals(ContractStatus.COMPLETED, contract.status)
+        assertSingleHistory(
+            contract,
+            from = ContractStatus.COMPLETED,
+            to = ContractStatus.SENT,
+            outcome = HistoryOutcome.IGNORED_TRANSITION,
+            source = ChangeSource.RECONCILIATION,
+            sourceEventId = "reconcile-1",
+            note = "Contrato em estado final (COMPLETED) é imutável.",
+        )
+    }
+
+    @Test
     fun `atualização do provedor mais antiga que a última aplicada é rejeitada no histórico (ADR-010)`() {
         val contract = restoreWithStatus(ContractStatus.SENT)
         val change = webhookChange(ContractStatus.VIEWED, "evt-late").copy(providerModifiedAt = now.minusSeconds(1))

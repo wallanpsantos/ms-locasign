@@ -1,6 +1,8 @@
 package br.com.locasign.contract.infra.pandadoc
 
 import br.com.locasign.contract.app.ports.out.integration.ProviderException
+import br.com.locasign.shared.app.fakes.RecordingMetricsPort
+import br.com.locasign.shared.app.ports.Metrics
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
@@ -13,10 +15,17 @@ class SlidingWindowRateLimiterTest {
 
     private var nanos = 0L
     private val sleeps = mutableListOf<Long>()
+    private val metrics = RecordingMetricsPort()
 
-    private fun limiter(permits: Int, maxWait: Duration = Duration.ofSeconds(30)) = SlidingWindowRateLimiter(
+    private fun limiter(
+        permits: Int,
+        maxWait: Duration = Duration.ofSeconds(30),
+        fullWindowMaxWait: Duration = Duration.ofSeconds(70),
+    ) = SlidingWindowRateLimiter(
         permitsPerMinute = permits,
+        metrics = metrics,
         maxWait = maxWait,
+        fullWindowMaxWait = fullWindowMaxWait,
         nanoTime = { nanos },
         sleeper = { millis ->
             sleeps += millis
@@ -37,6 +46,7 @@ class SlidingWindowRateLimiterTest {
         limiter.acquire("create")
 
         assertTrue(sleeps.isEmpty())
+        assertTrue(metrics.counted.isEmpty())
     }
 
     @Test
@@ -48,18 +58,34 @@ class SlidingWindowRateLimiterTest {
         limiter.acquire("create")
 
         assertEquals(listOf(TimeUnit.SECONDS.toMillis(20) + 1), sleeps)
+        assertEquals(listOf(Metrics.PROVIDER_LOCAL_RATE_WAITED to listOf("operation", "create")), metrics.counted)
     }
 
     @Test
-    fun `espera acima do máximo lança RateLimited sem dormir`() {
+    fun `espera acima do máximo lança RateLimited sem dormir e conta a métrica de bloqueio local`() {
         val limiter = limiter(permits = 1, maxWait = Duration.ofSeconds(10))
         limiter.acquire("send")
         advanceSeconds(5)
 
-        val ex = assertFailsWith<ProviderException.RateLimited> { limiter.acquire("send") }
+        val ex = assertFailsWith<ProviderException.RateLimited> { limiter.acquire("send", RateLimitWait.SHORT) }
 
         assertEquals("Limite local de 1 requisições/min atingido para 'send'", ex.message)
         assertTrue(sleeps.isEmpty())
+        assertEquals(listOf(Metrics.PROVIDER_LOCAL_RATE_LIMITED to listOf("operation", "send")), metrics.counted)
+    }
+
+    @Test
+    fun `FULL_WINDOW aceita esperar a janela inteira enquanto SHORT falha rápido`() {
+        val limiter = limiter(permits = 1, maxWait = Duration.ofSeconds(10), fullWindowMaxWait = Duration.ofSeconds(70))
+        limiter.acquire("send")
+        advanceSeconds(10)
+
+        // Com SHORT espera seria de 50 s > 10 s -> estoura
+        assertFailsWith<ProviderException.RateLimited> { limiter.acquire("send", RateLimitWait.SHORT) }
+
+        // Com FULL_WINDOW espera de 50 s <= 70 s -> dorme e adquire
+        limiter.acquire("send", RateLimitWait.FULL_WINDOW)
+        assertEquals(listOf(TimeUnit.SECONDS.toMillis(50) + 1), sleeps)
     }
 
     @Test

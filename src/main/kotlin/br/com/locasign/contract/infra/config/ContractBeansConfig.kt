@@ -9,8 +9,10 @@ import br.com.locasign.contract.app.ports.out.messaging.ContractEventPublisherPo
 import br.com.locasign.contract.app.ports.out.repository.ContractQueryPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.app.ports.out.repository.PostSignatureActionsPort
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationMarkerPort
 import br.com.locasign.contract.app.queries.GetContract
 import br.com.locasign.contract.app.queries.GetContractHistory
+import br.com.locasign.contract.app.usecases.AnnulProviderDocument
 import br.com.locasign.contract.app.usecases.ApplyProviderUpdate
 import br.com.locasign.contract.app.usecases.ArchiveSignedDocument
 import br.com.locasign.contract.app.usecases.CancelContract
@@ -95,12 +97,14 @@ class ContractBeansConfig {
     @Bean
     fun applyProviderUpdate(
         contracts: ContractRepositoryPort,
+        reconciliationMarker: ReconciliationMarkerPort,
         persister: ContractPersister,
         clock: BusinessClock,
         settings: ContractSettings,
         metrics: MetricsPort,
         transactions: TransactionRunner,
-    ): ApplyProviderUpdate = ApplyProviderUpdate(contracts, persister, clock, settings, metrics, transactions)
+    ): ApplyProviderUpdate =
+        ApplyProviderUpdate(contracts, reconciliationMarker, persister, clock, settings, metrics, transactions)
 
     @Bean
     fun archiveSignedDocument(
@@ -136,21 +140,27 @@ class ContractBeansConfig {
     @Bean
     fun cancelContract(
         contracts: ContractRepositoryPort,
-        provider: SignatureProviderPort,
         persister: ContractPersister,
         clock: BusinessClock,
         transactions: TransactionRunner,
-    ): CancelContract = CancelContract(contracts, provider, persister, clock, transactions)
+    ): CancelContract = CancelContract(contracts, persister, clock, transactions)
+
+    @Bean
+    fun annulProviderDocument(
+        contracts: ContractRepositoryPort,
+        provider: SignatureProviderPort,
+        processed: ProcessedMessagesPort,
+        transactions: TransactionRunner,
+    ): AnnulProviderDocument = AnnulProviderDocument(contracts, provider, processed, transactions)
 
     @Bean
     fun expireOverdueContracts(
         contracts: ContractRepositoryPort,
-        provider: SignatureProviderPort,
         persister: ContractPersister,
         clock: BusinessClock,
         settings: ContractSettings,
         transactions: TransactionRunner,
-    ): ExpireOverdueContracts = ExpireOverdueContracts(contracts, provider, persister, clock, settings, transactions)
+    ): ExpireOverdueContracts = ExpireOverdueContracts(contracts, persister, clock, settings, transactions)
 
     @Bean
     fun sendSignatureReminders(

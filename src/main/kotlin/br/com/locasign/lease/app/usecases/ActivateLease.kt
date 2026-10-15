@@ -19,10 +19,10 @@ class ActivateLease(
     private val transactions: TransactionRunner,
 ) {
 
-    fun execute(leaseId: LeaseId): Boolean = transactions.run {
-        val lease = leases.findById(leaseId) ?: throw DomainException.NotFound("Locação", leaseId.toString())
-        val changed = lease.activate(clock.now())
-        if (changed) leases.save(lease)
-        changed
+    fun execute(leaseId: LeaseId) {
+        transactions.run {
+            val lease = leases.findById(leaseId) ?: throw DomainException.NotFound("Locação", leaseId.toString())
+            if (lease.activate(clock.now())) leases.save(lease)
+        }
     }
 }

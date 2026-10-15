@@ -43,5 +43,5 @@ class LeaseLookupAdapter(private val leases: LeaseRepositoryPort) : LeaseLookupP
 @Component
 class LeaseActivationAdapter(private val activateLease: ActivateLease) : LeaseActivationPort {
 
-    override fun activate(leaseId: LeaseId): Boolean = activateLease.execute(leaseId)
+    override fun activate(leaseId: LeaseId) = activateLease.execute(leaseId)
 }

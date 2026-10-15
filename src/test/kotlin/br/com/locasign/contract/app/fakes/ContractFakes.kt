@@ -209,5 +209,7 @@ class FakeLeaseLookup : LeaseLookupPort {
 class FakeLeaseActivation : LeaseActivationPort {
     val activated = mutableSetOf<LeaseId>()
 
-    override fun activate(leaseId: LeaseId): Boolean = activated.add(leaseId)
+    override fun activate(leaseId: LeaseId) {
+        activated.add(leaseId)
+    }
 }

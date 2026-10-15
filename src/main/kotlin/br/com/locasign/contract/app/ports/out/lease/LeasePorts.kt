@@ -41,8 +41,7 @@ interface LeaseLookupPort {
  *
  * **Responsabilidade:**
  * - Executar a transição da locação para o status ativo de forma desacoplada após a assinatura de todas as partes.
- * - Retornar se a ativação foi efetivamente aplicada nesta chamada (idempotência).
  */
 interface LeaseActivationPort {
-    fun activate(leaseId: LeaseId): Boolean
+    fun activate(leaseId: LeaseId)
 }

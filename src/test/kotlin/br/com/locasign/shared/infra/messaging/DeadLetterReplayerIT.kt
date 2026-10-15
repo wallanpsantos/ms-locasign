@@ -14,7 +14,6 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * O replay devolve a mensagem da DLT ao tópico original sem os headers `kafka_dlt-*`.
@@ -31,11 +30,13 @@ class DeadLetterReplayerIT(
     @Test
     fun `replay devolve a mensagem da DLT ao tópico original sem os headers kafka_dlt`() {
         val key = "replay-it-${UUID.randomUUID()}"
-        val value = """{"eventId":"${UUID.randomUUID()}","eventType":"ReplayProbe","aggregateId":"${UUID.randomUUID()}"}"""
+        val value =
+            """{"eventId":"${UUID.randomUUID()}","eventType":"ReplayProbe","aggregateId":"${UUID.randomUUID()}"}"""
         val deadLetter = ProducerRecord(Topics.CONTRACT_EVENTS + Topics.DEAD_LETTER_SUFFIX, key, value)
         deadLetter.headers().add(KafkaHeaders.DLT_ORIGINAL_TOPIC, Topics.CONTRACT_EVENTS.toByteArray())
         deadLetter.headers().add("kafka_dlt-exception-message", "falha simulada".toByteArray())
         deadLetter.headers().add("x-locasign-probe", "mantido".toByteArray())
+        deadLetter.headers().add("x-locasign-ordem", "segundo".toByteArray())
         kafka.send(deadLetter).get(10, TimeUnit.SECONDS)
 
         val replayed = consumerFactory.createConsumer("dlt-replay-it-${UUID.randomUUID()}", "").use { consumer ->
@@ -51,8 +52,10 @@ class DeadLetterReplayerIT(
             checkNotNull(found)
         }
 
+        // Os offsets da DLT foram confirmados: um novo replay não encontra mais nada para reenviar.
+        assertEquals(0, replayer.replay(Topics.CONTRACT_EVENTS))
         assertEquals(value, replayed.value())
+        assertEquals(listOf("x-locasign-probe", "x-locasign-ordem"), replayed.headers().map { it.key() })
         assertEquals("mantido", replayed.headers().lastHeader("x-locasign-probe")?.value()?.toString(Charsets.UTF_8))
-        assertTrue(replayed.headers().none { it.key().startsWith("kafka_dlt-") })
     }
 }

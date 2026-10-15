@@ -222,14 +222,13 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
 
     @Test
     fun `regra de negócio responde 422 com título, detalhe e o campo do JSON`() {
-        given(registerLease.execute(any())).willThrow(
-            DomainException.BusinessRuleViolation("startDate", "A data de início deve ser igual ou posterior à data do cadastro."),
-        )
+        val message = "A data de início deve ser igual ou posterior à data do cadastro."
+        given(registerLease.execute(any())).willThrow(DomainException.BusinessRuleViolation("startDate", message))
 
         val json = assertThat(postLease(validRequestJson)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT).bodyJson()
 
         json.extractingPath("$.title").isEqualTo("Regra de negócio violada")
-        json.extractingPath("$.detail").isEqualTo("A data de início deve ser igual ou posterior à data do cadastro.")
+        json.extractingPath("$.detail").isEqualTo(message)
         json.extractingPath("$.field").isEqualTo("startDate")
         json.extractingPath("$.status").isEqualTo(422)
     }

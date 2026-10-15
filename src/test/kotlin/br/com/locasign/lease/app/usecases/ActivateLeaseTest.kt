@@ -24,7 +24,8 @@ class ActivateLeaseTest {
     private val registeredAt = Instant.parse("2026-10-09T10:00:00Z")
     private val activatedAt = Instant.parse("2026-10-12T15:30:00Z")
     private val leases = InMemoryLeaseRepository()
-    private val activateLease = ActivateLease(leases, FixedBusinessClock(activatedAt), ImmediateTransactionRunner)
+    private val clock = FixedBusinessClock(activatedAt)
+    private val activateLease = ActivateLease(leases, clock, ImmediateTransactionRunner)
 
     private fun registeredLease(): Lease = Lease.register(
         tenant = Tenant("Maria Silva", Cpf.of("529.982.247-25"), Email.of("maria@example.com")),
@@ -38,7 +39,7 @@ class ActivateLeaseTest {
     ).also(leases::save)
 
     @Test
-    fun `locação registrada passa a ACTIVE com a data do relógio e é gravada (R8)`() {
+    fun `locação registrada passa a ACTIVE com a data do relógio e é gravada`() {
         val lease = registeredLease()
 
         activateLease.execute(lease.id)
@@ -50,9 +51,10 @@ class ActivateLeaseTest {
     }
 
     @Test
-    fun `locação já ativa não é gravada de novo`() {
+    fun `locação já ativa não é gravada de novo nem muda a data de ativação`() {
         val lease = registeredLease()
         activateLease.execute(lease.id)
+        clock.instant = activatedAt.plusSeconds(3600)
 
         activateLease.execute(lease.id)
 

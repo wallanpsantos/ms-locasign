@@ -43,7 +43,7 @@ class RecordNotificationsTest {
         LoggedNotification(contractId.toString(), "evt-1", eventType, recipient.emailMasked)
 
     @Test
-    fun `evento com público registra uma linha por destinatário com o e-mail mascarado (R10)`() {
+    fun `evento com público registra uma linha por destinatário daquele público`() {
         recordNotifications.execute(command("ContractSent"))
 
         assertEquals(listOf(contractId.toString() to Audience.AGENCY_ONLY), recipients.requested)
@@ -52,7 +52,7 @@ class RecordNotificationsTest {
     }
 
     @Test
-    fun `conclusão do contrato notifica todas as partes na ordem de assinatura`() {
+    fun `conclusão do contrato notifica todas as partes devolvidas pela porta`() {
         recordNotifications.execute(command("ContractCompleted"))
 
         assertEquals(

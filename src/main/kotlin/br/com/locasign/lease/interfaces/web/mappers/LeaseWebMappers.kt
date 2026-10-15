@@ -44,5 +44,9 @@ fun LeaseDetailView.toResponse(): LeaseResponse = LeaseResponse(
 )
 
 /** Converte a visão do contrato corrente ([CurrentContractView]) no DTO [CurrentContractResponse]. */
-fun CurrentContractView.toResponse(): CurrentContractResponse =
-    CurrentContractResponse(id, versionNumber, status, expiresAt)
+fun CurrentContractView.toResponse(): CurrentContractResponse = CurrentContractResponse(
+    id = id,
+    versionNumber = versionNumber,
+    status = status,
+    expiresAt = expiresAt,
+)

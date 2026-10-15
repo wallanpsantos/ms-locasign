@@ -1,9 +1,11 @@
 package br.com.locasign.contract.infra.persistence.adapters
 
+import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
+import br.com.locasign.contract.domain.models.StatusChange
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.lease.domain.models.AgencySigner
 import br.com.locasign.lease.domain.models.Lease
@@ -17,13 +19,13 @@ import br.com.locasign.shared.domain.valueobjects.Email
 import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class ContractRepositoryAdapterIT(
     @Autowired private val contractRepositoryAdapter: ContractRepositoryAdapter,
@@ -121,12 +123,15 @@ class ContractRepositoryAdapterIT(
         contractRepositoryAdapter.save(toCancel)
         val contract2 = createContract(lease, versionNumber = 2)
         contractRepositoryAdapter.save(contract2)
+        val toSend = assertNotNull(contractRepositoryAdapter.findById(contract2.id))
+        toSend.apply(StatusChange(ContractStatus.SENT, ChangeSource.WEBHOOK, "evt-sent"), now, Duration.ofDays(7))
+        contractRepositoryAdapter.save(toSend)
 
         val current = assertNotNull(leaseQueryAdapter.findDetail(lease.id)?.currentContract)
 
         assertEquals(contract2.id.toString(), current.id)
         assertEquals(2, current.versionNumber)
-        assertEquals("DRAFT", current.status)
-        assertNull(current.expiresAt)
+        assertEquals("SENT", current.status)
+        assertEquals(now.plus(Duration.ofDays(7)), current.expiresAt)
     }
 }

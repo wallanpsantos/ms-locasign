@@ -99,6 +99,40 @@ class ContractControllerTest(@Autowired private val mvc: MockMvcTester) {
     }
 
     @Test
+    fun `conflito por contrato ativo devolve título e detalhe do Problem Details (R1)`() {
+        val leaseId = LeaseId.new()
+        val message = "Já existe um contrato em andamento para esta locação. Cancele-o antes de gerar uma nova versão."
+        given(requestContract.execute(any()))
+            .willThrow(DomainException.ActiveContractExists(leaseId.toString(), message))
+
+        val json = assertThat(mvc.perform(post("/api/v1/leases/$leaseId/contracts")))
+            .hasStatus(HttpStatus.CONFLICT)
+            .bodyJson()
+
+        json.extractingPath("$.title").isEqualTo("Já existe contrato ativo")
+        json.extractingPath("$.detail").isEqualTo(message)
+    }
+
+    @Test
+    fun `cancelamento de contrato em estado final responde 409 com problems contract-final (R5)`() {
+        val contractId = ContractId.new()
+        given(cancelContract.execute(any()))
+            .willThrow(DomainException.ContractFinal(contractId.toString(), "COMPLETED"))
+
+        val result = mvc.perform(
+            post("/api/v1/contracts/$contractId/cancel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"reason": "Desistência por parte do locatário"}"""),
+        )
+
+        val json = assertThat(result).hasStatus(HttpStatus.CONFLICT).bodyJson()
+        json.extractingPath("$.type").isEqualTo("/problems/contract-final")
+        json.extractingPath("$.title").isEqualTo("Contrato em estado final")
+        json.extractingPath("$.detail")
+            .isEqualTo("O contrato $contractId está em estado final (COMPLETED) e não aceita esta operação.")
+    }
+
+    @Test
     fun `reconciliação sem token de operador responde 403 Forbidden`() {
         val contractId = ContractId.new()
 

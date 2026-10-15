@@ -63,7 +63,10 @@ class DeadLetterReplayer(
         return replayed
     }
 
-    /** Volta ao tópico original (header `kafka_dlt-original-topic`) sem os headers `kafka_dlt-*` da DLT. */
+    /**
+     * Volta ao tópico original (header `kafka_dlt-original-topic` ou, na falta dele, `sourceTopic`) sem os headers
+     * `kafka_dlt-*` da DLT, mantendo a ordem dos demais.
+     */
     private fun replayRecord(
         record: ConsumerRecord<String, String>,
         sourceTopic: String,

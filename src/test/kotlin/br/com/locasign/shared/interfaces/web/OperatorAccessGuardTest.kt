@@ -1,0 +1,82 @@
+package br.com.locasign.shared.interfaces.web
+
+import br.com.locasign.contract.app.queries.ContractDetailView
+import br.com.locasign.contract.app.queries.GetContract
+import br.com.locasign.contract.app.queries.GetContractHistory
+import br.com.locasign.contract.app.usecases.CancelContract
+import br.com.locasign.contract.app.usecases.ReconcileContracts
+import br.com.locasign.contract.app.usecases.RequestContract
+import br.com.locasign.contract.domain.valueobjects.ContractId
+import br.com.locasign.contract.interfaces.web.ContractController
+import br.com.locasign.shared.infra.observability.MdcCorrelationContext
+import org.assertj.core.api.Assertions.assertThat
+import org.mockito.BDDMockito.given
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
+import org.springframework.http.HttpStatus
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.web.servlet.assertj.MockMvcTester
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import java.time.Instant
+import kotlin.test.Test
+
+/** Com `ADMIN_TOKEN` configurado, só o header `X-Admin-Token` com o mesmo valor libera a reconciliação (ADR-013). */
+@WebMvcTest(controllers = [ContractController::class], properties = ["locasign.admin.token=token-de-teste"])
+@Import(MdcCorrelationContext::class, ApiExceptionHandler::class, OperatorAccessGuard::class)
+class OperatorAccessGuardTest(@Autowired private val mvc: MockMvcTester) {
+
+    @MockitoBean
+    private lateinit var requestContract: RequestContract
+
+    @MockitoBean
+    private lateinit var getContract: GetContract
+
+    @MockitoBean
+    private lateinit var getContractHistory: GetContractHistory
+
+    @MockitoBean
+    private lateinit var cancelContract: CancelContract
+
+    @MockitoBean
+    private lateinit var reconcileContracts: ReconcileContracts
+
+    private fun reconcile(contractId: ContractId, token: String) =
+        mvc.perform(post("/api/v1/contracts/$contractId/reconcile").header("X-Admin-Token", token))
+
+    @Test
+    fun `reconciliação com o token de operador correto é aceita (ADR-013)`() {
+        val contractId = ContractId.new()
+        val at = Instant.parse("2026-10-09T10:00:00Z")
+        given(getContract.execute(contractId)).willReturn(
+            ContractDetailView(
+                id = contractId.toString(),
+                leaseId = "locacao-1",
+                versionNumber = 1,
+                status = "SENT",
+                providerDocumentId = "doc-1",
+                sentAt = at,
+                expiresAt = null,
+                cancelReason = null,
+                signedDocumentRef = null,
+                signers = emptyList(),
+                createdAt = at,
+                updatedAt = at,
+            ),
+        )
+
+        assertThat(reconcile(contractId, "token-de-teste")).hasStatus(HttpStatus.ACCEPTED)
+    }
+
+    @Test
+    fun `reconciliação com token de operador diferente responde 403 (ADR-013)`() {
+        assertThat(reconcile(ContractId.new(), "outro-token")).hasStatus(HttpStatus.FORBIDDEN)
+    }
+
+    @Test
+    fun `reconciliação sem o header X-Admin-Token responde 403 mesmo com o token configurado (ADR-013)`() {
+        val result = mvc.perform(post("/api/v1/contracts/${ContractId.new()}/reconcile"))
+
+        assertThat(result).hasStatus(HttpStatus.FORBIDDEN)
+    }
+}

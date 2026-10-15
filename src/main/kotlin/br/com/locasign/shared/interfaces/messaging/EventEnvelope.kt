@@ -32,8 +32,8 @@ data class EventEnvelope(
 
 /**
  * `aggregateId` como [Uuid], para envelopes cujo agregado é identificado por UUID (eventos de contrato); valor
- * inválido é mensagem ilegível e vai direto para a DLT ([UnreadableMessageException]). Nos itens de webhook, o
- * `aggregateId` é o id do documento ou o `deliveryId`, não um UUID.
+ * inválido é mensagem ilegível e vai direto para a DLT ([UnreadableMessageException], docs/agents/regras-de-codigo.md
+ * §2). Nos itens de webhook, o `aggregateId` é o id do documento ou o `deliveryId`, não um UUID.
  */
 fun EventEnvelope.aggregateUuid(): Uuid =
     Uuid.parseOrNull(aggregateId)

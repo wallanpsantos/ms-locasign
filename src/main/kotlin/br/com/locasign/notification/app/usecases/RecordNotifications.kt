@@ -24,7 +24,7 @@ data class RecordNotificationsCommand(val eventId: String, val eventType: String
  * **Responsabilidade:**
  * - Avaliar o público-alvo com base no tipo de evento utilizando [NotificationPolicy].
  * - Assegurar consumo idempotente por meio de [ProcessedMessagesPort] e demarcação transacional via [TransactionRunner].
- * - Obter os contatos mascarados via [NotificationRecipientsPort] e registrar a auditoria via [NotificationLogPort] sem expor dados pessoais sensíveis (R1-R10 / LGPD).
+ * - Obter os contatos mascarados via [NotificationRecipientsPort] e registrar a auditoria via [NotificationLogPort] sem expor dados pessoais (R10, LGPD).
  */
 class RecordNotifications(
     private val recipients: NotificationRecipientsPort,

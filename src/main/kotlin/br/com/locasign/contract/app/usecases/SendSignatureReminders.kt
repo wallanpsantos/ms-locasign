@@ -7,11 +7,11 @@ import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
 
 /**
- * Caso de uso agendado responsável por identificar contratos pendentes e disparar lembretes de assinatura (Regra R4 e R7).
+ * Caso de uso agendado responsável por identificar contratos pendentes e disparar lembretes de assinatura (Regra R4).
  *
  * **Responsabilidade:**
  * - Identificar contratos aguardando assinaturas que atingiram a janela de lembrete (3º dia).
- * - Registrar o lembrete no agregado [Contract] e emitir o evento `ContractReminderSent` via outbox para notificação simulada.
+ * - Registrar o lembrete no agregado [br.com.locasign.contract.domain.models.Contract] e emitir o evento `ContractReminderSent` via outbox para notificação simulada.
  */
 class SendSignatureReminders(
     private val contracts: ContractRepositoryPort,

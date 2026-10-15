@@ -8,7 +8,7 @@ import org.slf4j.MDC
 import org.springframework.stereotype.Component
 
 /**
- * Adaptador de infraestrutura para coleta e emissão de métricas operacionais via Micrometer e Prometheus.
+ * Adaptador de infraestrutura para coleta de métricas operacionais via Micrometer, expostas em `/actuator/metrics` (não há Prometheus).
  *
  * **Responsabilidade:**
  * - Implementar a porta [MetricsPort], incrementando contadores dimensionais no [MeterRegistry] do Spring Boot.
@@ -22,11 +22,11 @@ class MicrometerMetricsAdapter(private val registry: MeterRegistry) : MetricsPor
 }
 
 /**
- * Adaptador de infraestrutura para injeção de contexto de rastreabilidade distribuída no MDC do SLF4J.
+ * Adaptador de infraestrutura para injeção do contexto de correlação no MDC do SLF4J.
  *
  * **Responsabilidade:**
- * - Implementar a porta [CorrelationContext], gravando [correlationId], [causationId] e metadados nas threads de execução.
- * - Restaurar o estado prévio do MDC ao término da invocação para evitar vazamento de contexto entre requisições concorrentes.
+ * - Implementar a porta [CorrelationContext], gravando `correlationId`, `causationId` e metadados no MDC da thread corrente.
+ * - Restaurar o mapa anterior do MDC ao término do bloco: o MDC é por thread, e a restauração evita vazamento para a próxima tarefa na mesma thread ou para o contexto externo em chamadas aninhadas.
  */
 @Component
 class MdcCorrelationContext : CorrelationContext {

@@ -59,7 +59,7 @@ fun Signer.toEntity(): ContractSignerEntity = ContractSignerEntity(
  * Reconstrói o agregado de domínio [Contract] a partir da entidade relacional [ContractEntity].
  *
  * **Responsabilidade:**
- * - Reconstituir todos os Value Objects tipados ([ContractId], [LeaseId], [ProviderDocumentId], [CancelReason]) sem disparar novos eventos de domínio.
+ * - Reconstituir os value objects tipados ([ContractId], [LeaseId], [ProviderDocumentId]) e o [CancelReason] (interface selada, sem validação) sem disparar novos eventos de domínio.
  * - Ordenar os signatários recuperados por sua ordem estrita de assinatura.
  */
 fun ContractEntity.toDomain(): Contract = Contract.restore(
@@ -81,6 +81,7 @@ fun ContractEntity.toDomain(): Contract = Contract.restore(
     rowVersion = rowVersion,
 )
 
+/** Reconstrói o [Signer] a partir da linha de `contract_signers`. */
 fun ContractSignerEntity.toDomain(): Signer = Signer(
     role = SignerRole.valueOf(role),
     name = name,

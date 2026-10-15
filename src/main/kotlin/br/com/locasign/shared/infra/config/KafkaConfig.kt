@@ -21,7 +21,7 @@ import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries
  *
  * **Responsabilidade:**
  * - Registrar os beans de tópicos de produção e suas respectivas DLTs ([NewTopic]) para criação declarativa no broker.
- * - Configurar a estratégia de tratamento de erros com retentativa exponencial (3 tentativas) e desvio de mensagens venenosas ou ilegíveis para DLT com contagem de métricas de telemetria.
+ * - Configurar a estratégia de tratamento de erros com entrega original mais 3 retentativas (backoff exponencial de 1 s, 2 s e 4 s) e desvio de mensagens venenosas ou ilegíveis para DLT com contagem de métricas de telemetria.
  */
 @Configuration(proxyBeanMethods = false)
 class KafkaConfig {

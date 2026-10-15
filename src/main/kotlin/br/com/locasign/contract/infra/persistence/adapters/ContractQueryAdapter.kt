@@ -14,7 +14,7 @@ import kotlin.uuid.toJavaUuid
  * Adaptador de leitura que implementa a porta de consultas [ContractQueryPort] via JDBC direto.
  *
  * **Responsabilidade:**
- * - Executar projeções otimizadas de leitura diretamente contra as tabelas `contracts`, `contract_signers` e `contract_status_history`.
+ * - Executar as consultas de leitura diretamente, com `JdbcClient`, contra as tabelas `contracts`, `contract_signers` e `contract_status_history`.
  * - Fornecer DTOs de leitura ([ContractDetailView] e [HistoryEntryView]) sem passar pelo ciclo de instanciação do agregado.
  */
 @Repository

@@ -54,7 +54,7 @@ data class LocaSignProperties(
         val batchSize: Int = 100,
         /** Tempo máximo esperando a confirmação do broker para cada mensagem. */
         val sendTimeout: Duration = Duration.ofSeconds(10),
-        /** Idade a partir da qual eventos já publicados do outbox e do inbox são removidos. */
+        /** Idade a partir da qual o `HousekeepingJob` remove eventos já publicados do outbox, entregas do inbox e `processed_messages`. */
         val retention: Duration = Duration.ofDays(30),
     )
 

@@ -4,7 +4,7 @@ import br.com.locasign.shared.domain.DomainException
 import kotlin.uuid.Uuid
 
 /**
- * Identificador tipado único de um contrato de locação, encapsulando um [Uuid] v7.
+ * Identificador tipado único de um contrato de locação, encapsulando um [Uuid] v4 (`Uuid.random()`).
  *
  * **Responsabilidade:**
  * - Garantir tipagem forte e imutabilidade na identificação de instâncias de contratos.

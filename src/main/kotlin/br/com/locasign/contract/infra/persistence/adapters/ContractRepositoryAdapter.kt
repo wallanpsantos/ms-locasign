@@ -24,8 +24,8 @@ import kotlin.uuid.toKotlinUuid
  *
  * **Responsabilidade:**
  * - Salvar atomicamente o agregado [Contract], os signatários associados e descarregar as linhas de auditoria pendentes na tabela `contract_status_history`.
- * - Tratar violações de unicidade de contrato ativo (índice parcial da Regra R1) convertendo erros relacionais em [DomainException.ActiveContractExists].
- * - Executar consultas especializadas com SQL otimizado para expiração, lembretes e reconciliação em lote.
+ * - Converter em [DomainException.ActiveContractExists] (409) as violações de `ux_contracts_one_active_per_lease` (Regra R1) e de `uq_contracts_lease_version` (numeração de versões).
+ * - Executar as consultas de expiração, lembretes e reconciliação em lote com `JdbcClient`.
  */
 @Repository
 class ContractRepositoryAdapter(

@@ -179,7 +179,7 @@ formalizado no [ADR-015](docs/adr/0015-convencao-de-kdoc.md):
 ## Estratégia e Pirâmide de Testes
 
 A aplicação possui uma esteira rigorosa de testes automatizados cobrindo todas as camadas da arquitetura hexagonal
-(formalizada no [ADR-014](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)), totalizando **112 testes automatizados
+(formalizada no [ADR-014](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)), totalizando **234 testes automatizados
 com 100% de aprovação**:
 
 ```text
@@ -188,19 +188,19 @@ com 100% de aprovação**:
             /E2E\             LocaSignE2EIT (1 teste)
            /-----\            Fluxo assíncrono completo: REST ➔ Outbox ➔ Kafka ➔ WireMock ➔ Webhook ➔ Ativação
           /  IT   \
-         /---------\          Testcontainers (PostgreSQL 18.6 + Kafka 4.3.1 KRaft) (11 testes)
+         /---------\          Testcontainers (PostgreSQL 18.6 + Kafka 4.3.1 KRaft) (19 testes)
         / WireMock  \         Persistência real, índices parciais (R1), outbox, inbox e idempotência (R6, R7, R8)
        /-------------\
-      /   ArchUnit    \       PandaDocSignatureProviderAdapterTest e PandaDocErrorsTest (16 testes)
+      /   ArchUnit    \       PandaDocSignatureProviderAdapterTest e PandaDocErrorsTest (20 testes)
      /-----------------\      Contratos REST, resiliência HTTP/1.1, rate limit 429, backoff e tradução de erros
     /     Web Slices    \
    /---------------------\    HexagonalArchitectureTest (13 testes)
   /   Unitários de Domínio\   Fronteiras arquiteturais do AGENTS.md §5 (docs/agents/arquitetura.md §6)
  /_________________________\
-                              @WebMvcTest com MockMvcTester (12 testes)
+                              @WebMvcTest com MockMvcTester (27 testes)
                               Validação Jakarta Bean Validation, RFC 9457 Problem Details e segurança do operador
 
-                              Domínio e Aplicação Puros (59 testes)
+                              Domínio e Aplicação Puros (154 testes)
                               Agregados Contract e Lease, políticas de transição (R5), value objects (Cpf, Email, Money)
 ```
 

@@ -18,7 +18,7 @@ object ContextKeys {
  * Porta de saída da camada de aplicação para propagação de contexto de rastreabilidade distribuída.
  *
  * **Responsabilidade:**
- * - Propagar identificadores de rastreamento ([correlationId] e [causationId]) e metadados contextuais durante o ciclo de execução de blocos de código.
+ * - Propagar identificadores de rastreamento (`correlationId` e `causationId`) e metadados contextuais durante o ciclo de execução de blocos de código.
  * - Manter o contexto de MDC (Mapped Diagnostic Context) acessível para ferramentas de logging sem acoplar as assinaturas dos casos de uso a frameworks específicos.
  */
 interface CorrelationContext {

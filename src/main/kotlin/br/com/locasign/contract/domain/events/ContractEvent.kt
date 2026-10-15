@@ -46,7 +46,7 @@ data class ContractRequested(
  *
  * **Responsabilidade:**
  * - Vincular o identificador do provedor ([ProviderDocumentId]) ao contrato do sistema.
- * - Desencadear os passos subsequentes de envio para assinatura.
+ * - Nenhum consumidor reage a este evento: o envio para assinatura é pedido pelo `SendContract`, não disparado por ele.
  */
 data class ContractDocumentCreated(
     override val contractId: ContractId,
@@ -87,7 +87,7 @@ data class ContractGenerationFailed(
  *
  * **Responsabilidade:**
  * - Registrar o envio do documento e definir a data-limite de expiração calculada (Regra R4).
- * - Disparar o agendamento de verificações de prazo e lembretes de pendência.
+ * - Não agenda nada: os jobs de expiração e de lembrete consultam o prazo no banco (R4).
  */
 data class ContractSent(
     override val contractId: ContractId,
@@ -112,8 +112,8 @@ data class ContractViewed(
  * Evento emitido quando um signatário individual conclui com sucesso a assinatura do contrato (`PARTIALLY_SIGNED`).
  *
  * **Responsabilidade:**
- * - Registrar o cumprimento individual da assinatura de uma parte específica ([role]) respeitando a ordem ordinal (R3).
- * - Atualizar a trilha de auditoria e emitir notificações parciais para as partes interessadas.
+ * - Registrar a assinatura de uma parte específica ([role]), uma vez por papel e só em contrato não final (R5).
+ * - Não garante a ordem das assinaturas (R3) nem exige o status `PARTIALLY_SIGNED`: registra o que o provedor informou.
  */
 data class ContractSignerCompleted(
     override val contractId: ContractId,
@@ -127,7 +127,8 @@ data class ContractSignerCompleted(
  *
  * **Responsabilidade:**
  * - Formalizar a finalização do ciclo de assinaturas com validade jurídica integral.
- * - Desencadear os efeitos colaterais pós-assinatura (R8), incluindo arquivamento de PDF e ativação da locação.
+ * - Desencadear a ativação da locação (R8): o `PostSignatureConsumer` reage a ele com `RunPostSignatureActions`.
+ * - Não arquiva o PDF: quem arquiva é o `ArchiveSignedDocument`, disparado pelo webhook `document_completed_pdf_ready`.
  */
 data class ContractCompleted(
     override val contractId: ContractId,
@@ -168,7 +169,8 @@ data class ContractExpired(
  *
  * **Responsabilidade:**
  * - Registrar a rescisão voluntária do processo de assinatura com justificativa formal informada.
- * - Cancelar o documento no provedor externo e notificar as partes envolvidas.
+ * - Não cancela no provedor: o `CancelContract` anula o documento na requisição (`docs/agents/arquitetura.md` §7).
+ * - Notifica só a imobiliária (`NotificationPolicy`, `AGENCY_ONLY`).
  */
 data class ContractCancelled(
     override val contractId: ContractId,
@@ -178,7 +180,7 @@ data class ContractCancelled(
 ) : ContractEvent
 
 /**
- * Evento emitido quando um lembrete de assinatura pendente é enviado aos signatários faltantes (Regra R7).
+ * Evento emitido quando um lembrete de assinatura pendente é enviado aos signatários faltantes (Regra R4).
  *
  * **Responsabilidade:**
  * - Registrar o envio do alerta preventivo de aproximação do prazo de expiração para auditoria e observabilidade.
@@ -208,8 +210,8 @@ data class SignedDocumentArchived(
  * Evento emitido quando a locação vinculada é efetivamente ativada como consequência da conclusão do contrato.
  *
  * **Responsabilidade:**
- * - Concretizar a integração de negócio entre os módulos `contract` e `lease` após a assinatura bem-sucedida (R8).
- * - Notificar sistemas a jusante sobre o início formal da vigência do contrato de locação.
+ * - Registrar que o `RunPostSignatureActions` ativou a locação após a assinatura (R8).
+ * - Nenhum consumidor reage a este evento: ele fica no outbox e na trilha de auditoria.
  */
 data class LeaseActivated(
     override val contractId: ContractId,

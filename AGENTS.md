@@ -40,7 +40,7 @@ Antes de analisar, planejar ou implementar, leia na ordem:
       de use cases e exceções.
     - [`regras-de-codigo.md`](docs/agents/regras-de-codigo.md): nomes, convenção de KDoc, Kotlin idiomático, Spring Boot
       4/Spring 7, consistência, segurança e Flyway.
-    - [`testes.md`](docs/agents/testes.md): pirâmide de testes (112 testes), classpath/BOM, Testcontainers, WireMock,
+    - [`testes.md`](docs/agents/testes.md): pirâmide de testes (234 testes), classpath/BOM, Testcontainers, WireMock,
       ArchUnit, `IntegrationTestSupport`.
     - [`build-e-ci.md`](docs/agents/build-e-ci.md): governança de dependências, contratos de build (`app.jar`),
       workflows de CI e Dependabot.
@@ -236,7 +236,7 @@ As restrições técnicas abaixo são de observância mandatória em todo o repo
 
 ## 7. Testes automatizados em resumo
 
-A suíte conta com 112 testes automatizados cobrindo todas as camadas e regras de negócio R1 a R10:
+A suíte conta com 234 testes automatizados cobrindo todas as camadas e regras de negócio R1 a R10:
 
 - **Convenção de sufixos e execução:**
     - `*Test`: testes rápidos sem Docker (unitários de domínio sem frameworks, use cases com fakes em memória,

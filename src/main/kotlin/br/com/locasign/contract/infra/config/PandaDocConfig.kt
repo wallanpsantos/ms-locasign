@@ -24,7 +24,7 @@ import java.net.http.HttpClient
  * Configuração de beans de infraestrutura para integração com o provedor PandaDoc.
  *
  * **Responsabilidade:**
- * - Configurar o cliente [org.springframework.web.client.RestClient] com timeouts resilientes, fábrica de buffer e cabeçalho de autenticação via API-Key.
+ * - Configurar o cliente [org.springframework.web.client.RestClient] com timeouts de conexão e leitura, fábrica de buffer e cabeçalho de autenticação via API-Key.
  * - Criar e disponibilizar os beans [PandaDocClient], [SlidingWindowRateLimiter], [PandaDocSignatureProviderAdapter] e [PandaDocWebhookGateway].
  */
 @Configuration(proxyBeanMethods = false)

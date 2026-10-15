@@ -28,7 +28,7 @@ interface SignatureProviderPort {
 }
 
 /**
- * Gateway de entrada para tratamento preliminar e validação criptográfica de payloads de webhooks do provedor.
+ * Porta de saída para validar a autenticidade e interpretar os payloads de webhooks do provedor; o receptor HTTP é um adaptador de entrada.
  *
  * **Responsabilidade:**
  * - Validar a assinatura HMAC sobre os bytes brutos (`raw bytes`) do corpo da requisição em tempo constante antes de qualquer parsing (ADR-012).

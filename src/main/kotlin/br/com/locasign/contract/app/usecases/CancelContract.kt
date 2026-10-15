@@ -20,7 +20,7 @@ data class CancelContractCommand(val contractId: ContractId, val reason: String)
  * Caso de uso síncrono responsável por cancelar um contrato por solicitação do corretor ou operador (Regra R9).
  *
  * **Responsabilidade:**
- * - Validar a justificativa de cancelamento e aplicar a transição para `CANCELLED` no agregado [Contract].
+ * - Validar a justificativa de cancelamento e aplicar a transição para `CANCELLED` no agregado [br.com.locasign.contract.domain.models.Contract].
  * - Persistir a alteração transacionalmente e, subsequentemente fora da transação, anular o documento no provedor externo em melhor esforço para impedir assinaturas residuais.
  */
 class CancelContract(

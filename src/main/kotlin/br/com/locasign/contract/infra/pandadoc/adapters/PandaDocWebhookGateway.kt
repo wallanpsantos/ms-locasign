@@ -20,7 +20,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Adaptador de entrada que implementa [ProviderWebhookGateway] para recepção segura de webhooks da PandaDoc.
+ * Adaptador de saída (driven) que implementa [ProviderWebhookGateway] para os webhooks da PandaDoc; o receptor HTTP é o `PandaDocWebhookController`.
  *
  * **Responsabilidade:**
  * - Validar a assinatura criptográfica HMAC-SHA256 em tempo constante diretamente sobre os bytes brutos (`raw bytes`) da requisição HTTP (ADR-012).

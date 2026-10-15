@@ -4,9 +4,9 @@ package br.com.locasign.contract.domain.models
  * Representa os estados possíveis do ciclo de vida de um contrato de locação e sua ordem de progresso.
  *
  * **Responsabilidade:**
- * - Modelar os estados do contrato e definir o nível de avanço ordinal (`progress`) utilizado pelo [ContractTransitionPolicy] (ADR-010).
+ * - Modelar os estados do contrato e definir o nível de avanço ordinal (`progress`) utilizado pela [br.com.locasign.contract.domain.services.ContractTransitionPolicy] (ADR-010).
  * - Identificar estados terminais (`isFinal`) e indicar se o contrato está aguardando assinaturas (`isAwaitingSignatures`).
- * - Garantir que nenhuma transição inválida ou regressão de status ocorra no domínio.
+ * - Não valida transições: quem impede regressão e muda de estado final é a `ContractTransitionPolicy` (R5).
  */
 enum class ContractStatus(val progress: Int, val isFinal: Boolean) {
     DRAFT(0, false),

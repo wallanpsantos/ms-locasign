@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
 
 /**
- * Adaptador de mensageria que implementa [ContractEventPublisherPort] persistindo mensagens na tabela transacional `outbox`.
+ * Adaptador de mensageria que implementa [ContractEventPublisherPort] persistindo mensagens na tabela `outbox_events`.
  *
  * **Responsabilidade:**
- * - Serializar cada evento de contrato em JSON e gravá-lo na tabela `outbox` na mesma transação atômica do agregado.
- * - Definir a chave de partição Kafka com base no identificador do contrato (`contractId`), garantindo ordem causal estrita por partição (Princípio 3).
+ * - Serializar cada evento de contrato em JSON e gravá-lo na tabela `outbox_events` na mesma transação do agregado (guia, §1).
+ * - Definir a chave de partição Kafka com base no identificador do contrato (`contractId`), garantindo ordem por contrato dentro da partição (guia, §7.2).
  */
 @Component
 class OutboxContractEventPublisher(

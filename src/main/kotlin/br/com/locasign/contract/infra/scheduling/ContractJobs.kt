@@ -60,7 +60,7 @@ class ExpirationJob(private val expire: ExpireOverdueContracts) {
 }
 
 /**
- * Tarefa agendada para envio de lembretes preventivos aos signatários com assinaturas pendentes (Regras R4 e R7).
+ * Tarefa agendada para envio de lembretes preventivos aos signatários com assinaturas pendentes (Regra R4).
  *
  * **Responsabilidade:**
  * - Executar periodicamente o caso de uso [SendSignatureReminders] após o 3º dia de envio para incentivar a conclusão das assinaturas.

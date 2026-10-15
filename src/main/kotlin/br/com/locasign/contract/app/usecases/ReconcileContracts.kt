@@ -12,7 +12,7 @@ import br.com.locasign.shared.domain.DomainException
 import org.slf4j.LoggerFactory
 
 /**
- * Caso de uso agendado e sob demanda responsável por sincronizar ativamente o estado de contratos junto ao provedor externo (Regra R6).
+ * Caso de uso agendado e sob demanda responsável por sincronizar ativamente o estado de contratos junto ao provedor externo (guia, §6.4).
  *
  * **Responsabilidade:**
  * - Mitigar a eventual perda de webhooks consultando periodicamente contratos inalterados há tempo excessivo (`stale`).

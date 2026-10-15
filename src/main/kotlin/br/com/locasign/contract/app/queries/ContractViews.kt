@@ -9,7 +9,7 @@ import java.time.Instant
  * Projeção de leitura dos dados de um signatário para exibição na API.
  *
  * **Responsabilidade:**
- * - Expor informações textuais de papel, nome, e-mail (mascarado ou formatado) e status de assinatura.
+ * - Expor papel, nome, e-mail completo (sem máscara) e status de assinatura. Não registrar a view em log (`docs/agents/regras-de-codigo.md` §5).
  */
 data class SignerView(
     val role: String,

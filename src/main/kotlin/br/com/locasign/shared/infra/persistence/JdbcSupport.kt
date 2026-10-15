@@ -5,14 +5,9 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-/**
- * Funções de extensão para suporte e interoperabilidade com tipos temporais no driver PostgreSQL JDBC.
- *
- * **Responsabilidade:**
- * - Converter [Instant] para [OffsetDateTime] em UTC para persistência compatível com colunas `timestamptz`.
- * - Extrair [Instant] com segurança de resultados relacionais do [ResultSet].
- */
+/** Converte o [Instant] em [OffsetDateTime] UTC, para gravar em colunas `timestamptz`. */
 fun Instant.toDb(): OffsetDateTime = OffsetDateTime.ofInstant(this, ZoneOffset.UTC)
 
+/** Lê a coluna `timestamptz` como [Instant]; `null` se o valor for nulo. */
 fun ResultSet.getInstant(column: String): Instant? =
     getObject(column, OffsetDateTime::class.java)?.toInstant()

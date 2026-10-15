@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration
  *
  * **Responsabilidade:**
  * - Customizar metadados globais da API REST (título, versão e descrição dos fluxos de negócio).
- * - Expor a especificação contratual dos endpoints nos ambientes de homologação e desenvolvimento local.
+ * - Descrever os endpoints para o springdoc. A exposição em `/swagger-ui.html` é controlada por `SWAGGER_ENABLED` (padrão `true`), não pelo ambiente.
  */
 @Configuration(proxyBeanMethods = false)
 class OpenApiConfig {

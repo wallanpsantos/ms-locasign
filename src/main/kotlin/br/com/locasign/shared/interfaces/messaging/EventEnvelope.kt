@@ -40,7 +40,7 @@ fun EventEnvelope.aggregateUuid(): Uuid =
         ?: throw UnreadableMessageException("Evento $eventId com aggregateId inválido: $aggregateId")
 
 /**
- * Componente utilitário de infraestrutura para deserialização de envelopes de eventos e vinculação de contexto de log.
+ * Componente de `interfaces` (driving), usado pelos consumidores Kafka, para deserializar envelopes de eventos e vincular o contexto de log.
  *
  * **Responsabilidade:**
  * - Deserializar payloads JSON em instâncias de [EventEnvelope], convertendo falhas de formato na exceção fatal [UnreadableMessageException].

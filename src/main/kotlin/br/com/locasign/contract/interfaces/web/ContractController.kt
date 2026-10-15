@@ -33,8 +33,8 @@ import java.net.URI
  *
  * **Responsabilidade:**
  * - Expor endpoints HTTP para solicitação de novas versões de contratos, consulta de detalhes, histórico e cancelamento formal.
- * - Responder HTTP 202 (Accepted) para operações de escrita sem invocar provedores externos de forma síncrona (Princípio 2).
- * - Exigir e verificar credenciais de operador administrativo ([OperatorAccessGuard]) em operações protegidas como cancelamento e reconciliação manual.
+ * - Responder HTTP 202 (Accepted) nas operações de escrita. Só `request` não chama a PandaDoc na requisição: `cancel` e `reconcile` chamam (`docs/agents/arquitetura.md` §7).
+ * - Exigir o token de operador ([OperatorAccessGuard], ADR-013) só na reconciliação manual.
  */
 @RestController
 @RequestMapping("/api/v1")

@@ -38,7 +38,7 @@ class LeaseLookupAdapter(private val leases: LeaseRepositoryPort) : LeaseLookupP
  * Adaptador de integração que implementa a porta [LeaseActivationPort] invocando o caso de uso [ActivateLease].
  *
  * **Responsabilidade:**
- * - Conectar o fluxo de pós-assinatura de contratos à ativação formal da locação de forma limpa e desacoplada.
+ * - Ponte do fluxo pós-assinatura para o `ActivateLease` de `lease`; só as pontes importam `lease.app.*` (`docs/agents/arquitetura.md` §3).
  */
 @Component
 class LeaseActivationAdapter(private val activateLease: ActivateLease) : LeaseActivationPort {

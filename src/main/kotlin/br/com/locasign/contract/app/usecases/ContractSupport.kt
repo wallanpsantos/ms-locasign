@@ -14,7 +14,7 @@ import java.time.Duration
  * Configurações e parâmetros temporais que regem as regras de ciclo de vida dos contratos.
  *
  * **Responsabilidade:**
- * - Centralizar prazos de expiração (R4), janelas para disparo de lembretes (R7), intervalos de reconciliação (R6) e tamanho de lotes de jobs.
+ * - Centralizar prazos de expiração (R4), janelas para disparo de lembretes (R4), intervalos de reconciliação (guia, §6.4) e tamanho de lotes de jobs.
  * - Desacoplar valores temporais estáticos do domínio e casos de uso, injetando propriedades externas.
  */
 data class ContractSettings(

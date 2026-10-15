@@ -15,7 +15,7 @@ import tools.jackson.databind.json.JsonMapper
  *
  * **Responsabilidade:**
  * - Implementar [OutboxPort], persistindo eventos na tabela `outbox_events` na mesma transação de negócio da mutação.
- * - Envelopar o payload do evento com metadados canônicos de rastreabilidade ([correlationId], [causationId], versão de schema) em formato JSONB.
+ * - Envelopar o payload do evento com metadados canônicos de rastreabilidade (`correlationId`, `causationId`, versão de schema) em formato JSONB.
  */
 @Repository
 class JdbcOutboxAdapter(
@@ -74,7 +74,7 @@ class JdbcOutboxAdapter(
  * Adaptador de persistência para controle transacional de idempotência de consumidores de mensageria.
  *
  * **Responsabilidade:**
- * - Implementar [ProcessedMessagesPort], consultando e inserindo o par ([consumerGroup], [eventId]) na tabela `processed_messages`.
+ * - Implementar [ProcessedMessagesPort], consultando e inserindo o par (`consumerGroup`, `eventId`) na tabela `processed_messages`.
  * - Prevenir efeitos colaterais duplicados decorrentes de reentregas de mensagens pelo Kafka (regra R6).
  */
 @Repository
@@ -104,8 +104,8 @@ class JdbcProcessedMessagesAdapter(private val jdbc: JdbcClient) : ProcessedMess
  * Adaptador de persistência para armazenamento idempotente de webhooks no padrão Transactional Inbox.
  *
  * **Responsabilidade:**
- * - Implementar [WebhookInboxPort], persistindo o corpo bruto (`rawBody`) e o identificador de entrega ([deliveryId]) na tabela `webhook_inbox`.
- * - Assegurar deduplicação de requisições de webhook (regra R7) e integridade dos bytes brutos recebidos para validação criptográfica posterior.
+ * - Implementar [WebhookInboxPort], persistindo o corpo bruto (`rawBody`) e o identificador de entrega (`deliveryId`) na tabela `webhook_inbox`.
+ * - Deduplicar entregas repetidas pelo `deliveryId`. O HMAC já foi validado antes da gravação, e o corpo é guardado como chegou (R7).
  */
 @Repository
 class JdbcWebhookInboxAdapter(private val jdbc: JdbcClient) : WebhookInboxPort {

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
  * Caso de uso agendado responsável por identificar e expirar contratos com prazo limite de assinatura vencido (Regra R4).
  *
  * **Responsabilidade:**
- * - Buscar contratos em aberto que excederam o prazo regulamentar e aplicar a transição para `EXPIRED` no agregado [Contract].
+ * - Buscar contratos em aberto que excederam o prazo regulamentar e aplicar a transição para `EXPIRED` no agregado [br.com.locasign.contract.domain.models.Contract].
  * - Processar cada contrato em sua própria transação delimitada para isolar falhas.
  * - Anular o documento no provedor externo em melhor esforço após a confirmação da transação.
  */

@@ -31,15 +31,14 @@ private fun EnvelopeReader.handleContractEvent(envelope: EventEnvelope, action: 
 /**
  * Consumidor Kafka do grupo orchestrator encarregado da criação e despacho de documentos no parceiro de assinatura.
  *
- * Escuta o tópico de eventos de contrato (`contract-events`) e reage aos eventos [ContractRequested] (invocando a criação
- * do rascunho via [CreateProviderDocument]) e [ContractGenerated] (invocando o envio para os signatários via [SendContract]).
- * Eventos que não pertencem ao fluxo de orquestração são ignorados sem descarte de erros, garantindo que falhas
- * inesperadas acionem retentativas automáticas e posterior redirecionamento para a DLT (Dead Letter Topic).
+ * Escuta [Topics.CONTRACT_EVENTS] e reage aos eventos `ContractRequested` (invocando a criação
+ * do rascunho via [CreateProviderDocument]) e `ContractGenerated` (invocando o envio para os signatários via [SendContract]).
+ * Outros `eventType` são ignorados; falhas dos use cases sobem para o `DefaultErrorHandler`.
  *
  * **Responsabilidade:**
  * - Adaptador de entrada (driving adapter) de mensageria para o grupo de consumidores [ConsumerGroups.ORCHESTRATOR].
  * - Coordenar as etapas assíncronas do ciclo de vida de contratos com a PandaDoc através do consumo de eventos de domínio.
- * - Garantir a correlação de traces distribuídos e o tratamento resiliente de mensagens Kafka.
+ * - Executar o use case com `correlationId`, `causationId`, `eventId` e `contractId` no contexto de log (MDC), via `handleContractEvent`.
  */
 @Component
 class OrchestratorConsumer(
@@ -62,9 +61,9 @@ class OrchestratorConsumer(
 /**
  * Consumidor Kafka do grupo post-signature responsável por acionar as rotinas subsequentes à conclusão das assinaturas.
  *
- * Escuta o tópico de eventos de contrato (`contract-events`) e filtra mensagens do tipo [ContractCompleted],
- * disparando a execução do caso de uso [RunPostSignatureActions] para orquestrar o download do PDF assinado,
- * o arquivamento no repositório de arquivos e a transição da proposta de locação para o status de ativação (R8).
+ * Escuta [Topics.CONTRACT_EVENTS] e filtra mensagens do tipo `ContractCompleted`, disparando o caso de uso
+ * [RunPostSignatureActions], que ativa a locação e simula a vistoria de entrada e a primeira cobrança (R8).
+ * O PDF assinado não passa por aqui: quem o arquiva é o `ArchiveSignedDocument`.
  *
  * **Responsabilidade:**
  * - Adaptador de entrada (driving adapter) de mensageria para o grupo de consumidores [ConsumerGroups.POST_SIGNATURE].
@@ -89,9 +88,9 @@ class PostSignatureConsumer(
 /**
  * Consumidor Kafka do grupo provider-events responsável por consumir itens desempacotados do inbox de webhooks da PandaDoc.
  *
- * Escuta o tópico dedicado a webhooks da PandaDoc (`pandadoc-webhooks`) e delega o processamento de cada item individual
+ * Escuta [Topics.PANDADOC_WEBHOOKS] e delega o processamento de cada item individual
  * ao caso de uso [ProcessProviderWebhookItem]. Converte o payload JSON original no comando correspondente,
- * permitindo que atualizações de status ou cancelamentos externos no parceiro sejam refletidos no agregado [Contract].
+ * permitindo que atualizações de status ou cancelamentos externos no parceiro sejam refletidos no agregado `Contract`.
  *
  * **Responsabilidade:**
  * - Adaptador de entrada (driving adapter) de mensageria para o grupo de consumidores [ConsumerGroups.PROVIDER_EVENTS].

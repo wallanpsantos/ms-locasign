@@ -118,7 +118,7 @@ internal fun Int.formatTerm(): String = if (this == 1) "1 mês" else "$this mese
  *
  * **Responsabilidade:**
  * - Extrair os signatários que já concluíram sua assinatura eletrônica (`hasCompleted == true`) e correlacioná-los aos seus papéis de domínio.
- * - Fornecer os dados necessários para o fluxo de reconciliação de contratos (Regra R6).
+ * - Fornecer o estado consultado pela reconciliação (guia, seção 6.4; ADR-012).
  */
 fun DocumentDetailsResponse.toState(properties: LocaSignProperties.PandaDocProperties): ProviderDocumentState =
     ProviderDocumentState(

@@ -25,7 +25,7 @@ import org.springframework.web.client.RestClientException
  * Adaptador de saída que implementa [SignatureProviderPort] para a API da PandaDoc.
  *
  * **Responsabilidade:**
- * - Ser o único componente do sistema com conhecimento dos endpoints, DTOs, formatos de status e tokens da PandaDoc.
+ * - Ser o único ponto por onde os casos de uso chamam a API REST da PandaDoc; os endpoints ficam em [PandaDocClient], os DTOs em `dto/` e as conversões em `mappers/`.
  * - Envolver todas as chamadas externas com controle de limitação de taxa via [SlidingWindowRateLimiter] e retentativa com recuo exponencial em caso de HTTP 429.
  * - Traduzir exceções de cliente HTTP em exceções de provedor tipadas e agnósticas ([br.com.locasign.contract.app.ports.out.integration.ProviderException]).
  */

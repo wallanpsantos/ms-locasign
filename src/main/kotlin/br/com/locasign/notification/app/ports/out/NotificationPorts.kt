@@ -7,7 +7,7 @@ import kotlin.uuid.Uuid
  * Representa um destinatário de notificação com papel no contrato e e-mail já mascarado para preservação de privacidade.
  *
  * **Responsabilidade:**
- * - Proteger dados pessoais (PII/LGPD) garantindo que dados de contato completos não trafeguem fora do módulo de contratos.
+ * - Proteger dados pessoais (R10, LGPD): o adapter de `notification` lê o e-mail completo e o mascara; o caso de uso já o recebe mascarado.
  * - Fornecer identificadores mascarados suficientes para emissão de logs e simulação de notificações.
  */
 data class NotificationRecipient(val role: String, val emailMasked: String)

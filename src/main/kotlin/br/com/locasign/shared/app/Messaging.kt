@@ -20,7 +20,7 @@ object Topics {
  *
  * **Responsabilidade:**
  * - Identificar os grupos de consumo concorrente e independente para cada responsabilidade assíncrona do sistema (`ORCHESTRATOR`, `PROVIDER_EVENTS`, `POST_SIGNATURE`, `NOTIFICATIONS`).
- * - Servir como chave de partição para o controle de idempotência na tabela `processed_messages` junto ao ID do evento.
+ * - Compor com o id do evento a chave única de `processed_messages` (R6); não é chave de partição do Kafka.
  */
 object ConsumerGroups {
     const val ORCHESTRATOR = "locasign-orchestrator"

@@ -73,7 +73,7 @@ data class ProviderSendRequest(val subject: String, val message: String)
  * Fotografia do estado atual do documento obtida por consulta ativa na API do provedor externo.
  *
  * **Responsabilidade:**
- * - Retornar o status remoto, signatários que já assinaram e timestamp de modificação para processos de reconciliação periódica (R6).
+ * - Retornar o status remoto, signatários que já assinaram e timestamp de modificação para processos de reconciliação periódica (guia, §6.4).
  */
 data class ProviderDocumentState(
     val documentId: ProviderDocumentId,

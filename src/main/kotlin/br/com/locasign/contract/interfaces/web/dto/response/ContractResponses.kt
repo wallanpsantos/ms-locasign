@@ -35,7 +35,7 @@ data class ContractResponse(
  * DTO de resposta contendo os dados e status individual de assinatura de um signatário do contrato.
  *
  * **Responsabilidade:**
- * - Retornar papel, nome, e-mail mascarado, ordem ordinal e confirmação de conclusão de assinatura.
+ * - Retornar papel, nome, e-mail completo (não mascarado), ordem ordinal e confirmação de conclusão de assinatura.
  */
 data class SignerResponse(
     val role: String,

@@ -12,7 +12,14 @@ ficam fora), sem mudar comportamento. O checklist executável, com critérios de
 - **Situação:** em 2026-10-14, as fases 0 a 4 (T00 a T22) foram executadas e commitadas, uma tarefa por commit (fases
   0 a 3: `c28b581` a `d434510`; fase 4: os commits seguintes a `9ba935d`), com revisão adversarial, teste de mutação e
   prova de que os testes novos passam no código original. Elas saíram do `todo.md` e do inventário da seção 4; o
-  detalhamento está no histórico do Git. Próxima: Fase 5 (T23, só KDoc).
+  detalhamento está no histórico do Git.
+- **Registro das fases 5 e 6:** em 2026-10-14, a T23 a T26 (só KDoc) e a T27 (fechamento) foram executadas, sem commit.
+  Conferido: `compileKotlin` com `--rerun-tasks` sem warnings, 214 testes rápidos verdes (0 falhas, 0 ignorados),
+  `HexagonalArchitectureTest` incluído, as 12 buscas de fronteiras de `docs/agents/arquitetura.md` §6 vazias (a última
+  só casa em `LeaseBridgeAdapters.kt`) e o `git grep` de resíduos vazio. Os 20 `*IT` (total de 234 testes) não foram
+  executados nesta rodada, e o `clean build` com Docker ficou a cargo do usuário. A contagem de 234 em `AGENTS.md` e
+  `README.md` (total e camadas) vem de 214 rápidos medidos mais 20 `*IT` contados no código, e bate com o total da Fase
+  4.
 - **Registro da T09:** sem os campos removidos dos DTOs da PandaDoc, um `status`, `date_modified` ou
   `recipients[].email` em formato inesperado (objeto ou array) deixa de quebrar a desserialização, que antes virava
   `Unavailable` e retentativa. A leitura ficou mais tolerante, sem efeito nas respostas válidas.

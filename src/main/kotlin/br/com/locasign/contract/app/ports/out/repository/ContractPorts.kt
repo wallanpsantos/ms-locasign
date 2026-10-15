@@ -14,7 +14,7 @@ import java.time.Instant
  * **Responsabilidade:**
  * - Persistir o agregado [Contract], seus signatários e as entradas de histórico na mesma transação atômica.
  * - Assegurar bloqueio otimista via controle de versão de linha (`row_version`) e unicidade de contrato ativo por locação (Regra R1).
- * - Prover consultas especializadas para identificação de contratos vencidos (R4), lembretes pendentes (R7) e candidatos à reconciliação (R6).
+ * - Prover consultas especializadas para identificação de contratos vencidos (R4), lembretes pendentes (R4) e candidatos à reconciliação (guia, §6.4).
  */
 interface ContractRepositoryPort {
     /**
@@ -48,7 +48,7 @@ interface ContractRepositoryPort {
  * Porta de saída para consultas de leitura especializadas de contratos, desacopladas do carregamento do agregado.
  *
  * **Responsabilidade:**
- * - Recuperar projeções de detalhe ([ContractDetailView]) e histórico de auditoria ([HistoryEntryView]) otimizadas para a camada de apresentação.
+ * - Recuperar projeções de detalhe ([ContractDetailView]) e histórico de auditoria ([HistoryEntryView]) para a camada de apresentação.
  * - Evitar a sobrecarga de reconstituição da raiz de agregação em cenários somente-leitura.
  */
 interface ContractQueryPort {
@@ -62,7 +62,7 @@ interface ContractQueryPort {
  * Porta de saída para controle de execução idempotente de efeitos colaterais pós-assinatura (Regras R6 e R8).
  *
  * **Responsabilidade:**
- * - Registrar de forma atômica no banco de dados a execução de ações pós-assinatura (ativação de locação, arquivamento de PDF).
+ * - Registrar de forma atômica no banco de dados a execução de ações pós-assinatura (ativação da locação e, simuladas, vistoria de entrada e primeira cobrança); o arquivamento do PDF não passa por esta porta.
  * - Garantir semântica *at-most-once* por ação e por contrato, impedindo duplicidade em caso de reprocessamento.
  */
 interface PostSignatureActionsPort {

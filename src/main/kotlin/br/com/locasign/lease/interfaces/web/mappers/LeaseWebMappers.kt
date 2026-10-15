@@ -10,13 +10,7 @@ import br.com.locasign.lease.interfaces.web.dto.response.LeaseResponse
 import br.com.locasign.lease.interfaces.web.dto.response.PropertyResponse
 import br.com.locasign.lease.interfaces.web.dto.response.TenantResponse
 
-/**
- * Funções de extensão para conversão e mapeamento de dados entre a camada web (DTOs) e a camada de aplicação de locação.
- *
- * **Responsabilidade:**
- * - Mapear o DTO de requisição [CreateLeaseRequest] para o comando de caso de uso [RegisterLeaseCommand].
- * - Mapear a projeção de leitura [LeaseDetailView] para o DTO de resposta da API [LeaseResponse].
- */
+/** Converte o DTO de requisição [CreateLeaseRequest] no comando [RegisterLeaseCommand]. */
 fun CreateLeaseRequest.toCommand(): RegisterLeaseCommand = RegisterLeaseCommand(
     tenantName = tenant.name,
     tenantCpf = tenant.cpf,
@@ -29,6 +23,7 @@ fun CreateLeaseRequest.toCommand(): RegisterLeaseCommand = RegisterLeaseCommand(
     termMonths = termMonths,
 )
 
+/** Converte a projeção de leitura [LeaseDetailView] no DTO de resposta [LeaseResponse]. */
 fun LeaseDetailView.toResponse(): LeaseResponse = LeaseResponse(
     id = id,
     status = status,

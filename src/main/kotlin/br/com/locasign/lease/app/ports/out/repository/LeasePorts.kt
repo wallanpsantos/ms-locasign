@@ -18,10 +18,11 @@ interface LeaseRepositoryPort {
 }
 
 /**
- * Porta de saída da camada de aplicação para consultas otimizadas de leitura de locação.
+ * Porta de saída da camada de aplicação para a consulta de leitura de locação.
  *
  * **Responsabilidade:**
- * - Executar projeções diretas de leitura ([findDetail]) sem instanciar o modelo transacional de domínio, retornando [LeaseDetailView].
+ * - Devolver a projeção [LeaseDetailView] ([findDetail]) sem instanciar o agregado de domínio.
+ * - A implementação lê também a tabela `contracts`, de outro módulo: exceção de `docs/agents/arquitetura.md` §7.
  */
 interface LeaseQueryPort {
     fun findDetail(id: LeaseId): LeaseDetailView?

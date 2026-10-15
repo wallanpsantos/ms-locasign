@@ -8,10 +8,10 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Entidade de persistência relacional do agregado [Contract] para o Spring Data JDBC (ADR-003).
+ * Entidade de persistência relacional do agregado [br.com.locasign.contract.domain.models.Contract] para o Spring Data JDBC (ADR-003).
  *
  * **Responsabilidade:**
- * - Mapear as colunas da tabela `contracts`, incluindo timestamps, controle de concorrência otimista (`@Version rowVersion`) e signatários associados como coleção embutida.
+ * - Mapear as colunas da tabela `contracts`, incluindo timestamps, controle de concorrência otimista (`@Version rowVersion`) e os signatários como coleção filha (`@MappedCollection`, tabela `contract_signers`), apagada e regravada a cada `save`.
  * - Garantir reescrita atômica do agregado completo em cada operação de salvamento do repositório.
  */
 @Table("contracts")

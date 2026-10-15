@@ -9,6 +9,9 @@ environment:
     - name: adminToken
       value: abc123
       type: string
+    - name: webhookSharedKey
+      value: segredo
+      type: string
     - name: leaseId
       value: 00000000-0000-0000-0000-000000000000
       type: string

@@ -261,7 +261,11 @@ Este é o modo mais ágil para desenvolvimento diário:
 # 1. Sobe PostgreSQL 18.6 e Apache Kafka 4.3.1 (KRaft) em segundo plano
 docker compose up -d
 
-# 2. Executa a aplicação Spring Boot com perfil local
+# 2. Define as variáveis recomendadas para o ambiente local (webhook e token admin)
+$env:PANDADOC_WEBHOOK_SHARED_KEY = "segredo"
+$env:ADMIN_TOKEN = "abc123"
+
+# 3. Executa a aplicação Spring Boot com perfil local
 .\gradlew.bat bootRun --args="--spring.profiles.active=local"
 ```
 
@@ -271,7 +275,11 @@ docker compose up -d
 # 1. Sobe PostgreSQL 18.6 e Apache Kafka 4.3.1 (KRaft) em segundo plano
 docker compose up -d
 
-# 2. Executa a aplicação Spring Boot com perfil local
+# 2. Define as variáveis recomendadas para o ambiente local (webhook e token admin)
+export PANDADOC_WEBHOOK_SHARED_KEY="segredo"
+export ADMIN_TOKEN="abc123"
+
+# 3. Executa a aplicação Spring Boot com perfil local
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
@@ -318,6 +326,56 @@ O arquivo [`compose.yml`](compose.yml) possui perfis modulares adicionais:
   # CUIDADO: o comando abaixo apaga banco de dados e mensagens do Kafka!
   # docker compose down -v
   ```
+
+---
+
+### 7.4 Roteiro de Teste Ponta a Ponta: Da Criação à Finalização com Assinatura (Regra R8)
+
+Para validar localmente todo o ciclo de vida sem depender de uma conta externa da PandaDoc, utilize o roteiro abaixo com
+a coleção **Bruno** ou scripts de terminal:
+
+#### 1. No Bruno (ou via cURL)
+
+1. **Ative o ambiente `Local`** no canto superior direito do Bruno (define `baseUrl = http://localhost:8080`).
+2. **Execute `01 - Cadastra a locação`:** responde `201 Created` e armazena o `leaseId`.
+3. **Execute `02 - Consulta a locação`:** status inicial `REGISTERED`.
+4. **Execute `03 - Solicita o contrato`:** responde `202 Accepted` e armazena o `contractId` (status inicial `DRAFT`).
+5. **Execute `04 - Acompanha o status`:** confirma contrato em `DRAFT`.
+
+#### 2. Disparo da Assinatura Completa via Webhook Assinado (HMAC-SHA256)
+
+Por segurança e conformidade (Regra **R7** e ADR-012), a aplicação exige validação criptográfica HMAC no endpoint
+`/webhooks/pandadoc?signature=...`.
+
+- **Pelo Bruno:** abra `01 - Fluxo Feliz / 06 - Webhook PandaDoc`, altere no JSON `"status": "document.viewed"` para
+  `"status": "document.completed"` e defina `"has_completed": true`. O script *Pre-Request* calcula o HMAC
+  automaticamente utilizando a chave configurada (`segredo`) e envia com sucesso (`200 OK`).
+- **Pelo PowerShell no Windows (Script Rápido):**
+  ```powershell
+  $contractId = "COLE_AQUI_O_CONTRACT_ID"
+  $secret = "segredo"
+  $payload = @"
+  [{"event":"document_state_changed","data":{"id":"doc_123","date_modified":"$([System.DateTime]::UtcNow.ToString('o'))","status":"document.completed","metadata":{"contract_id":"$contractId"},"recipients":[{"email":"maria@example.com","role":"Locatario","has_completed":true},{"email":"alianca@example.com","role":"Imobiliaria","has_completed":true}]}}]
+  "@
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+  $hmac = New-Object System.Security.Cryptography.HMACSHA256
+  $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($secret)
+  $sig = [System.BitConverter]::ToString($hmac.ComputeHash($bytes)).Replace('-', '').ToLower()
+  Invoke-RestMethod -Uri "http://localhost:8080/webhooks/pandadoc?signature=$sig" -Method Post -Headers @{"Content-Type"="application/json";"X-PandaDoc-Webhook-Event-Id"=[System.Guid]::NewGuid().ToString()} -Body $bytes
+  ```
+- **Pelo Bash no Linux/WSL2:**
+  ```bash
+  PANDADOC_WEBHOOK_SHARED_KEY=segredo bash scripts/send-signed-webhook.sh scripts/samples/document-state-changed.json
+  ```
+
+#### 3. Verificação dos Efeitos Pós-Assinatura (Regra R8)
+
+1. **Contrato:** ao consultar novamente (`GET /api/v1/contracts/{{contractId}}`), o status estará **`COMPLETED`**.
+2. **Histórico:** `GET /api/v1/contracts/{{contractId}}/history` exibe toda a trilha de auditoria gravada.
+3. **Locação Ativada:** `GET /api/v1/leases/{{leaseId}}` mostra que o status da locação mudou sozinho para **`ACTIVE`**,
+   com `activatedAt` devidamente preenchido.
+4. **Efeitos Pós-Assinatura:** as tabelas `post_signature_actions` (vistoria e primeira cobrança) e `notifications_log`
+   são registradas de forma assíncrona via consumidores Kafka.
 
 ---
 

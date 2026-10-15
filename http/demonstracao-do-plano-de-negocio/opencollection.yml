@@ -30,6 +30,9 @@ request:
     - name: adminToken
       value: abc123
       description: Token administrativo para operações sensíveis (X-Admin-Token)
+    - name: webhookSharedKey
+      value: segredo
+      description: Chave secreta compartilhada para cálculo de HMAC-SHA256 nos webhooks da PandaDoc (PANDADOC_WEBHOOK_SHARED_KEY)
     - name: leaseId
       value: 00000000-0000-0000-0000-000000000000
       description: Identificador UUID da locação ativa (capturado automaticamente no cadastro)

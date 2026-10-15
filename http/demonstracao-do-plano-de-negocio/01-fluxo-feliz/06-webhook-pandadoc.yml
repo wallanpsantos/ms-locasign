@@ -46,8 +46,16 @@ runtime:
   scripts:
     - type: before-request
       code: |-
+        const crypto = require("crypto");
         const targetContractId = bru.getVar("contractId") || bru.getEnvVar("contractId");
         console.log("Disparando webhook simulado PandaDoc para o contractId:", targetContractId);
+
+        const secret = bru.getEnvVar("webhookSharedKey") || "segredo";
+        const rawBody = req.getBody();
+        const bodyStr = typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody);
+        const signature = crypto.createHmac("sha256", secret).update(bodyStr).digest("hex");
+        const base = bru.getEnvVar("baseUrl") || "http://localhost:8080";
+        req.setUrl(base + "/webhooks/pandadoc?signature=" + signature);
     - type: after-response
       code: |-
         if (res.getStatus() === 200) {
@@ -62,30 +70,23 @@ settings:
 
 docs: |
   ### 06 - Webhook PandaDoc - Evento assinado (200 OK)
-  Simula a recepção de webhook da PandaDoc notificando alteração de estado (`document_state_changed` -> `document.viewed`).
+  Simula a recepção de webhook da PandaDoc notificando alteração de estado (`document_state_changed`).
   
-  **Garantias da Regra R7:**
-  - O corpo bruto (`raw bytes`) é persistido na tabela `webhook_inbox` antes de qualquer parsing.
-  - Cada item gera uma mensagem outbox direcionada ao Kafka (`locasign.pandadoc.webhooks.v1`).
-  - Responde imediatamente HTTP 200 para a PandaDoc.
-  - Reenvio com o mesmo `X-PandaDoc-Webhook-Event-Id` é reconhecido como duplicado de forma idempotente (Regra R6).
+  **Assinatura Criptográfica HMAC-SHA256 Automática:**
+  - O script *Pre-Request* calcula automaticamente a assinatura HMAC-SHA256 sobre o corpo e injeta o parâmetro `?signature=...` na URL, utilizando a chave `webhookSharedKey` (padrão: `segredo`).
+  - O backend valida os bytes exatos e registra a entrega bruta no `webhook_inbox` antes de responder HTTP 200 (Regra R7).
+  
+  **Como testar a Conclusão / Assinatura Completa (Regra R8):**
+  - No corpo da requisição acima, altere `"status": "document.viewed"` para `"status": "document.completed"` e marque `"has_completed": true` para os signatários.
+  - Ao enviar, o contrato transiciona para `COMPLETED`, o consumidor Kafka é acionado e a locação transiciona automaticamente para `ACTIVE`!
   
   ```bash
-  curl --request POST 'http://localhost:8080/webhooks/pandadoc' \
-    --header 'Content-Type: application/json' \
-    --header 'X-PandaDoc-Webhook-Event-Id: delivery-demo-001' \
-    --data '[{
-      "event": "document_state_changed",
-      "data": {
-        "id": "doc_pandadoc_demo_123",
-        "name": "LocaSign contrato residencial",
-        "date_modified": "2026-10-15T10:00:00.000000Z",
-        "status": "document.viewed",
-        "metadata": { "contract_id": "'{{contractId}}'" },
-        "recipients": [
-          { "email": "maria@example.com", "role": "Locatario", "has_completed": false },
-          { "email": "agencia@example.com", "role": "Imobiliaria", "has_completed": false }
-        ]
-      }
-    }]'
+  # Exemplo cURL com assinatura HMAC gerada manualmente:
+  key="segredo"
+  body='[{"event":"document_state_changed","data":{"id":"doc_123","status":"document.viewed","metadata":{"contract_id":"'{{contractId}}'"},"recipients":[]}}]'
+  sig=$(echo -n "$body" | openssl dgst -sha256 -hmac "$key" -hex | sed 's/^.* //')
+  curl -i -X POST "http://localhost:8080/webhooks/pandadoc?signature=$sig" \
+    -H "Content-Type: application/json" \
+    -H "X-PandaDoc-Webhook-Event-Id: $(uuidgen)" \
+    -d "$body"
   ```

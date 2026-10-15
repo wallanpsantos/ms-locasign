@@ -118,3 +118,61 @@ Validação da saúde da pilha técnica (PostgreSQL 18, Apache Kafka 4.3.1 KRaft
 Todas as requisições `.yml` desta coleção possuem um bloco `docs` com o comando `curl` equivalente pronto para terminal
 (PowerShell no Windows ou Bash no Linux). Basta copiar o comando da documentação da requisição no Bruno ou executar
 diretamente a partir dos arquivos.
+
+---
+
+## 5. Roteiro Prático: Da Criação à Finalização com Assinatura Completa (Regra R8)
+
+Por padrão, a pasta `01 - Fluxo Feliz` demonstra a alteração para `VIEWED` seguida de **cancelamento formal** e
+**emissão de nova versão (v2)** (exercitando as regras **R5** e **R9**).
+
+Se você deseja testar o ciclo de **finalização por assinatura completa** e observar as ações pós-assinatura da regra
+**R8** (ativação da locação para `ACTIVE`, agendamento de vistoria e primeira cobrança), siga este roteiro:
+
+### 5.1 Pré-requisitos
+
+A aplicação precisa estar rodando com a chave compartilhada de webhook configurada:
+
+```powershell
+$env:PANDADOC_WEBHOOK_SHARED_KEY = "segredo"
+$env:ADMIN_TOKEN = "abc123"
+.\gradlew.bat bootRun --args="--spring.profiles.active=local"
+```
+
+No Bruno, certifique-se de que o ambiente **Local** está selecionado no canto superior direito (para definir
+`{{baseUrl}} = http://localhost:8080`).
+
+### 5.2 Passos de Execução
+
+1. **Passo 01 (`POST /api/v1/leases`):** cadastra a locação (`201 Created`). O Bruno salva o `leaseId`.
+2. **Passo 02 (`GET /api/v1/leases/{{leaseId}}`):** confirma status inicial `REGISTERED`.
+3. **Passo 03 (`POST /api/v1/leases/{{leaseId}}/contracts`):** solicita o contrato (`202 Accepted`). O Bruno salva o
+   `contractId`.
+4. **Passo 04 (`GET /api/v1/contracts/{{contractId}}`):** confirma contrato em `DRAFT`.
+5. **Passo 06 (Webhook Assinado de Conclusão):**
+    - **Pelo Bruno:** na requisição `06 - Webhook PandaDoc`, mude no JSON de entrada `"status": "document.viewed"` para
+      `"status": "document.completed"` e nos signatários defina `"has_completed": true`. O script *Pre-Request*
+      calculará o HMAC-SHA256 automaticamente com a chave `segredo` e enviará com sucesso (`200 OK`).
+    - **Pelo PowerShell (Script Rápido):**
+      ```powershell
+      $contractId = "COLE_AQUI_O_CONTRACT_ID"
+      $secret = "segredo"
+      $payload = @"
+      [{"event":"document_state_changed","data":{"id":"doc_123","date_modified":"$([System.DateTime]::UtcNow.ToString('o'))","status":"document.completed","metadata":{"contract_id":"$contractId"},"recipients":[{"email":"maria@example.com","role":"Locatario","has_completed":true},{"email":"alianca@example.com","role":"Imobiliaria","has_completed":true}]}}]
+      "@
+      $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+      $hmac = New-Object System.Security.Cryptography.HMACSHA256
+      $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($secret)
+      $sig = [System.BitConverter]::ToString($hmac.ComputeHash($bytes)).Replace('-', '').ToLower()
+      Invoke-RestMethod -Uri "http://localhost:8080/webhooks/pandadoc?signature=$sig" -Method Post -Headers @{"Content-Type"="application/json";"X-PandaDoc-Webhook-Event-Id"=[System.Guid]::NewGuid().ToString()} -Body $bytes
+      ```
+
+### 5.3 Como Conferir os Efeitos Pós-Assinatura (Regra R8)
+
+1. Execute novamente o **Passo 04 (`GET /api/v1/contracts/{{contractId}}`)**: o status estará **`COMPLETED`**.
+2. Execute o **Passo 05 (`GET /api/v1/contracts/{{contractId}}/history`)**: a linha do tempo registrará a transição via
+   webhook.
+3. Execute o **Passo 02 (`GET /api/v1/leases/{{leaseId}}`)**: o status da locação mudou sozinho de `REGISTERED` para **
+   `ACTIVE`**, com a data de ativação `activatedAt` devidamente preenchida!
+4. No banco de dados ou nos logs, você verá a execução das ações registradas na tabela `post_signature_actions` e a
+   notificação aos signatários em `notifications_log`.

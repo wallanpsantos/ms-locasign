@@ -46,26 +46,7 @@ class LeaseRepositoryAdapter(private val repository: LeaseJdbcRepository) : Leas
 class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
 
     override fun findDetail(id: LeaseId): LeaseDetailView? {
-        val uuid = id.value.toJavaUuid()
-        val contract = jdbc.sql(
-            """
-			SELECT id, version_number, status, expires_at
-			FROM contracts WHERE lease_id = :leaseId
-			ORDER BY version_number DESC LIMIT 1
-			""".trimIndent(),
-        )
-            .param("leaseId", uuid)
-            .query { rs, _ ->
-                CurrentContractView(
-                    id = rs.getString("id"),
-                    versionNumber = rs.getInt("version_number"),
-                    status = rs.getString("status"),
-                    expiresAt = rs.getInstant("expires_at"),
-                )
-            }
-            .optional()
-            .orElse(null)
-
+        val currentContract = findCurrentContract(id)
         return jdbc.sql(
             """
 			SELECT id, status, tenant_name, tenant_cpf, tenant_email, agency_signer_name, agency_signer_email,
@@ -73,7 +54,7 @@ class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
 			FROM leases WHERE id = :id
 			""".trimIndent(),
         )
-            .param("id", uuid)
+            .param("id", id.value.toJavaUuid())
             .query { rs, _ ->
                 LeaseDetailView(
                     id = rs.getString("id"),
@@ -89,10 +70,34 @@ class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
                     termMonths = rs.getInt("term_months"),
                     createdAt = checkNotNull(rs.getInstant("created_at")),
                     activatedAt = rs.getInstant("activated_at"),
-                    currentContract = contract,
+                    currentContract = currentContract,
                 )
             }
             .optional()
             .orElse(null)
     }
+
+    /**
+     * Versão mais recente do contrato da locação. Lê `contracts`, tabela do módulo `contract`: exceção sem ADR
+     * (docs/agents/arquitetura.md §7), não use como precedente.
+     */
+    private fun findCurrentContract(leaseId: LeaseId): CurrentContractView? =
+        jdbc.sql(
+            """
+			SELECT id, version_number, status, expires_at
+			FROM contracts WHERE lease_id = :leaseId
+			ORDER BY version_number DESC LIMIT 1
+			""".trimIndent(),
+        )
+            .param("leaseId", leaseId.value.toJavaUuid())
+            .query { rs, _ ->
+                CurrentContractView(
+                    id = rs.getString("id"),
+                    versionNumber = rs.getInt("version_number"),
+                    status = rs.getString("status"),
+                    expiresAt = rs.getInstant("expires_at"),
+                )
+            }
+            .optional()
+            .orElse(null)
 }

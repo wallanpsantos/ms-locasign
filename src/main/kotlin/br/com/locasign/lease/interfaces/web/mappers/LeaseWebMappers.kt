@@ -1,5 +1,6 @@
 package br.com.locasign.lease.interfaces.web.mappers
 
+import br.com.locasign.lease.app.queries.CurrentContractView
 import br.com.locasign.lease.app.queries.LeaseDetailView
 import br.com.locasign.lease.app.usecases.RegisterLeaseCommand
 import br.com.locasign.lease.interfaces.web.dto.request.CreateLeaseRequest
@@ -39,7 +40,9 @@ fun LeaseDetailView.toResponse(): LeaseResponse = LeaseResponse(
     termMonths = termMonths,
     createdAt = createdAt,
     activatedAt = activatedAt,
-    currentContract = currentContract?.let {
-        CurrentContractResponse(it.id, it.versionNumber, it.status, it.expiresAt)
-    },
+    currentContract = currentContract?.toResponse(),
 )
+
+/** Converte a visão do contrato corrente ([CurrentContractView]) no DTO [CurrentContractResponse]. */
+fun CurrentContractView.toResponse(): CurrentContractResponse =
+    CurrentContractResponse(id, versionNumber, status, expiresAt)

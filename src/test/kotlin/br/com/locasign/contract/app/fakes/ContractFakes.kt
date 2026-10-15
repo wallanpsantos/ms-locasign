@@ -18,6 +18,8 @@ import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.app.ports.out.messaging.ContractEventPublisherPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.app.ports.out.repository.PostSignatureActionsPort
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationCandidate
+import br.com.locasign.contract.app.ports.out.repository.ReconciliationMarkerPort
 import br.com.locasign.contract.domain.events.ContractEvent
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
@@ -27,7 +29,7 @@ import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.domain.DomainException
 import java.time.Instant
 
-class InMemoryContractRepository : ContractRepositoryPort {
+class InMemoryContractRepository : ContractRepositoryPort, ReconciliationMarkerPort {
     private val contracts = mutableMapOf<ContractId, Contract>()
 
     override fun save(contract: Contract) {
@@ -66,11 +68,20 @@ class InMemoryContractRepository : ContractRepositoryPort {
             .take(limit)
             .map { it.id }
 
-    override fun findReconciliationCandidateIds(staleBefore: Instant, limit: Int): List<ContractId> =
+    /** Como a consulta SQL: idade efetiva é o maior entre `updatedAt` e `lastReconciledAt`, do mais antigo ao mais novo. */
+    override fun findReconciliationCandidates(staleBefore: Instant, limit: Int): List<ReconciliationCandidate> =
         contracts.values
-            .filter { !it.status.isFinal && it.providerDocumentId != null && it.updatedAt.isBefore(staleBefore) }
+            .filter { !it.status.isFinal && it.providerDocumentId != null && !effectiveAge(it).isAfter(staleBefore) }
+            .sortedBy(::effectiveAge)
             .take(limit)
-            .map { it.id }
+            .mapNotNull { contract -> contract.providerDocumentId?.let { ReconciliationCandidate(contract.id, it) } }
+
+    override fun markReconciled(contractId: ContractId, at: Instant) {
+        contracts[contractId]?.markReconciled(at)
+    }
+
+    private fun effectiveAge(contract: Contract): Instant =
+        maxOf(contract.updatedAt, contract.lastReconciledAt ?: contract.updatedAt)
 }
 
 class RecordingContractEventPublisher : ContractEventPublisherPort {

@@ -6,6 +6,9 @@ import org.junit.jupiter.params.provider.ValueSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.measureTimedValue
 
 class ValueObjectsTest {
 
@@ -93,6 +96,45 @@ class ValueObjectsTest {
         val ex = assertFailsWith<DomainException.BusinessRuleViolation> {
             Money.positive(invalidMoney)
         }
-        assertEquals("Valor inválido: use ponto decimal e no máximo 2 casas (ex.: 2500.00).", ex.message)
+        assertEquals(MONEY_FORMAT_MESSAGE, ex.message)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["0.01", "2500.00", "9999999999", "9999999999.99"])
+    fun `Money aceita do menor centavo ao maior valor que cabe em numeric(12,2) (R2)`(validMoney: String) {
+        val money = Money.positive(validMoney)
+
+        assertEquals(2, money.amount.scale())
+        assertTrue(money.amount.precision() <= 12, "precisão ${money.amount.precision()} não cabe em numeric(12,2)")
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["10000000000", "12345678901.50"])
+    fun `Money com mais de 10 dígitos inteiros lança erro de formato porque estoura numeric(12,2) (R2)`(
+        tooBigMoney: String,
+    ) {
+        val ex = assertFailsWith<DomainException.BusinessRuleViolation> {
+            Money.positive(tooBigMoney)
+        }
+
+        assertEquals("rentAmount", ex.field)
+        assertEquals(MONEY_FORMAT_MESSAGE, ex.message)
+    }
+
+    @Test
+    fun `Money rejeita texto gigante em tempo constante sem montar o BigDecimal (L1)`() {
+        val gigantic = "1".repeat(1_000_000)
+
+        val rejection = measureTimedValue {
+            assertFailsWith<DomainException.BusinessRuleViolation> { Money.positive(gigantic) }
+        }
+
+        assertEquals(MONEY_FORMAT_MESSAGE, rejection.value.message)
+        assertTrue(rejection.duration < 500.milliseconds, "rejeição levou ${rejection.duration}; deveria ser O(1)")
+    }
+
+    private companion object {
+        const val MONEY_FORMAT_MESSAGE =
+            "Valor inválido: use ponto decimal, até 10 dígitos inteiros e no máximo 2 casas (ex.: 2500.00)."
     }
 }

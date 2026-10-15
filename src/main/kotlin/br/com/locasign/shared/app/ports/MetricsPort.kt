@@ -25,5 +25,7 @@ object Metrics {
     const val TRANSITION_APPLIED = "locasign.contract.transition.applied"
     const val TRANSITION_IGNORED = "locasign.contract.transition.ignored"
     const val PROVIDER_RATE_LIMITED = "locasign.pandadoc.rate_limited"
+    const val PROVIDER_LOCAL_RATE_LIMITED = "locasign.pandadoc.local_rate_limited"
+    const val PROVIDER_LOCAL_RATE_WAITED = "locasign.pandadoc.local_rate_waited"
     const val DEAD_LETTER = "locasign.kafka.dead_letter"
 }

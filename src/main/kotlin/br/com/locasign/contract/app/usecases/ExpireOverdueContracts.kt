@@ -1,6 +1,5 @@
 package br.com.locasign.contract.app.usecases
 
-import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.TransitionResult
 import br.com.locasign.contract.domain.valueobjects.ContractId
@@ -14,11 +13,10 @@ import org.slf4j.LoggerFactory
  * **Responsabilidade:**
  * - Buscar contratos em aberto que excederam o prazo regulamentar e aplicar a transição para `EXPIRED` no agregado [br.com.locasign.contract.domain.models.Contract].
  * - Processar cada contrato em sua própria transação delimitada para isolar falhas.
- * - Anular o documento no provedor externo em melhor esforço após a confirmação da transação.
+ * - Não chamar a PandaDoc: o evento `ContractExpired` vai para o outbox na mesma transação e [AnnulProviderDocument] anula o documento depois, com retentativa (ADR-016). Assim o limite de chamadas do provedor não afeta o lote.
  */
 class ExpireOverdueContracts(
     private val contracts: ContractRepositoryPort,
-    private val provider: SignatureProviderPort,
     private val persister: ContractPersister,
     private val clock: BusinessClock,
     private val settings: ContractSettings,
@@ -33,19 +31,12 @@ class ExpireOverdueContracts(
     }
 
     private fun expire(id: ContractId): Boolean = try {
-        val (wasExpired, documentToVoid) = transactions.run {
-            val contract = contracts.findById(id) ?: return@run false to null
-            if (contract.expireIfOverdue(clock.now()) == TransitionResult.APPLIED) {
-                persister.save(contract)
-                true to contract.providerDocumentId
-            } else {
-                false to null
-            }
+        transactions.run {
+            val contract = contracts.findById(id) ?: return@run false
+            val expired = contract.expireIfOverdue(clock.now()) == TransitionResult.APPLIED
+            if (expired) persister.save(contract)
+            expired
         }
-        if (wasExpired) {
-            documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato expirado") }
-        }
-        wasExpired
     } catch (e: RuntimeException) {
         log.error("Falha ao expirar o contrato {}", id, e)
         false

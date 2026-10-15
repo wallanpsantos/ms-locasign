@@ -77,23 +77,26 @@ class RegisterLease(
         val requestedName = command.agencySignerName.trimToNull()
         val requestedEmail = command.agencySignerEmail.trimToNull()
 
-        val (name, email) = when {
-            requestedName != null && requestedEmail != null -> requestedName to requestedEmail
-            requestedName == null && requestedEmail == null -> agencyDefaults.name.trimToNull() to agencyDefaults.email.trimToNull()
-            else -> throw DomainException.BusinessRuleViolation(
+        if (requestedName != null && requestedEmail != null) {
+            return AgencySigner(requestedName, Email.of(requestedEmail, "agencySigner.email"))
+        }
+        if (requestedName != null || requestedEmail != null) {
+            throw DomainException.BusinessRuleViolation(
                 "agencySigner",
                 "Informe nome e e-mail do signatário da imobiliária, ou nenhum dos dois para usar o padrão.",
             )
         }
 
-        if (name == null || email == null) {
+        val defaultName = agencyDefaults.name.trimToNull()
+        val defaultEmail = agencyDefaults.email.trimToNull()
+        if (defaultName == null || defaultEmail == null) {
             throw DomainException.BusinessRuleViolation(
                 "agencySigner",
                 "Signatário da imobiliária não informado e nenhum padrão configurado " +
                         "(AGENCY_SIGNER_NAME / AGENCY_SIGNER_EMAIL).",
             )
         }
-        return AgencySigner(name = name, email = Email.of(email, "agencySigner.email"))
+        return AgencySigner(defaultName, Email.of(defaultEmail, "agencySigner.email"))
     }
 
     /** Texto em branco conta como não informado. */

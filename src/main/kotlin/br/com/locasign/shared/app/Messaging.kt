@@ -21,12 +21,13 @@ object Topics {
  * Catálogo canônico de grupos de consumidores Kafka da aplicação.
  *
  * **Responsabilidade:**
- * - Identificar os grupos de consumo concorrente e independente para cada responsabilidade assíncrona do sistema (`ORCHESTRATOR`, `PROVIDER_EVENTS`, `POST_SIGNATURE`, `NOTIFICATIONS`).
+ * - Identificar os grupos de consumo concorrente e independente para cada responsabilidade assíncrona do sistema (`ORCHESTRATOR`, `PROVIDER_EVENTS`, `POST_SIGNATURE`, `DOCUMENT_ANNULMENT`, `NOTIFICATIONS`).
  * - Compor com o id do evento a chave única de `processed_messages` (R6); não é chave de partição do Kafka.
  */
 object ConsumerGroups {
     const val ORCHESTRATOR = "locasign-orchestrator"
     const val PROVIDER_EVENTS = "locasign-provider-events"
     const val POST_SIGNATURE = "locasign-post-signature"
+    const val DOCUMENT_ANNULMENT = "locasign-document-annulment"
     const val NOTIFICATIONS = "locasign-notifications"
 }

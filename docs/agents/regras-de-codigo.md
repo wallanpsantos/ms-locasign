@@ -197,7 +197,8 @@
   `ProcessedMessagesPort.markProcessed(ConsumerGroups.X, eventId)` como primeira instrução do `transactions.run { }` que
   grava o efeito. Retorno `false` indica duplicata: saia sem efeito (`return@run`).
     - Em use case de duas transações, com a chamada à PandaDoc no meio (`CreateProviderDocument`, `SendContract`,
-      `ArchiveSignedDocument`), a primeira transação só consulta `isProcessed(...)` e o estado do agregado. Ela chama
+      `ArchiveSignedDocument`, `AnnulProviderDocument`), a primeira transação só consulta `isProcessed(...)` e o estado
+      do agregado. Ela chama
       `markProcessed` apenas ao descartar o evento. O `markProcessed` do efeito abre a segunda transação, depois da
       chamada HTTP.
     - **Nunca marque o evento antes da chamada externa:** se ela falhar, a retentativa do Kafka pularia um efeito que

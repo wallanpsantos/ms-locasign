@@ -1,12 +1,10 @@
 package br.com.locasign.contract.app.usecases
 
-import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
-import org.slf4j.LoggerFactory
 
 /**
  * Parâmetros de comando para cancelamento voluntário de um contrato de locação em andamento.
@@ -17,20 +15,19 @@ import org.slf4j.LoggerFactory
 data class CancelContractCommand(val contractId: ContractId, val reason: String)
 
 /**
- * Caso de uso síncrono responsável por cancelar um contrato por solicitação do corretor ou operador (Regra R9).
+ * Caso de uso acionado pela requisição HTTP que cancela um contrato por solicitação do corretor ou operador (Regra R9).
  *
  * **Responsabilidade:**
  * - Validar a justificativa de cancelamento e aplicar a transição para `CANCELLED` no agregado [br.com.locasign.contract.domain.models.Contract].
- * - Persistir a alteração transacionalmente e, subsequentemente fora da transação, anular o documento no provedor externo em melhor esforço para impedir assinaturas residuais.
+ * - Persistir a alteração e o evento `ContractCancelled` no outbox na mesma transação (R5, R6).
+ * - Não chamar a PandaDoc (regra inviolável 9): a anulação do documento é assíncrona e fica com [AnnulProviderDocument], disparado por esse evento (ADR-016).
  */
 class CancelContract(
     private val contracts: ContractRepositoryPort,
-    private val provider: SignatureProviderPort,
     private val persister: ContractPersister,
     private val clock: BusinessClock,
     private val transactions: TransactionRunner,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
 
     fun execute(command: CancelContractCommand) {
         val reason = command.reason.trim()
@@ -40,16 +37,12 @@ class CancelContract(
                 "O motivo do cancelamento é obrigatório (até $MAX_REASON_LENGTH caracteres).",
             )
         }
-        val documentToVoid = transactions.run {
+        transactions.run {
             val contract = contracts.findById(command.contractId)
                 ?: throw DomainException.NotFound("Contrato", command.contractId.toString())
-            // Só documento já enviado pode ser assinado; rascunho no provedor não precisa ser anulado.
-            val awaitingSignatures = contract.status.isAwaitingSignatures
             contract.cancel(reason, clock.now())
             persister.save(contract)
-            contract.providerDocumentId.takeIf { awaitingSignatures }
         }
-        documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato cancelado") }
     }
 
     private companion object {

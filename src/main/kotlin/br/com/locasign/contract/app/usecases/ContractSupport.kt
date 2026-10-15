@@ -1,13 +1,9 @@
 package br.com.locasign.contract.app.usecases
 
-import br.com.locasign.contract.app.ports.out.integration.ProviderException
-import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.messaging.ContractEventPublisherPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.valueobjects.ContractId
-import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import org.slf4j.Logger
 import java.time.Duration
 
 /**
@@ -35,18 +31,6 @@ data class ContractSettings(
  * - Carregar o identificador do evento original ([eventId]) e o identificador do contrato ([contractId]) para processamento idempotente.
  */
 data class ContractEventCommand(val eventId: String, val contractId: ContractId)
-
-/**
- * Anula o documento no provedor em melhor esforço, para que ninguém mais o assine. A transição do
- * contrato já foi gravada: uma falha aqui é registrada, nunca propagada.
- */
-internal fun SignatureProviderPort.cancelDocumentQuietly(documentId: ProviderDocumentId, log: Logger, context: String) {
-    try {
-        cancelDocument(documentId)
-    } catch (e: ProviderException) {
-        log.warn("{}, mas o documento {} não pôde ser anulado no provedor: {}", context, documentId, e.message)
-    }
-}
 
 /**
  * Utilitário de aplicação responsável por persistir o agregado [Contract] e descarregar seus eventos pendentes via Outbox.

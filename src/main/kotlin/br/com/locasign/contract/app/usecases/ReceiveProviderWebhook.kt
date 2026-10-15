@@ -68,8 +68,8 @@ class ReceiveProviderWebhook(
             metrics.count(Metrics.WEBHOOK_INVALID)
             return WebhookReceipt.InvalidSignature
         }
-        val deliveryId = command.deliveryId?.trim()?.takeIf { it.isNotEmpty() } ?: sha256Hex(command.rawBody)
-        val rawBody = command.rawBody.toString(Charsets.UTF_8)
+        val deliveryId = command.deliveryId?.takeIf { it.isNotBlank() }?.trim() ?: sha256Hex(command.rawBody)
+        val rawBody = command.rawBody.decodeToString()
         val items = try {
             gateway.splitItems(command.rawBody)
         } catch (e: MalformedWebhookPayload) {

@@ -8,7 +8,7 @@ import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 /**
  * Filtro servlet driving para rastreamento distribuído e propagação de cabeçalho de correlação HTTP.
@@ -23,7 +23,7 @@ class CorrelationIdFilter(private val correlation: CorrelationContext) : OncePer
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
         val provided = request.getHeader(HEADER)?.trim()
-        val id = provided?.takeIf { it.isNotBlank() && it.length <= MAX_LENGTH } ?: UUID.randomUUID().toString()
+        val id = provided?.takeIf { it.isNotBlank() && it.length <= MAX_LENGTH } ?: Uuid.random().toString()
         response.setHeader(HEADER, id)
         correlation.with(id) { chain.doFilter(request, response) }
     }

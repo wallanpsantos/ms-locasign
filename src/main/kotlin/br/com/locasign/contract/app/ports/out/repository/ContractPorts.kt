@@ -40,8 +40,31 @@ interface ContractRepositoryPort {
     /** Contratos aguardando assinatura, enviados antes de [sentBefore], sem lembrete registrado. */
     fun findReminderDueIds(sentBefore: Instant, limit: Int): List<ContractId>
 
-    /** Contratos não finais, com documento no provedor, sem atualização nem consulta desde [staleBefore]. */
-    fun findReconciliationCandidateIds(staleBefore: Instant, limit: Int): List<ContractId>
+    /**
+     * Contratos não finais, com documento no provedor, sem atualização nem consulta desde [staleBefore], do mais
+     * antigo para o mais novo. Já traz o documento do provedor: quem reconcilia não precisa carregar o agregado.
+     */
+    fun findReconciliationCandidates(staleBefore: Instant, limit: Int): List<ReconciliationCandidate>
+}
+
+/**
+ * Contrato que a reconciliação deve consultar no provedor, na forma mínima para a consulta.
+ *
+ * **Responsabilidade:**
+ * - Levar o identificador do contrato e o do documento no provedor, para consultar o provedor sem carregar o agregado [Contract] (guia, §6.4).
+ */
+data class ReconciliationCandidate(val id: ContractId, val providerDocumentId: ProviderDocumentId)
+
+/**
+ * Porta de saída que registra apenas que a reconciliação consultou o provedor para um contrato.
+ *
+ * **Responsabilidade:**
+ * - Gravar `last_reconciled_at` sem reescrever o agregado: sem signatários, sem histórico e sem nova versão otimista, para o caso em que a consulta não mudou nada.
+ * - Adiar a próxima consulta do contrato (ordem por idade efetiva dos candidatos) sem alterar o status nem `updated_at` (R5).
+ */
+interface ReconciliationMarkerPort {
+    /** Marca [contractId] como consultado em [at]. Não toca em `updated_at` nem na versão otimista. */
+    fun markReconciled(contractId: ContractId, at: Instant)
 }
 
 /**

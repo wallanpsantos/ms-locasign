@@ -23,10 +23,10 @@ class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : Notifica
     override fun recipientsOf(contractId: Uuid, audience: Audience): List<NotificationRecipient> =
         jdbc.sql(
             """
-			SELECT role, email FROM contract_signers
-			WHERE contract_id = :contractId AND (:allParties OR role = 'AGENCY')
-			ORDER BY signing_order
-			""".trimIndent(),
+            SELECT role, email FROM contract_signers
+            WHERE contract_id = :contractId AND (:allParties OR role = 'AGENCY')
+            ORDER BY signing_order
+            """.trimIndent(),
         )
             .param("contractId", contractId.toJavaUuid())
             .param("allParties", audience == Audience.ALL_PARTIES)
@@ -52,9 +52,9 @@ class JdbcNotificationLogAdapter(private val jdbc: JdbcClient) : NotificationLog
     override fun record(contractId: Uuid, eventId: String, eventType: String, recipientMasked: String) {
         jdbc.sql(
             """
-			INSERT INTO notifications_log (contract_id, event_id, event_type, recipient_masked)
-			VALUES (:contractId, :eventId, :eventType, :recipientMasked)
-			""".trimIndent(),
+            INSERT INTO notifications_log (contract_id, event_id, event_type, recipient_masked)
+            VALUES (:contractId, :eventId, :eventType, :recipientMasked)
+            """.trimIndent(),
         )
             .param("contractId", contractId.toJavaUuid())
             .param("eventId", eventId)

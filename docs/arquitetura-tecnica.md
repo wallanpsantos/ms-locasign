@@ -762,16 +762,16 @@ correções viram nova migration. A V1 cria todas as tabelas do MVP.
 
 ### 9.3 Cadastro de locação: campos
 
-| Campo                                      | Tipo           | Regra                                          |
-|--------------------------------------------|----------------|------------------------------------------------|
-| `tenant.name`                              | Texto          | Obrigatório, de 3 a 120 caracteres.            |
-| `tenant.cpf`                               | Texto          | CPF válido, com ou sem máscara.                |
-| `tenant.email`                             | E-mail         | No sandbox, mesmo domínio do remetente.        |
-| `agencySigner.name` / `agencySigner.email` | Texto / e-mail | Se ausentes, usar o padrão da configuração.    |
-| `property.address`                         | Texto          | Obrigatório.                                   |
-| `rentAmount`                               | String decimal | Maior que zero, 2 casas.                       |
-| `startDate`                                | Data           | Igual ou posterior a hoje (America/Sao_Paulo). |
-| `termMonths`                               | Inteiro        | De 1 a 120; padrão 30.                         |
+| Campo                                      | Tipo           | Regra                                                                  |
+|--------------------------------------------|----------------|------------------------------------------------------------------------|
+| `tenant.name`                              | Texto          | Obrigatório, de 3 a 120 caracteres.                                    |
+| `tenant.cpf`                               | Texto          | CPF válido, com ou sem máscara (até 14 caracteres).                    |
+| `tenant.email`                             | E-mail         | No sandbox, mesmo domínio do remetente. Até 254 caracteres.            |
+| `agencySigner.name` / `agencySigner.email` | Texto / e-mail | Se ausentes, usar o padrão da configuração. E-mail até 254 caracteres. |
+| `property.address`                         | Texto          | Obrigatório, até 300 caracteres.                                       |
+| `rentAmount`                               | String decimal | Maior que zero, 2 casas e até 10 dígitos inteiros (`numeric(12,2)`).   |
+| `startDate`                                | Data           | Igual ou posterior a hoje (America/Sao_Paulo).                         |
+| `termMonths`                               | Inteiro        | De 1 a 120; padrão 30.                                                 |
 
 O Kotlin 2.4 estabilizou novas regras padrão de alvo para anotações em parâmetros de construtor.
 O primeiro DTO deve ter um teste provando que a Bean Validation realmente dispara.

@@ -6,7 +6,7 @@
 [![PostgreSQL 18.6](https://img.shields.io/badge/PostgreSQL-18.6-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Apache Kafka 4.3.1](https://img.shields.io/badge/Apache%20Kafka-4.3.1%20KRaft-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org)
 [![Gradle 9.8.1](https://img.shields.io/badge/Gradle-9.8.1-02303A?logo=gradle&logoColor=white)](https://gradle.org)
-[![Testes Automatizados](https://img.shields.io/badge/Testes-234%20passing-brightgreen?logo=junit5&logoColor=white)](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)
+[![Testes Automatizados](https://img.shields.io/badge/Testes-341%20passing-brightgreen?logo=junit5&logoColor=white)](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)
 
 Serviço backend de alto desempenho e resiliência que automatiza integralmente o ciclo de vida de contratos de **locação
 residencial**: cadastra a locação, orquestra a geração do contrato, envia para assinatura eletrônica na **PandaDoc**,
@@ -36,7 +36,7 @@ pós-assinatura (ativação da locação, agendamento de vistoria, emissão da p
 7. [Executando o Ambiente Local](#7-executando-o-ambiente-local)
 8. [Variáveis de Ambiente e Configuração](#8-variáveis-de-ambiente-e-configuração)
 9. [Preparando a PandaDoc (Checklist do Dia 1)](#9-preparando-a-pandadoc-checklist-do-dia-1)
-10. [Estratégia e Pirâmide de Testes (234 Testes)](#10-estratégia-e-pirâmide-de-testes-234-testes)
+10. [Estratégia e Pirâmide de Testes (341 Testes)](#10-estratégia-e-pirâmide-de-testes-341-testes)
 11. [Estrutura do Projeto e Decisões Arquiteturais (ADRs)](#11-estrutura-do-projeto-e-decisões-arquiteturais-adrs)
 12. [Resiliência, Operação e Troubleshooting](#12-resiliência-operação-e-troubleshooting)
 
@@ -349,6 +349,8 @@ sequenceDiagram
     Corretor ->> API: POST /api/v1/contracts/:id/cancel (motivo: Dados incorretos - R9)
     API ->> DB: Transiciona para CANCELLED e desocupa locação para v2 (R1, R9)
     API -->> Corretor: HTTP 202 Accepted
+    Kafka ->> API: DocumentAnnulmentConsumer consome ContractCancelled (R6)
+    API ->> PandaDoc: PATCH /public/v1/documents/:id/status (anula o documento, fora da requisição)
     Operador ->> API: POST /api/v1/contracts/:id/reconcile (Header: X-Admin-Token)
     API ->> PandaDoc: GET /public/v1/documents/:id (Reconciliação manual de status)
     API -->> Operador: HTTP 202 Accepted
@@ -389,6 +391,7 @@ retornam payloads JSON padronizados:
 |   `404 Not Found`   | `/problems/not-found`              | Locação, contrato ou tópico de mensageria inexistente no sistema.             |
 |   `409 Conflict`    | `/problems/active-contract-exists` | Tentativa de solicitar novo contrato para locação com contrato ativo (R1).    |
 |   `409 Conflict`    | `/problems/contract-final`         | Tentativa de alterar contrato em estado terminal imutável (R5).               |
+|   `413 Too Large`   | `/problems/payload-too-large`      | Corpo do webhook acima do limite (1 MiB por padrão), recusado antes do HMAC.  |
 | `422 Unprocessable` | `/problems/business-rule`          | Violação de regra de domínio (CPF inválido, data passada, aluguel <= 0) (R2). |
 
 ---
@@ -537,15 +540,20 @@ mesmo sem as credenciais da PandaDoc, permitindo testar cadastros e o fluxo loca
 |------------------------------------|---------------------------------------------|-------------------------------------------------------------------------------------|
 | `DB_URL`                           | `jdbc:postgresql://localhost:5432/locasign` | URL de conexão JDBC ao PostgreSQL.                                                  |
 | `DB_USERNAME` / `DB_PASSWORD`      | `locasign` / `locasign`                     | Credenciais do banco de dados relacional.                                           |
+| `DB_POOL_MAX_SIZE`                 | `10`                                        | Máximo de conexões do pool Hikari; só aumente após teste de carga.                  |
+| `DB_POOL_CONNECTION_TIMEOUT`       | `5000`                                      | Espera máxima por uma conexão do pool, em ms; mantém o webhook rápido (R7).         |
 | `KAFKA_BOOTSTRAP_SERVERS`          | `localhost:9092`                            | Endereço do broker Kafka (`kafka:29092` na rede interna do Compose).                |
+| `KAFKA_MAX_POLL_RECORDS`           | `10`                                        | Máximo de registros retornados por poll no consumer Kafka (RL1).                    |
 | `PANDADOC_API_KEY`                 | *(vazio)*                                   | Chave de API da PandaDoc (utilize chave **sandbox** no desenvolvimento).            |
 | `PANDADOC_TEMPLATE_ID`             | *(vazio)*                                   | UUID do modelo de contrato configurado no painel da PandaDoc.                       |
 | `PANDADOC_WEBHOOK_SHARED_KEY`      | *(vazio)*                                   | Chave secreta compartilhada para cálculo do HMAC-SHA256 dos webhooks.               |
+| `PANDADOC_WEBHOOK_MAX_BODY_BYTES`  | `1048576`                                   | Tamanho máximo do corpo do webhook em bytes (1 MiB); acima disso, HTTP 413.         |
 | `PANDADOC_BASE_URL`                | `https://api.pandadoc.com/public/v1`        | URL base da API REST da PandaDoc.                                                   |
 | `PANDADOC_DOWNLOAD_ENABLED`        | `false`                                     | Se `true`, realiza o download do PDF assinado (exige chave de produção).            |
 | `PANDADOC_RATE_LIMIT_PER_MINUTE`   | `8`                                         | Limite defensivo por minuto (abaixo do teto de 10/min do sandbox).                  |
 | `AGENCY_SIGNER_NAME` / `_EMAIL`    | *(vazio)*                                   | Nome e e-mail padrão do representante da imobiliária (signatário 2).                |
 | `CONTRACT_SIGNATURE_DEADLINE_DAYS` | `7`                                         | Prazo limite em dias para conclusão das assinaturas (R4).                           |
+| `RECONCILIATION_STALE_AFTER`       | `10m`                                       | Tempo sem atualização antes de a reconciliação consultar o provedor (RC4).          |
 | `APP_TIMEZONE`                     | `America/Sao_Paulo`                         | Fuso horário canônico para cálculos de datas de vigência e prazos.                  |
 | `ADMIN_TOKEN`                      | *(vazio)*                                   | Habilita operações sensíveis via cabeçalho `X-Admin-Token`. Vazio desabilita (403). |
 | `ARCHIVE_DIRECTORY`                | `./data/signed-documents`                   | Diretório local de armazenamento dos documentos PDFs concluídos.                    |
@@ -569,9 +577,9 @@ mesmo sem as credenciais da PandaDoc, permitindo testar cadastros e o fluxo loca
 
 ---
 
-## 10. Estratégia e Pirâmide de Testes (234 Testes)
+## 10. Estratégia e Pirâmide de Testes (341 Testes)
 
-A aplicação conta com uma esteira rigorosa de **234 testes automatizados com 100% de aprovação**, cobrindo todas as
+A aplicação conta com uma esteira rigorosa de **341 testes automatizados com 100% de aprovação**, cobrindo todas as
 camadas
 da arquitetura hexagonal (formalizada no [ADR-014](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)):
 
@@ -646,6 +654,17 @@ As decisões de engenharia que expandem ou refinam o guia inicial estão formali
   arquitetura.
 - [**ADR-015: Convenção de KDoc Estruturado**](docs/adr/0015-convencao-de-kdoc.md) — Padrão unificado de documentação
   técnica em português brasileiro destacando comportamento técnico e responsabilidade única (SRP).
+- [**ADR-016: Anulação Assíncrona do Documento na
+  PandaDoc**](docs/adr/0016-anulacao-assincrona-do-documento-na-pandadoc.md) —
+  Remove a chamada síncrona à PandaDoc do `POST /cancel` e do job de expiração, delegando ao novo consumer
+  `DocumentAnnulmentConsumer` via eventos do outbox com retentativa e DLT.
+- [**ADR-017: Ajustes de Resiliência e Performance da
+  Auditoria**](docs/adr/0017-ajustes-de-resiliencia-e-performance-da-auditoria-2026-10-15.md) —
+  Blindagem de limites de entrada (`Money` e DTOs), teto de 1 MiB no webhook (HTTP 413 pré-inbox), abort imediato do
+  lote do
+  outbox em falha de broker, índices parciais para housekeeping (Migration V2), taxa de limitador diferenciada por
+  chamador e
+  reconciliação sem falsas regressões.
 
 ---
 

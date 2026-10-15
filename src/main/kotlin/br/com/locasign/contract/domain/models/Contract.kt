@@ -130,8 +130,12 @@ class Contract private constructor(
         return when (val decision = ContractTransitionPolicy.decide(status, change.target)) {
             TransitionDecision.NoOp -> TransitionResult.NO_CHANGE
             is TransitionDecision.Reject -> {
-                recordRejected(change, decision.reason, now)
-                TransitionResult.IGNORED
+                if (change.source == ChangeSource.RECONCILIATION && !status.isFinal && change.target.progress < status.progress) {
+                    TransitionResult.NO_CHANGE
+                } else {
+                    recordRejected(change, decision.reason, now)
+                    TransitionResult.IGNORED
+                }
             }
 
             TransitionDecision.Apply -> {

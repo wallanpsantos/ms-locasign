@@ -39,7 +39,7 @@ docs: |
   **Efeitos de Negócio e Domínio:**
   - O contrato transiciona para o status terminal `CANCELLED` de forma atômica.
   - A justificativa é persistida na trilha histórica de auditoria.
-  - Caso o documento já estivesse na PandaDoc, é anulado remotamente em melhor esforço.
+  - Caso o documento já tivesse sido enviado na PandaDoc, ele é anulado remotamente de forma assíncrona (consumer Kafka do evento `ContractCancelled`, com retentativa e DLT), depois da resposta 202.
   - A locação é liberada para a geração de uma nova versão (Regra R1).
   
   - **Sucesso:** `HTTP 202 ACCEPTED`

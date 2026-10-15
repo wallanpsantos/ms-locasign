@@ -2,8 +2,7 @@ package br.com.locasign.contract.app.usecases
 
 import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
-import br.com.locasign.contract.app.fakes.RecordingSignatureProvider
-import br.com.locasign.contract.app.ports.out.integration.ProviderException
+import br.com.locasign.contract.domain.events.ContractCancelled
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
@@ -15,7 +14,7 @@ import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
-import br.com.locasign.shared.app.fakes.RecordingTransactionRunner
+import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.domain.valueobjects.Email
 import org.junit.jupiter.params.ParameterizedTest
@@ -25,23 +24,20 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CancelContractTest {
 
     private val now = Instant.parse("2026-10-09T10:00:00Z")
     private val contracts = InMemoryContractRepository()
-    private val provider = RecordingSignatureProvider()
-    private val transactions = RecordingTransactionRunner()
+    private val publisher = RecordingContractEventPublisher()
     private val document = ProviderDocumentId.of("doc-1")
 
     private val cancelContract = CancelContract(
         contracts = contracts,
-        provider = provider,
-        persister = ContractPersister(contracts, RecordingContractEventPublisher()),
+        persister = ContractPersister(contracts, publisher),
         clock = FixedBusinessClock(now),
-        transactions = transactions,
+        transactions = ImmediateTransactionRunner,
     )
 
     private val signers = listOf(
@@ -49,7 +45,10 @@ class CancelContractTest {
         Signer(SignerRole.AGENCY, "Imobiliária Alfa", Email.of("alfa@example.com"), SigningOrder.of(2)),
     )
 
-    /** Todo contrato tem documento no provedor: a decisão de anular vem só do status. */
+    /**
+     * Todo contrato tem documento no provedor, mas o caso de uso não recebe `SignatureProviderPort`: a anulação é
+     * assíncrona e parte do evento no outbox (ADR-016).
+     */
     private fun contractIn(status: ContractStatus): Contract =
         restoreContract(status, LeaseId.new(), signers, now, providerDocumentId = document).also(contracts::save)
 
@@ -57,31 +56,21 @@ class CancelContractTest {
         cancelContract.execute(CancelContractCommand(contractId, reason))
 
     @ParameterizedTest
-    @EnumSource(ContractStatus::class, names = ["SENT", "VIEWED", "PARTIALLY_SIGNED"])
-    fun `cancelamento de contrato aguardando assinaturas anula o documento no provedor`(status: ContractStatus) {
+    @EnumSource(ContractStatus::class, names = ["DRAFT", "GENERATED", "SENT", "VIEWED", "PARTIALLY_SIGNED"])
+    fun `cancelamento grava ContractCancelled no outbox para a anulação assíncrona do documento`(status: ContractStatus) {
         val contract = contractIn(status)
 
         cancel(contract.id, "  Desistência do locatário.  ")
 
         assertEquals(ContractStatus.CANCELLED, contract.status)
         assertEquals(CancelReason.Requested("Desistência do locatário."), contract.cancelReason)
-        assertEquals(listOf(document), provider.cancelled)
-    }
-
-    @ParameterizedTest
-    @EnumSource(ContractStatus::class, names = ["DRAFT", "GENERATED"])
-    fun `cancelamento de contrato ainda não enviado não anula o documento no provedor`(status: ContractStatus) {
-        val contract = contractIn(status)
-
-        cancel(contract.id, "Desistência do locatário.")
-
-        assertEquals(ContractStatus.CANCELLED, contract.status)
-        assertTrue(provider.cancelled.isEmpty())
+        val event = publisher.published.single()
+        assertEquals(ContractCancelled(contract.id, "Desistência do locatário.", now, event.eventId), event)
     }
 
     @ParameterizedTest
     @EnumSource(ContractStatus::class, names = ["COMPLETED", "DECLINED", "EXPIRED", "CANCELLED"])
-    fun `contrato em estado final não é cancelado nem anulado no provedor (R5)`(status: ContractStatus) {
+    fun `contrato em estado final não é cancelado nem gera evento (R5)`(status: ContractStatus) {
         val contract = contractIn(status)
 
         val ex = assertFailsWith<DomainException.ContractFinal> { cancel(contract.id, "Desistência do locatário.") }
@@ -89,7 +78,7 @@ class CancelContractTest {
         assertEquals(contract.id.toString(), ex.contractId)
         assertEquals(status.name, ex.status)
         assertEquals(status, contract.status)
-        assertTrue(provider.cancelled.isEmpty())
+        assertTrue(publisher.published.isEmpty())
     }
 
     @ParameterizedTest
@@ -102,7 +91,7 @@ class CancelContractTest {
         assertEquals("reason", ex.field)
         assertEquals("O motivo do cancelamento é obrigatório (até 500 caracteres).", ex.message)
         assertEquals(ContractStatus.SENT, contract.status)
-        assertTrue(provider.cancelled.isEmpty())
+        assertTrue(publisher.published.isEmpty())
     }
 
     @Test
@@ -116,30 +105,6 @@ class CancelContractTest {
 
         cancel(contract.id, "x".repeat(500))
         assertEquals(ContractStatus.CANCELLED, contract.status)
-    }
-
-    @Test
-    fun `anulação no provedor acontece depois da transação que grava o cancelamento`() {
-        val contract = contractIn(ContractStatus.SENT)
-        provider.beforeEachCall = {
-            assertFalse(transactions.inTransaction, "anulação chamada dentro da transação")
-            assertEquals(ContractStatus.CANCELLED, contract.status)
-        }
-
-        cancel(contract.id, "Desistência do locatário.")
-
-        assertEquals(listOf(document), provider.cancelled)
-    }
-
-    @Test
-    fun `falha ao anular no provedor não desfaz o cancelamento nem propaga (melhor esforço)`() {
-        val contract = contractIn(ContractStatus.SENT)
-        provider.cancelFailure = ProviderException.Unavailable("tempo esgotado")
-
-        cancel(contract.id, "Desistência do locatário.")
-
-        assertEquals(ContractStatus.CANCELLED, contract.status)
-        assertEquals(listOf(document), provider.cancelled)
     }
 
     @Test

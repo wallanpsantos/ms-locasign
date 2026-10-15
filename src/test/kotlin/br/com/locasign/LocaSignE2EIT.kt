@@ -7,6 +7,7 @@ import br.com.locasign.lease.interfaces.web.dto.request.CreateLeaseRequest
 import br.com.locasign.lease.interfaces.web.dto.request.PropertyRequest
 import br.com.locasign.lease.interfaces.web.dto.request.TenantRequest
 import br.com.locasign.lease.interfaces.web.dto.response.LeaseResponse
+import br.com.locasign.support.TestWebhookSupport.calculateHmac
 import br.com.locasign.support.TestcontainersSupport
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
@@ -29,10 +30,7 @@ import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.RestClient
 import java.time.Duration
 import java.time.LocalDate
-import java.util.HexFormat
 import java.util.UUID
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -83,13 +81,6 @@ class LocaSignE2EIT {
             registry.add("locasign.agency-signer.name") { "Imobiliária Prime E2E" }
             registry.add("locasign.agency-signer.email") { "assinaturas@imobiliaria.com" }
         }
-    }
-
-    private fun calculateHmac(secret: String, data: ByteArray): String {
-        val mac = Mac.getInstance("HmacSHA256").apply {
-            init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
-        }
-        return HexFormat.of().formatHex(mac.doFinal(data))
     }
 
     private fun fetchLease(leaseId: String): LeaseResponse? =

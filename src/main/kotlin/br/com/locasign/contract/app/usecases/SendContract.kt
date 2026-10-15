@@ -54,10 +54,14 @@ class SendContract(
 
     private fun prepare(command: ContractEventCommand): ProviderDocumentId? {
         if (processed.isProcessed(ConsumerGroups.ORCHESTRATOR, command.eventId)) return null
-        val contract = contracts.findById(command.contractId)
-        val documentId = contract?.providerDocumentId
+        val contract = contracts.findById(command.contractId) ?: run {
+            log.warn("Contrato {} não encontrado ao enviar; evento descartado", command.contractId)
+            processed.markProcessed(ConsumerGroups.ORCHESTRATOR, command.eventId)
+            return null
+        }
+        val documentId = contract.providerDocumentId
         // Só envia a partir de GENERATED. Se o contrato já avançou ou terminou, não há o que enviar.
-        if (contract == null || documentId == null || contract.status != ContractStatus.GENERATED) {
+        if (documentId == null || contract.status != ContractStatus.GENERATED) {
             processed.markProcessed(ConsumerGroups.ORCHESTRATOR, command.eventId)
             return null
         }

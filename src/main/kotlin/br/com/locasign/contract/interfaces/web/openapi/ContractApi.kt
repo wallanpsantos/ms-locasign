@@ -45,9 +45,10 @@ interface ContractApi {
 
     @Operation(
         summary = "Força a reconciliação com o provedor (desenvolvimento e operação)",
-        description = "Consulta o status do documento na PandaDoc e aplica a diferença, como se o webhook tivesse chegado.",
+        description = "Consulta o status do documento na PandaDoc e aplica a diferença, como se o webhook tivesse chegado. Requer header X-Admin-Token.",
     )
     @ApiResponse(responseCode = "202", description = "Reconciliação executada")
+    @ApiResponse(responseCode = "403", description = "Operação restrita a operadores (token ausente ou inválido)")
     @ApiResponse(responseCode = "404", description = "Contrato inexistente")
     fun reconcile(contractId: String): ResponseEntity<ContractAcceptedResponse>
 }

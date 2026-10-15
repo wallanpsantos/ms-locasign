@@ -2,6 +2,7 @@ package br.com.locasign.shared.interfaces.web
 
 import br.com.locasign.shared.app.DeadLetterReplayPort
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable
@@ -27,7 +28,9 @@ class AdminController(
 
     @PostMapping("/dead-letters/{topic}/replay")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Reenvia as mensagens da DLT de um tópico para o tópico original")
+    @Operation(summary = "Reenvia as mensagens da DLT de um tópico para o tópico original. Requer header X-Admin-Token.")
+    @ApiResponse(responseCode = "200", description = "Mensagens reenviadas")
+    @ApiResponse(responseCode = "403", description = "Operação restrita a operadores (token ausente ou inválido)")
     fun replay(@PathVariable topic: String): ReplayResponse {
         operatorAccess.requireOperator()
         return ReplayResponse(topic, deadLetters.replay(topic))

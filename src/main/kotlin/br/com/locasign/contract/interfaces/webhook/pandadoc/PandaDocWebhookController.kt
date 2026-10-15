@@ -39,11 +39,8 @@ class PandaDocWebhookController(
         @RequestBody(required = false) body: ByteArray?,
         @RequestParam(name = "signature", required = false) signature: String?,
         @RequestHeader(name = DELIVERY_ID_HEADER, required = false) deliveryId: String?,
-    ): ResponseEntity<Void> {
-        val receipt = correlation.with(deliveryId) {
-            receiveWebhook.execute(ReceiveProviderWebhookCommand(body ?: ByteArray(0), signature, deliveryId))
-        }
-        return when (receipt) {
+    ): ResponseEntity<Void> = correlation.with(deliveryId) {
+        when (receiveWebhook.execute(ReceiveProviderWebhookCommand(body ?: EMPTY_BODY, signature, deliveryId))) {
             is WebhookReceipt.Accepted, is WebhookReceipt.Duplicate -> ResponseEntity.ok().build()
             WebhookReceipt.InvalidSignature -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         }
@@ -51,5 +48,6 @@ class PandaDocWebhookController(
 
     private companion object {
         const val DELIVERY_ID_HEADER = "X-PandaDoc-Webhook-Event-Id"
+        val EMPTY_BODY = ByteArray(0)
     }
 }

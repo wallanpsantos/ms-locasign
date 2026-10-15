@@ -47,10 +47,10 @@ class ArchiveSignedDocument(
 
         val signed = provider.downloadSigned(command.documentId)
         val (storageKind, location) = when (signed) {
-            is SignedDocument.Available -> "FILE" to storage.store(contractId, signed.bytes)
+            is SignedDocument.Available -> STORAGE_KIND_FILE to storage.store(contractId, signed.bytes)
             is SignedDocument.Unavailable -> {
                 log.info("Download indisponível para o documento {}: {}", command.documentId, signed.reason)
-                "REFERENCE_ONLY" to "provider:${command.documentId}"
+                STORAGE_KIND_REFERENCE to "provider:${command.documentId}"
             }
         }
 
@@ -59,11 +59,14 @@ class ArchiveSignedDocument(
 
     private fun findCompletedContract(command: ArchiveSignedDocumentCommand): ContractId? {
         if (processed.isProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)) return null
-        val contract = contracts.findByProviderDocumentId(command.documentId)
-        if (contract == null || contract.endedWithoutCompletion()) {
-            // Sem contrato, ou contrato expirado, cancelado ou recusado: não há PDF assinado a arquivar e
+        val contract = contracts.findByProviderDocumentId(command.documentId) ?: run {
+            processed.markProcessed(ConsumerGroups.PROVIDER_EVENTS, command.eventId)
+            return null
+        }
+        if (contract.endedWithoutCompletion()) {
+            // Contrato expirado, cancelado ou recusado: não há PDF assinado a arquivar e
             // retentar nunca resolveria. O evento já está no inbox (R7).
-            if (contract != null) log.info(
+            log.info(
                 "Contrato {} terminou em {}; PDF assinado ignorado",
                 contract.id,
                 contract.status
@@ -97,4 +100,9 @@ class ArchiveSignedDocument(
     }
 
     private fun Contract.endedWithoutCompletion(): Boolean = status.isFinal && status != ContractStatus.COMPLETED
+
+    private companion object {
+        const val STORAGE_KIND_FILE = "FILE"
+        const val STORAGE_KIND_REFERENCE = "REFERENCE_ONLY"
+    }
 }

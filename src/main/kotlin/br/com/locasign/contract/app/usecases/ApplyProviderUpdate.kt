@@ -49,8 +49,7 @@ class ApplyProviderUpdate(
     fun execute(command: ApplyProviderUpdateCommand) {
         transactions.run {
             val first = command.signals.firstOrNull() ?: return@run
-            val contract = contracts.findByProviderDocumentId(first.documentId)
-                ?: first.contractHint?.let(contracts::findById)
+            val contract = findContract(first)
             if (contract == null) {
                 log.warn("Documento {} não pertence a nenhum contrato conhecido", first.documentId)
                 return@run
@@ -152,6 +151,10 @@ class ApplyProviderUpdate(
             TransitionResult.NO_CHANGE -> Unit
         }
     }
+
+    private fun findContract(signal: ProviderSignal): Contract? =
+        contracts.findByProviderDocumentId(signal.documentId)
+            ?: signal.contractHint?.let(contracts::findById)
 
     private companion object {
         const val ERROR_DETAIL = "O provedor reportou document.error na criação do documento."

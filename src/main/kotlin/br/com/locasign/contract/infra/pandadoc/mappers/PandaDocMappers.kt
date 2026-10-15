@@ -109,7 +109,7 @@ fun ProviderSendRequest.toPandaDoc(): SendDocumentRequest = SendDocumentRequest(
 
 /** `2500.00` vira `R$ 2.500,00`. */
 internal fun BigDecimal.formatBrl(): String =
-    "R$ " + DecimalFormat("#,##0.00", DecimalFormatSymbols(PT_BR)).format(this)
+    "R$ " + DecimalFormat("#,##0.00", DecimalFormatSymbols.getInstance(PT_BR)).format(this)
 
 internal fun Int.formatTerm(): String = if (this == 1) "1 mês" else "$this meses"
 

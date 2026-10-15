@@ -116,7 +116,7 @@ class PandaDocWebhookGateway(
         val detail = error.path("detail")
         val text = when {
             detail.isString -> detail.stringValue()
-            detail.isMissingNode -> error.toString()
+            detail.isMissingNode || detail.isNull -> error.toString()
             else -> detail.toString()
         }
         return text.take(MAX_DETAIL_LENGTH)

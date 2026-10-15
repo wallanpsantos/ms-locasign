@@ -31,8 +31,8 @@ Antes de analisar, planejar ou implementar, leia na ordem:
       antes de implementar.
     - **ADR-013:** ajustes de implementação (localização de value objects, colunas extras, token de operador, health).
     - **ADR-014:** estratégia de testes automatizados, convenção de localização e inclusão de WireMock e ArchUnit
-      (`proposta`).
-    - **ADR-015:** convenção estruturada de documentação técnica de classes com KDoc (`proposta`).
+      (`aceita`).
+    - **ADR-015:** convenção estruturada de documentação técnica de classes com KDoc (`aceita`).
 4. **Documentos de detalhamento em `docs/agents/`:**
     - [`divergencias-do-guia.md`](docs/agents/divergencias-do-guia.md): divergências catalogadas entre o guia técnico e
       o repositório.
@@ -123,11 +123,13 @@ docker compose down                                         # passe os mesmos --
 - **ADRs:** toda decisão técnica relevante que desvie do guia ou o expanda (guia, §0) vira
   `docs/adr/NNNN-titulo-em-kebab-case.md`. O número tem quatro dígitos e é o maior existente em `docs/adr/` mais um.
   Siga o modelo do ADR-011: título `# ADR-0NN: ...`, linhas `- **Status:**` e `- **Relação com o guia:**`, e seções
-  Contexto, Decisão e Consequências. ADR criado por agente nasce com status `proposta`; aceitá-lo é decisão humana. O
-  ADR-013 (tabela de ajustes pequenos) já está `aceita`: só acrescente linha a ele com confirmação do usuário.
-- **Planos em `docs/tasks/`:** `plan.md` guarda o plano e as decisões da iniciativa, e `todo.md` o checklist com
-  critérios de aceite, onde o progresso é marcado (`[x]`). Ao executar uma tarefa de lá, respeite a ordem e as
-  dependências e rode a verificação indicada. Pergunte antes de sobrescrever esses arquivos com outra iniciativa.
+  Contexto, Decisão e Consequências. ADR criado por agente nasce com status `proposta`; aceitá-lo é decisão humana.
+  ADRs nunca são removidos após implementados: eles documentam a justificativa técnica permanente das escolhas e
+  passam para o status `aceita`.
+- **Planos em `docs/tasks/`:** arquivos de iniciativa temporária (`plan.md` e `todo.md`) que registram o backlog e o
+  progresso de uma demanda específica. Ao final de cada iniciativa, o checklist concluído é arquivado ou limpo,
+  diferente dos ADRs que são permanentes. Ao executar uma tarefa de lá, respeite a ordem e as dependências e rode a
+  verificação indicada. Pergunte antes de sobrescrever esses arquivos com outra iniciativa.
 - **Variáveis de ambiente:** não crie nem edite arquivos `.env*`. A referência é a tabela "Configuração" do `README.md`,
   junto com os placeholders `${VAR:padrão}` do `application.yaml` (detalhes em [
   `docs/agents/regras-de-codigo.md`](docs/agents/regras-de-codigo.md)).

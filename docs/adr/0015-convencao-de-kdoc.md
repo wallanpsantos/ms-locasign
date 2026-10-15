@@ -1,6 +1,6 @@
 # ADR-015: convenção estruturada de documentação técnica de classes com KDoc
 
-- **Status:** proposta
+- **Status:** aceita
 - **Relação com o guia:** complementa as diretrizes de engenharia e formaliza a convenção de KDoc descrita na seção de
   regras de código do `AGENTS.md`
 

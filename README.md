@@ -8,9 +8,8 @@ vistoria, registrar a primeira cobrança e notificar os envolvidos).
 > Projeto de estudo de Kotlin 2.4, Spring Boot 4.1, PostgreSQL 18, Kafka 4.3 e Docker.
 > O negócio está em [`docs/plano-de-negocio.md`](docs/plano-de-negocio.md) e a arquitetura em
 > [`docs/arquitetura-tecnica.md`](docs/arquitetura-tecnica.md). Decisões posteriores ao guia ficam
-> formalizadas em [`docs/adr/`](docs/adr). O planejamento e o backlog da iniciativa em andamento estão em
-> [`docs/tasks/simplificacao/plan.md`](docs/tasks/simplificacao/plan.md) e
-> [`docs/tasks/simplificacao/todo.md`](docs/tasks/simplificacao/todo.md). Use somente **dados fictícios** (R10).
+> formalizadas em [`docs/adr/`](docs/adr/). As diretrizes de desenvolvimento e engenharia estão em
+> [`AGENTS.md`](AGENTS.md) e [`docs/agents/`](docs/agents/). Use somente **dados fictícios** (R10).
 
 ## Subindo o ambiente
 
@@ -166,6 +165,9 @@ As decisões que detalham ou refinam o guia técnico estão registradas em [`doc
   webhook, retentativas em HTTP 409/404, download protegido de PDF, etc.).
 - **ADR-013:** Ajustes de implementação em relação ao guia (distribuição de Value Objects, colunas adicionais para
   auditoria/backoff, replay manual de DLT via endpoint de admin protegido por `X-Admin-Token`).
+- **ADR-014:** Estratégia de testes automatizados, convenção de localização (`*Test` e `*IT`) e inclusão de WireMock e
+  ArchUnit.
+- **ADR-015:** Convenção estruturada de documentação técnica de classes com KDoc em português brasileiro.
 
 ### Documentação de Classes (KDoc Estruturado)
 

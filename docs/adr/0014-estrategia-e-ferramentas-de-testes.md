@@ -1,6 +1,6 @@
 # ADR-014: estratégia de testes, convenção de localização e inclusão de WireMock e ArchUnit
 
-- **Status:** proposta
+- **Status:** aceita
 - **Relação com o guia:** complementa a seção 15 ("Estratégia de testes") e formaliza o `AGENTS.md` §7 (detalhado em
   `docs/agents/testes.md`)
 

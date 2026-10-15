@@ -1,0 +1,38 @@
+info:
+  name: 13 - Cancela contrato - Erro 409 (Regra R5 - Contrato em estado final)
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/{{contractId}}/cancel"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "reason": "Tentativa de cancelar contrato que já está cancelado ou concluído"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 13 - Cancela contrato - Erro 409 (Regra R5 - Contrato em estado final)
+  A regra de negócio **R5** estipula: *"O status nunca regride e estados finais são imutáveis"*.
+  Os estados finais (`COMPLETED`, `DECLINED`, `EXPIRED`, `CANCELLED`) rejeitam categoricamente qualquer nova mutação ou tentativa de cancelamento.
+  
+  - **Erro esperado:** `HTTP 409 CONFLICT`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/contract-final`.
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/contracts/{{contractId}}/cancel" \
+    --header 'Content-Type: application/json' \
+    --data '{"reason": "Tentativa de cancelar contrato que já está cancelado ou concluído"}'
+  ```

@@ -1,0 +1,27 @@
+info:
+  name: 04 - Reprocessa DLT Kafka - Erro 403 (Token ausente ou inválido)
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/admin/dead-letters/locasign.contract.events.v1/replay"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 04 - Reprocessa DLT Kafka - Erro 403 (Token ausente ou inválido)
+  O reprocessamento de mensagens retidas na Dead Letter Queue (DLT) é restrito a operadores.
+  Sem o cabeçalho `X-Admin-Token`, a chamada é rejeitada pelo `OperatorAccessGuard`.
+  
+  - **Erro esperado:** `HTTP 403 FORBIDDEN`
+  - **Mensagem:** "Operação restrita a operadores."
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/admin/dead-letters/locasign.contract.events.v1/replay'
+  ```

@@ -1,0 +1,26 @@
+info:
+  name: 06 - Solicita contrato - Erro 404 (Locação inexistente)
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases/00000000-0000-0000-0000-000000000000/contracts"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 06 - Solicita contrato - Erro 404 (Locação inexistente)
+  Tenta solicitar contrato para um identificador de locação inexistente.
+  
+  - **Erro esperado:** `HTTP 404 NOT FOUND`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/not-found`.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/leases/00000000-0000-0000-0000-000000000000/contracts'
+  ```

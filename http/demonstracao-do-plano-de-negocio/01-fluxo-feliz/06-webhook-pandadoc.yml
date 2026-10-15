@@ -1,0 +1,79 @@
+info:
+  name: 06 - Webhook PandaDoc - Evento assinado (200 OK)
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/webhooks/pandadoc"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-PandaDoc-Webhook-Event-Id
+      value: delivery-demo-001
+  body:
+    type: json
+    data: |-
+      [
+        {
+          "event": "document_state_changed",
+          "data": {
+            "id": "doc_pandadoc_demo_123",
+            "name": "LocaSign contrato residencial",
+            "date_modified": "2026-10-15T10:00:00.000000Z",
+            "status": "document.viewed",
+            "metadata": {
+              "contract_id": "{{contractId}}"
+            },
+            "recipients": [
+              {
+                "email": "maria@example.com",
+                "role": "Locatario",
+                "has_completed": false
+              },
+              {
+                "email": "agencia@example.com",
+                "role": "Imobiliaria",
+                "has_completed": false
+              }
+            ]
+          }
+        }
+      ]
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 06 - Webhook PandaDoc - Evento assinado (200 OK)
+  Simula a recepção de webhook da PandaDoc notificando alteração de estado (`document_state_changed` -> `document.viewed`).
+  
+  **Garantias da Regra R7:**
+  - O corpo bruto (`raw bytes`) é persistido na tabela `webhook_inbox` antes de qualquer parsing.
+  - Cada item gera uma mensagem outbox direcionada ao Kafka (`locasign.pandadoc.webhooks.v1`).
+  - Responde imediatamente HTTP 200 para a PandaDoc.
+  - Reenvio com o mesmo `X-PandaDoc-Webhook-Event-Id` é reconhecido como duplicado de forma idempotente (Regra R6).
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/webhooks/pandadoc' \
+    --header 'Content-Type: application/json' \
+    --header 'X-PandaDoc-Webhook-Event-Id: delivery-demo-001' \
+    --data '[{
+      "event": "document_state_changed",
+      "data": {
+        "id": "doc_pandadoc_demo_123",
+        "name": "LocaSign contrato residencial",
+        "date_modified": "2026-10-15T10:00:00.000000Z",
+        "status": "document.viewed",
+        "metadata": { "contract_id": "'{{contractId}}'" },
+        "recipients": [
+          { "email": "maria@example.com", "role": "Locatario", "has_completed": false },
+          { "email": "agencia@example.com", "role": "Imobiliaria", "has_completed": false }
+        ]
+      }
+    }]'
+  ```

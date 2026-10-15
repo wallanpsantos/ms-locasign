@@ -1,0 +1,39 @@
+info:
+  name: 03 - Solicita o contrato (202 Accepted)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/leases/{{leaseId}}/contracts"
+  auth: inherit
+
+scripts:
+  post-response: |-
+    if (res.getStatus() === 202) {
+      const body = res.getBody();
+      if (body && body.id) {
+        bru.setVar("contractId", body.id);
+      }
+    }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 03 - Solicita o contrato (202 Accepted)
+  Inicia a confecção da versão 1 do contrato de locação em estado `DRAFT`.
+  A criação do documento na PandaDoc e o envio aos signatários ocorrem de forma desacoplada e assíncrona fora da requisição HTTP (Princípio 2).
+  
+  - **Sucesso:** `HTTP 202 ACCEPTED`
+  - **Header:** `Location: http://localhost:8080/api/v1/contracts/{id}`
+  - **Body:** `{"id": "...", "leaseId": "...", "status": "DRAFT"}`
+  
+  *O script post-response armazena automaticamente o `contractId` para os passos seguintes.*
+  
+  ```bash
+  curl --request POST "http://localhost:8080/api/v1/leases/{{leaseId}}/contracts"
+  ```

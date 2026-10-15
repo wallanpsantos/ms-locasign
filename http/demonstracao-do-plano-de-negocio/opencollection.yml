@@ -54,12 +54,14 @@ docs: |-
 
   ---
 
-  ## 4. Como Executar a Demonstração
+  ## 4. Estrutura e Como Executar a Demonstração
   1. No canto superior direito do Bruno, ative o ambiente **Local** (que define `baseUrl = http://localhost:8080`).
-  2. Siga as requisições na ordem numérica de **01 a 31**:
-     - As requisições de sucesso (`03`, `10` e `23`) capturam automaticamente `leaseId` e `contractId`.
-     - As requisições de erro exercitam de forma isolada e segura cada invariante de domínio da aplicação.
-     - Cada requisição possui documentação contextual própria e o comando `curl` equivalente pronto para terminal.
+  2. A coleção está organizada visualmente em 4 pastas temáticas:
+     - **01 - Fluxo Feliz (Ponta a Ponta):** ciclo de vida sequencial do contrato (01 a 08), capturando automaticamente `leaseId` e `contractId`.
+     - **02 - Cenários de Erro e Regras de Negócio:** validações de regras R1, R2, R5, R7 e erros deterministicamente mapeados (400, 401, 404, 409, 422).
+     - **03 - Operação e Resiliência:** reconciliação externa PandaDoc e reprocessamento administrativo de tópicos de cartas mortas (DLT) do Kafka.
+     - **04 - Infraestrutura e Observabilidade:** endpoints de saúde (Postgres/Kafka), especificação OpenAPI e métricas de negócio Micrometer.
+  3. Cada requisição possui documentação contextual própria e o comando `curl` equivalente pronto para terminal.
 
 config:
   proxy:

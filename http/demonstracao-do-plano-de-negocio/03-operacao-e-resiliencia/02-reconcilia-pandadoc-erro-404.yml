@@ -1,0 +1,30 @@
+info:
+  name: 02 - Força reconciliação PandaDoc - Erro 404 (Contrato inexistente)
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/contracts/00000000-0000-0000-0000-000000000000/reconcile"
+  headers:
+    - name: X-Admin-Token
+      value: "{{adminToken}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 02 - Força reconciliação PandaDoc - Erro 404 (Contrato inexistente)
+  Com o cabeçalho `X-Admin-Token` autorizado, tenta reconciliar um contrato inexistente na base de dados.
+  
+  - **Erro esperado:** `HTTP 404 NOT FOUND`
+  - **Formato:** RFC 9457 Problem Details com `type: /problems/not-found`.
+  
+  ```bash
+  curl --request POST 'http://localhost:8080/api/v1/contracts/00000000-0000-0000-0000-000000000000/reconcile' \
+    --header "X-Admin-Token: {{adminToken}}"
+  ```

@@ -1,0 +1,25 @@
+info:
+  name: 04 - Métricas de negócio - Transições aplicadas (Actuator)
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/actuator/metrics/locasign.contract.transition.applied"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |
+  ### 04 - Métricas de negócio - Transições aplicadas (Actuator)
+  Exibe a métrica Micrometer com contadores dimensionais por status alvo (`target`) de transições de ciclo de vida aplicadas no agregado Contract (`locasign.contract.transition.applied`).
+  
+  - **Sucesso:** `HTTP 200 OK`
+  
+  ```bash
+  curl --request GET 'http://localhost:8080/actuator/metrics/locasign.contract.transition.applied'
+  ```

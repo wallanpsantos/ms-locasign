@@ -9,18 +9,16 @@ import br.com.locasign.contract.app.usecases.WebhookItemCommand
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.shared.app.ConsumerGroups
 import br.com.locasign.shared.app.Topics
-import br.com.locasign.shared.app.UnreadableMessageException
 import br.com.locasign.shared.app.ports.ContextKeys
 import br.com.locasign.shared.interfaces.messaging.EnvelopeReader
 import br.com.locasign.shared.interfaces.messaging.EventEnvelope
+import br.com.locasign.shared.interfaces.messaging.aggregateUuid
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 /** O `aggregateId` dos eventos de contrato é o id do contrato; um valor inválido é mensagem ilegível (DLT). */
-private fun EventEnvelope.contractId(): ContractId =
-    ContractId.parseOrNull(aggregateId)
-        ?: throw UnreadableMessageException("Evento $eventId com aggregateId inválido: $aggregateId")
+private fun EventEnvelope.contractId(): ContractId = ContractId(aggregateUuid())
 
 /** Trata um evento de contrato com `contractId` no contexto de log, junto da correlação do envelope. */
 private fun EnvelopeReader.handleContractEvent(envelope: EventEnvelope, action: (ContractEventCommand) -> Unit) {

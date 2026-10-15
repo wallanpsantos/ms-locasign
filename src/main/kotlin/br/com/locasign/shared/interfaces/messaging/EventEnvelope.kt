@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
+import kotlin.uuid.Uuid
 
 /**
  * Envelope canônico e imutável para transporte de eventos e mensagens nos tópicos do Apache Kafka.
@@ -28,6 +29,15 @@ data class EventEnvelope(
     val causationId: String? = null,
     val payload: JsonNode? = null,
 )
+
+/**
+ * `aggregateId` como [Uuid], para envelopes cujo agregado é identificado por UUID (eventos de contrato); valor
+ * inválido é mensagem ilegível e vai direto para a DLT ([UnreadableMessageException]). Nos itens de webhook, o
+ * `aggregateId` é o id do documento ou o `deliveryId`, não um UUID.
+ */
+fun EventEnvelope.aggregateUuid(): Uuid =
+    Uuid.parseOrNull(aggregateId)
+        ?: throw UnreadableMessageException("Evento $eventId com aggregateId inválido: $aggregateId")
 
 /**
  * Componente utilitário de infraestrutura para deserialização de envelopes de eventos e vinculação de contexto de log.

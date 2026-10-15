@@ -29,9 +29,10 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
 
     @ExceptionHandler(DomainException::class)
     fun handleDomain(e: DomainException): ResponseEntity<ProblemDetail> = when (e) {
-        is DomainException.BusinessRuleViolation ->
-            problem(HttpStatus.UNPROCESSABLE_CONTENT, "business-rule", "Regra de negócio violada", e.message)
-                .also { it.body?.setProperty("field", e.field) }
+        is DomainException.BusinessRuleViolation -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(
+            problemDetail(HttpStatus.UNPROCESSABLE_CONTENT, "business-rule", "Regra de negócio violada", e.message)
+                .apply { setProperty("field", e.field) },
+        )
 
         is DomainException.NotFound ->
             problem(HttpStatus.NOT_FOUND, "not-found", "Recurso não encontrado", e.message)
@@ -61,7 +62,7 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "internal",
             "Erro interno",
-            "Erro inesperado ao processar a requisição."
+            "Erro inesperado ao processar a requisição.",
         )
     }
 
@@ -71,15 +72,13 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        val body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais campos são inválidos.")
-        body.type = problemType("validation")
-        body.title = "Requisição inválida"
+        val body = validationProblem("Um ou mais campos são inválidos.")
         body.setProperty(
             "errors",
             ex.bindingResult.fieldErrors.map {
                 mapOf(
                     "field" to it.field,
-                    "message" to (it.defaultMessage ?: "inválido")
+                    "message" to (it.defaultMessage ?: "inválido"),
                 )
             },
         )
@@ -92,26 +91,29 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        val body = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
+        val body = validationProblem(
             "Corpo da requisição ilegível: verifique o JSON, os tipos dos campos e os campos obrigatórios.",
         )
-        body.type = problemType("validation")
-        body.title = "Requisição inválida"
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
     }
 
     private fun problem(
         status: HttpStatus,
-        type: String,
+        slug: String,
         title: String,
-        detail: String?
-    ): ResponseEntity<ProblemDetail> {
+        detail: String?,
+    ): ResponseEntity<ProblemDetail> = ResponseEntity.status(status).body(problemDetail(status, slug, title, detail))
+
+    /** Problem Details (RFC 9457) com `type` `/problems/<slug>`; sem `detail`, o título também vira o detalhe. */
+    private fun problemDetail(status: HttpStatus, slug: String, title: String, detail: String?): ProblemDetail {
         val body = ProblemDetail.forStatusAndDetail(status, detail ?: title)
-        body.type = problemType(type)
+        body.type = problemType(slug)
         body.title = title
-        return ResponseEntity.status(status).body(body)
+        return body
     }
+
+    private fun validationProblem(detail: String): ProblemDetail =
+        problemDetail(HttpStatus.BAD_REQUEST, "validation", "Requisição inválida", detail)
 
     private fun problemType(slug: String): URI = URI.create("/problems/$slug")
 }

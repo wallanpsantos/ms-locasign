@@ -193,8 +193,8 @@ git grep -n -E "^import br\.com\.locasign\.lease\.(app|infra|interfaces)\." -- "
   externa na requisição. Não remova o endpoint: a contradição do guia está pendente de ADR.
 - SELECT em tabela de outro módulo: `LeaseQueryAdapter` lê `contracts`, e `JdbcNotificationRecipientsAdapter` lê
   `contract_signers`. Não há ADR.
-- `AdminController` chama a porta `DeadLetterReplayPort` direto, sem use case. Ele também declara `@Tag`/`@Operation` na
-  própria classe, sem interface em `openapi/`, e aninha o DTO `ReplayResponse`.
+- `AdminController` chama a porta `DeadLetterReplayPort` direto, sem use case (implementa a interface `AdminApi` em
+  `openapi/`).
 - `HousekeepingJob` (`shared/infra/scheduling`) apaga linhas de `outbox_events`, `webhook_inbox` e `processed_messages`
   direto com `JdbcClient`, sem use case.
 - Mapeamentos fora de `mappers/`: `ContractEvent.toPayload()` (`infra/messaging/ContractEventPayloads.kt`),

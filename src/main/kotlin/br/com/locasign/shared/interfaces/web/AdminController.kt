@@ -1,9 +1,7 @@
 package br.com.locasign.shared.interfaces.web
 
 import br.com.locasign.shared.app.DeadLetterReplayPort
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.tags.Tag
+import br.com.locasign.shared.interfaces.web.openapi.AdminApi
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -20,27 +18,19 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 @RequestMapping("/api/v1/admin")
-@Tag(name = "Operação", description = "Reprocessamento da fila de erros")
 class AdminController(
     private val deadLetters: DeadLetterReplayPort,
     private val operatorAccess: OperatorAccessGuard,
-) {
+) : AdminApi {
 
     @PostMapping("/dead-letters/{topic}/replay")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Reenvia as mensagens da DLT de um tópico para o tópico original. Requer header X-Admin-Token.")
-    @ApiResponse(responseCode = "200", description = "Mensagens reenviadas")
-    @ApiResponse(responseCode = "403", description = "Operação restrita a operadores (token ausente ou inválido)")
-    fun replay(@PathVariable topic: String): ReplayResponse {
+    override fun replay(@PathVariable topic: String): ReplayResponse {
         operatorAccess.requireOperator()
         return ReplayResponse(topic, deadLetters.replay(topic))
     }
 
-    /**
-     * DTO de resposta que sumariza o resultado da republicação de mensagens de uma DLT.
-     *
-     * **Responsabilidade:**
-     * - Retornar o nome do tópico processado ([topic]) e a quantidade total de registros reenviados com sucesso ([replayed]).
-     */
-    data class ReplayResponse(val topic: String, val replayed: Int)
+    companion object {
+        typealias ReplayResponse = br.com.locasign.shared.interfaces.web.dto.ReplayResponse
+    }
 }

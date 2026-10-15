@@ -9,13 +9,29 @@ ficam fora), sem mudar comportamento. O checklist executável, com critérios de
   cujo `src/main` é o mesmo de `07bd715`. Antes da entrega, a `main` recebeu `061b8ec` e `abb0ed6` (formatação dos logs
   no perfil local), que só alteram `src/main/resources/application-local.yaml`, arquivo que nenhuma tarefa toca. A
   referência para conferir desvios passa a ser `abb0ed6`.
-- **Situação:** em 2026-10-14, as fases 0 a 3 (T00 a T13) foram executadas e commitadas, uma tarefa por commit
-  (`c28b581` a `d434510`), com revisão adversarial, teste de mutação (só mutantes equivalentes sobreviveram) e prova de
-  que os testes novos passam no código original. Elas saíram do `todo.md` e do inventário da seção 4; o detalhamento
-  está no histórico do Git. Próxima: Fase 4 (T14).
+- **Situação:** em 2026-10-14, as fases 0 a 4 (T00 a T22) foram executadas e commitadas, uma tarefa por commit (fases
+  0 a 3: `c28b581` a `d434510`; fase 4: os commits seguintes a `9ba935d`), com revisão adversarial, teste de mutação e
+  prova de que os testes novos passam no código original. Elas saíram do `todo.md` e do inventário da seção 4; o
+  detalhamento está no histórico do Git. Próxima: Fase 5 (T23, só KDoc).
 - **Registro da T09:** sem os campos removidos dos DTOs da PandaDoc, um `status`, `date_modified` ou
   `recipients[].email` em formato inesperado (objeto ou array) deixa de quebrar a desserialização, que antes virava
   `Unavailable` e retentativa. A leitura ficou mais tolerante, sem efeito nas respostas válidas.
+- **Registro da Fase 4:**
+    - T22 (opcional): a extração de `tryReserve(...)` não foi executada. As duas rodadas de análise divergiram sobre o
+      ganho, e o `acquire` já é direto; ficou só o `SlidingWindowRateLimiterTest`, que caracteriza o limitador.
+    - Exceção à DS-03: o `InMemoryLeaseRepository` ganhou o contador `saves` (só acrescenta), para o `ActivateLeaseTest`
+      provar o `save` condicional da T16.
+    - Testes além do plano, todos de caracterização: `ContractConsumersTest`, `NotificationConsumerTest`,
+      `OutboxRelayIT`, `JdbcNotificationAdaptersIT`, `CorrelationIdFilterTest`, `OperatorAccessGuardTest` e casos novos
+      em `ContractControllerTest` e `LeaseControllerTest`. O `JdbcNotificationAdaptersIT` usa a assinatura nova (`Uuid`)
+      e por isso não roda no código original: é guarda de regressão, não caracterização.
+    - Teste de mutação: 29 mutantes. Os 27 mortos de saída incluem os do adapter de `notification`, depois do
+      `JdbcNotificationAdaptersIT`. Os 2 sobreviventes, bloqueio por chave e ordem dentro do lote do `OutboxRelay`,
+      foram
+      mortos por casos novos do `OutboxRelayIT` (payload acima de 1 MB força a falha; linhas gravadas na mesma transação
+      caem no mesmo lote).
+    - Lacunas que continuam, em código anterior à iniciativa: o valor do backoff de `markFailed` não é conferido, e o
+      `DeadLetterReplayerIT` não distingue o header `kafka_dlt-original-topic` do fallback para o tópico de origem.
 
 ## 1. Objetivo e escopo
 
@@ -61,24 +77,12 @@ conferiram o próprio plano e o checklist contra o código; as 23 correções qu
 ## 4. Inventário dos achados aceitos
 
 Risco: B = baixo, M = médio. Verificação: **V** = verificador adversarial; **V2** = confirmado nas duas rodadas e pelo
-verificador; **C** = conferido pelo coordenador (só a primeira rodada viu). As tarefas concluídas (T01 a T13) saíram
-desta tabela; ver o histórico do Git.
+verificador; **C** = conferido pelo coordenador (só a primeira rodada viu). As tarefas concluídas (T01 a T22) saíram
+desta tabela; ver o histórico do Git e o registro da Fase 4 acima.
 
-| Tarefa  | Arquivo(s) principal(is)                                                                               | Simplificação                                                                                                 | Risco | Verificação    |
-|---------|--------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|-------|----------------|
-| T14     | `shared/interfaces/messaging/EventEnvelope.kt` e os dois consumidores                                  | `EventEnvelope.aggregateUuid()` no lugar da validação duplicada em `contract` e `notification`                | B     | V2             |
-| T15     | `notification/**`                                                                                      | `contractId` tipado como `Uuid` até o adapter (sem `UUID.fromString`); porta renomeada para `notificationLog` | B     | V2             |
-| T16     | `ActivateLease.kt`, `contract/app/ports/out/lease/LeasePorts.kt`, ponte, fake                          | Remove o retorno `Boolean` que nenhum chamador lê                                                             | B     | C              |
-| T17     | `LeaseAdapters.kt`, `LeaseWebMappers.kt`                                                               | `findCurrentContract(...)` nomeia a leitura cruzada; `CurrentContractView.toResponse()`                       | B     | V2             |
-| T18     | `shared/infra/messaging/OutboxRelay.kt`                                                                | Remove `OutboxRow.eventType` (lido e nunca usado) e extrai `lockNextBatch()`                                  | B     | V2             |
-| T19     | `DeadLetterReplayer.kt`                                                                                | Extrai a montagem do registro republicado (5 níveis de aninhamento)                                           | B     | V2             |
-| T20     | `ApiExceptionHandler.kt`                                                                               | Um `problemDetail(...)` e um `validationProblem(...)` no lugar de três montagens à mão                        | B     | V2             |
-| T21     | `CorrelationIdFilter.kt`, `OperatorAccessGuard.kt`                                                     | `private companion object` (constantes sem uso externo)                                                       | B     | V              |
-| T22     | `contract/infra/pandadoc/SlidingWindowRateLimiter.kt`                                                  | **Opcional.** Extrai `tryReserve(...)` e tira o `return` não local de dentro do `synchronized`                | B     | C (divergente) |
-| T23–T26 | KDoc de `contract` (domínio e app), `contract` (infra e interfaces), `lease`/`notification` e `shared` | Corrige regras citadas erradas, afirmações falsas, links que não resolvem e adjetivos vazios (ADR-015)        | B     | V e C          |
-
-Sobre a T22: as duas rodadas discordaram. A primeira propôs a extração; a segunda considerou o código já direto. Fica
-como opcional, condicionada ao teste de caracterização do limitador.
+| Tarefa  | Arquivo(s) principal(is)                                                                               | Simplificação                                                                                          | Risco | Verificação |
+|---------|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|-------|-------------|
+| T23–T26 | KDoc de `contract` (domínio e app), `contract` (infra e interfaces), `lease`/`notification` e `shared` | Corrige regras citadas erradas, afirmações falsas, links que não resolvem e adjetivos vazios (ADR-015) | B     | V e C       |
 
 ## 5. Propostas descartadas (não reabrir)
 
@@ -190,13 +194,13 @@ continuam pendentes de correção ou ADR, fora desta iniciativa.
 
 ## 8. Riscos e mitigação
 
-| Risco                                                                                                                                               | Mitigação                                                                                                                                     |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| Trecho sem teste quebra em silêncio (T15, T19, T20 e T22 têm cobertura fraca ou nenhuma: só o `LocaSignE2EIT` ou um IT sem asserção sobre o trecho) | DS-03: o teste de caracterização entra primeiro e precisa passar no código atual.                                                             |
-| O `LocaSignE2EIT` passa por um fluxo e não o verifica (notificações, payload do outbox)                                                             | Não contar com ele como única rede: cada tarefa lista o teste direto que a protege.                                                           |
-| Mudança de visibilidade ou de arquivo quebra o ArchUnit                                                                                             | `HexagonalArchitectureTest` na verificação de cada tarefa que move ou cria tipos (T14, T15, T16).                                             |
-| Texto de exceção ou de log alterado sem querer                                                                                                      | Critério de aceite explícito nas tarefas que tocam mensagens (T14, T15, T20); os testes de caracterização comparam mensagens.                 |
-| Plano desatualizado quando a execução começar                                                                                                       | Antes de cada fase, conferir `git diff --stat d434510 -- src/main`; havendo mudança nos arquivos de uma tarefa, revalide-a antes de executar. |
+| Risco                                                                                            | Mitigação                                                                                                                  |
+|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| Trecho sem teste quebra em silêncio (a Fase 5 só mexe em KDoc; as fases de código já terminaram) | DS-03: o teste de caracterização entra primeiro e precisa passar no código atual.                                          |
+| O `LocaSignE2EIT` passa por um fluxo e não o verifica (notificações, payload do outbox)          | Não contar com ele como única rede: cada tarefa lista o teste direto que a protege.                                        |
+| Mudança de visibilidade ou de arquivo quebra o ArchUnit                                          | `HexagonalArchitectureTest` na verificação final (T27).                                                                    |
+| Texto de exceção ou de log alterado sem querer                                                   | Os testes de caracterização das fases 1 a 4 comparam mensagens; a Fase 5 não muda texto de exceção nem de log.             |
+| Plano desatualizado quando a execução começar                                                    | Antes de cada fase, conferir `git diff --stat` desde o último commit da fase anterior; havendo mudança, revalide a tarefa. |
 
 ## 9. Como retomar
 

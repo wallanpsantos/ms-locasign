@@ -133,6 +133,11 @@ Toda alteração que toque regras de negócio deve ser acompanhada do teste auto
   4s).
   Ao testar mensagens venenosas ou [UnreadableMessageException], aguarde a conclusão das tentativas via Awaitility antes
   de consumir o tópico `.dlt`.
+- **Mensagens de teste em `locasign.contract.events.v1`:** os ITs que herdam de `IntegrationTestSupport` dividem o
+  mesmo Kafka e os três consumidores do tópico ficam ligados. Publique só envelopes que todos aceitem (`eventType` sem
+  roteamento, como `RelayProbe`, e `aggregateId` UUID). Uma mensagem ilegível vai para a DLT, e o
+  `DeadLetterReplayerIT` passa a reenviar e reler a mesma mensagem sem terminar (`docs/tasks/simplificacao/plan.md`,
+  B8).
 - **Proibição de pular testes sem Docker:** não utilize anotações como `@Testcontainers(disabledWithoutDocker = true)`.
   Sem Docker, os testes de integração devem falhar explicitamente para evitar falsos positivos na esteira de CI.
 

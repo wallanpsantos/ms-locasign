@@ -6,7 +6,6 @@ import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.lease.interfaces.web.LeaseController
 import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
-import org.assertj.core.api.Assertions.assertThat
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest

@@ -23,7 +23,7 @@ class CorrelationIdFilter(private val correlation: CorrelationContext) : OncePer
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
         val provided = request.getHeader(HEADER)?.trim()
-        val id = provided?.takeIf { it.isNotEmpty() && it.length <= MAX_LENGTH } ?: UUID.randomUUID().toString()
+        val id = provided?.takeIf { it.isNotBlank() && it.length <= MAX_LENGTH } ?: UUID.randomUUID().toString()
         response.setHeader(HEADER, id)
         correlation.with(id) { chain.doFilter(request, response) }
     }

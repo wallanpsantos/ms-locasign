@@ -28,8 +28,8 @@ class CorrelationIdFilter(private val correlation: CorrelationContext) : OncePer
         correlation.with(id) { chain.doFilter(request, response) }
     }
 
-    companion object {
+    private companion object {
         const val HEADER = "X-Correlation-Id"
-        private const val MAX_LENGTH = 100
+        const val MAX_LENGTH = 100
     }
 }

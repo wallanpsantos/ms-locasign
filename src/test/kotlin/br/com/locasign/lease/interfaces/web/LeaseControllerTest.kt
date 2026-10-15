@@ -1,5 +1,6 @@
 package br.com.locasign.lease.interfaces.web
 
+import br.com.locasign.lease.app.queries.CurrentContractView
 import br.com.locasign.lease.app.queries.GetLease
 import br.com.locasign.lease.app.queries.LeaseDetailView
 import br.com.locasign.lease.app.usecases.RegisterLease
@@ -13,6 +14,7 @@ import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -154,5 +156,118 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             .hasStatus(HttpStatus.OK)
             .bodyJson()
             .extractingPath("$.tenant.name").isEqualTo("Maria Silva")
+    }
+
+    private fun leaseDetail(leaseId: LeaseId, currentContract: CurrentContractView?) = LeaseDetailView(
+        id = leaseId.toString(),
+        status = "REGISTERED",
+        tenantName = "Maria Silva",
+        tenantCpfMasked = "***.982.247-**",
+        tenantEmail = "maria@example.com",
+        agencySignerName = "Imobiliária Central",
+        agencySignerEmail = "contato@example.com",
+        propertyAddress = "Av Paulista, 1000",
+        rentAmount = "3500.00",
+        startDate = LocalDate.of(2026, 11, 1),
+        termMonths = 30,
+        createdAt = Instant.parse("2026-10-09T10:00:00Z"),
+        activatedAt = null,
+        currentContract = currentContract,
+    )
+
+    @Test
+    fun `consulta de locação com contrato corrente devolve id, versão, status e expiração do contrato`() {
+        val leaseId = LeaseId.new()
+        val current = CurrentContractView("contrato-v2", 2, "SENT", Instant.parse("2026-10-16T10:00:00Z"))
+        given(getLease.execute(leaseId)).willReturn(leaseDetail(leaseId, current))
+
+        val json = assertThat(mvc.perform(get("/api/v1/leases/$leaseId"))).hasStatus(HttpStatus.OK).bodyJson()
+
+        json.extractingPath("$.currentContract.id").isEqualTo("contrato-v2")
+        json.extractingPath("$.currentContract.versionNumber").isEqualTo(2)
+        json.extractingPath("$.currentContract.status").isEqualTo("SENT")
+        json.extractingPath("$.currentContract.expiresAt").isEqualTo("2026-10-16T10:00:00Z")
+    }
+
+    @Test
+    fun `JSON malformado responde 400 problems validation com o detalhe de corpo ilegível`() {
+        val json = assertThat(postLease("{")).hasStatus(HttpStatus.BAD_REQUEST).bodyJson()
+
+        json.extractingPath("$.type").isEqualTo("/problems/validation")
+        json.extractingPath("$.title").isEqualTo("Requisição inválida")
+        json.extractingPath("$.status").isEqualTo(400)
+        json.extractingPath("$.detail")
+            .isEqualTo("Corpo da requisição ilegível: verifique o JSON, os tipos dos campos e os campos obrigatórios.")
+    }
+
+    @Test
+    fun `campos inválidos devolvem a lista errors com campo e mensagem de cada erro`() {
+        val invalidJson = """
+            {
+                "tenant": { "name": "Maria Silva", "cpf": "", "email": "maria@example.com" },
+                "property": { "address": "" },
+                "rentAmount": "",
+                "startDate": "2026-11-01"
+            }
+        """.trimIndent()
+
+        val json = assertThat(postLease(invalidJson)).hasStatus(HttpStatus.BAD_REQUEST).bodyJson()
+
+        json.extractingPath("$.title").isEqualTo("Requisição inválida")
+        json.extractingPath("$.detail").isEqualTo("Um ou mais campos são inválidos.")
+        json.extractingPath("$.errors[*].field").asArray()
+            .containsExactlyInAnyOrder("tenant.cpf", "property.address", "rentAmount")
+        json.extractingPath("$.errors[0].message").asString().isNotBlank()
+    }
+
+    @Test
+    fun `regra de negócio responde 422 com título, detalhe e o campo do JSON`() {
+        given(registerLease.execute(any())).willThrow(
+            DomainException.BusinessRuleViolation("startDate", "A data de início deve ser igual ou posterior à data do cadastro."),
+        )
+
+        val json = assertThat(postLease(validRequestJson)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT).bodyJson()
+
+        json.extractingPath("$.title").isEqualTo("Regra de negócio violada")
+        json.extractingPath("$.detail").isEqualTo("A data de início deve ser igual ou posterior à data do cadastro.")
+        json.extractingPath("$.field").isEqualTo("startDate")
+        json.extractingPath("$.status").isEqualTo(422)
+    }
+
+    @Test
+    fun `recurso inexistente responde com título e detalhe de não encontrado`() {
+        val leaseId = LeaseId.new()
+        given(getLease.execute(leaseId)).willThrow(DomainException.NotFound("Locação", leaseId.toString()))
+
+        val json = assertThat(mvc.perform(get("/api/v1/leases/$leaseId"))).hasStatus(HttpStatus.NOT_FOUND).bodyJson()
+
+        json.extractingPath("$.title").isEqualTo("Recurso não encontrado")
+        json.extractingPath("$.detail").isEqualTo("Locação não encontrado(a): $leaseId")
+    }
+
+    @Test
+    fun `atualização concorrente responde 409 problems concurrent-update`() {
+        val leaseId = LeaseId.new()
+        given(getLease.execute(leaseId)).willThrow(OptimisticLockingFailureException("versão antiga"))
+
+        val json = assertThat(mvc.perform(get("/api/v1/leases/$leaseId"))).hasStatus(HttpStatus.CONFLICT).bodyJson()
+
+        json.extractingPath("$.type").isEqualTo("/problems/concurrent-update")
+        json.extractingPath("$.title").isEqualTo("Atualização concorrente")
+        json.extractingPath("$.detail").isEqualTo("O recurso foi alterado por outra operação. Tente novamente.")
+    }
+
+    @Test
+    fun `erro inesperado responde 500 problems internal sem expor a causa`() {
+        val leaseId = LeaseId.new()
+        given(getLease.execute(leaseId)).willThrow(IllegalStateException("detalhe interno"))
+
+        val json = assertThat(mvc.perform(get("/api/v1/leases/$leaseId")))
+            .hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+            .bodyJson()
+
+        json.extractingPath("$.type").isEqualTo("/problems/internal")
+        json.extractingPath("$.title").isEqualTo("Erro interno")
+        json.extractingPath("$.detail").isEqualTo("Erro inesperado ao processar a requisição.")
     }
 }

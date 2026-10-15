@@ -9,6 +9,7 @@ import br.com.locasign.lease.domain.models.AgencySigner
 import br.com.locasign.lease.domain.models.Lease
 import br.com.locasign.lease.domain.models.Tenant
 import br.com.locasign.lease.domain.valueobjects.LeaseTerm
+import br.com.locasign.lease.infra.persistence.adapters.LeaseQueryAdapter
 import br.com.locasign.lease.infra.persistence.adapters.LeaseRepositoryAdapter
 import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.domain.valueobjects.Cpf
@@ -22,10 +23,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class ContractRepositoryAdapterIT(
     @Autowired private val contractRepositoryAdapter: ContractRepositoryAdapter,
     @Autowired private val leaseRepositoryAdapter: LeaseRepositoryAdapter,
+    @Autowired private val leaseQueryAdapter: LeaseQueryAdapter,
 ) : IntegrationTestSupport() {
 
     private val today = LocalDate.of(2026, 11, 1)
@@ -106,5 +109,24 @@ class ContractRepositoryAdapterIT(
         val retrieved2 = assertNotNull(contractRepositoryAdapter.findById(contract2.id))
         assertEquals(ContractStatus.DRAFT, retrieved2.status)
         assertEquals(2, retrieved2.versionNumber)
+    }
+
+    @Test
+    fun `detalhe da locação traz a versão mais recente do contrato como contrato corrente (R9)`() {
+        val lease = createAndSaveLease()
+        val contract1 = createContract(lease, versionNumber = 1)
+        contractRepositoryAdapter.save(contract1)
+        val toCancel = assertNotNull(contractRepositoryAdapter.findById(contract1.id))
+        toCancel.cancel("Cancelado para nova versão", now)
+        contractRepositoryAdapter.save(toCancel)
+        val contract2 = createContract(lease, versionNumber = 2)
+        contractRepositoryAdapter.save(contract2)
+
+        val current = assertNotNull(leaseQueryAdapter.findDetail(lease.id)?.currentContract)
+
+        assertEquals(contract2.id.toString(), current.id)
+        assertEquals(2, current.versionNumber)
+        assertEquals("DRAFT", current.status)
+        assertNull(current.expiresAt)
     }
 }

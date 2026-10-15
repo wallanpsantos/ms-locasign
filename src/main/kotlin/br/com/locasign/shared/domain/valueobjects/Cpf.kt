@@ -13,7 +13,7 @@ import br.com.locasign.shared.domain.DomainException
 value class Cpf private constructor(val digits: String) {
 
     fun formatted(): String =
-        "${digits.substring(0, 3)}.${digits.substring(3, 6)}.${digits.substring(6, 9)}-${digits.substring(9)}"
+        "${digits.take(3)}.${digits.substring(3, 6)}.${digits.substring(6, 9)}-${digits.substring(9)}"
 
     fun masked(): String = "***.${digits.substring(3, 6)}.${digits.substring(6, 9)}-**"
 
@@ -31,8 +31,8 @@ value class Cpf private constructor(val digits: String) {
             if (digits.all { it == digits[0] }) {
                 throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
             }
-            val first = checkDigit(digits.substring(0, 9), 10)
-            val second = checkDigit(digits.substring(0, 9) + first, 11)
+            val first = checkDigit(digits.take(9), 10)
+            val second = checkDigit(digits.take(9) + first, 11)
             if (digits[9].digitToInt() != first || digits[10].digitToInt() != second) {
                 throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
             }

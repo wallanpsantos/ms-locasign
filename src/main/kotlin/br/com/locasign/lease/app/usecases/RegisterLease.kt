@@ -76,7 +76,8 @@ class RegisterLease(
     private fun resolveAgencySigner(command: RegisterLeaseCommand): AgencySigner {
         val requestedName = command.agencySignerName.trimToNull()
         val requestedEmail = command.agencySignerEmail.trimToNull()
-        if ((requestedName == null) != (requestedEmail == null)) {
+        val hasPartialSigner = (requestedName == null) xor (requestedEmail == null)
+        if (hasPartialSigner) {
             throw DomainException.BusinessRuleViolation(
                 "agencySigner",
                 "Informe nome e e-mail do signatário da imobiliária, ou nenhum dos dois para usar o padrão.",

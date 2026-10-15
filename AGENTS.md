@@ -19,10 +19,10 @@ assinatura eletrônica na PandaDoc, acompanha o ciclo por webhooks e dispara as 
 ## Sumário
 
 1. [Leitura Obrigatória e Precedência](#1-leitura-obrigatória-e-precedência)
-    -
-    1.1 [Quadro de Referência Rápida das Regras Canônicas (R1 a R10)](#11-quadro-de-referência-rápida-das-regras-canônicas-r1-a-r10)
-    -
-    1.2 [Divergências Conhecidas entre o Guia e o Repositório](#12-divergências-conhecidas-entre-o-guia-e-o-repositório)
+   -
+   1.1 [Quadro de Referência Rápida das Regras Canônicas (R1 a R10)](#11-quadro-de-referência-rápida-das-regras-canônicas-r1-a-r10)
+   -
+   1.2 [Divergências Conhecidas entre o Guia e o Repositório](#12-divergências-conhecidas-entre-o-guia-e-o-repositório)
 2. [Comandos de Desenvolvimento e Validação](#2-comandos-de-desenvolvimento-e-validação)
     - 2.1 [Execução Multiplataforma (PowerShell vs Bash)](#21-execução-multiplataforma-powershell-vs-bash)
     - 2.2 [Demonstração com a Coleção Bruno em 4 Pastas](#22-demonstração-com-a-coleção-bruno-em-4-pastas)

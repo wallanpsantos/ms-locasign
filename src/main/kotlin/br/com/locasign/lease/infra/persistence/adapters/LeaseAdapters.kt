@@ -46,8 +46,7 @@ class LeaseRepositoryAdapter(private val repository: LeaseJdbcRepository) : Leas
 class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
 
     override fun findDetail(id: LeaseId): LeaseDetailView? {
-        val currentContract = findCurrentContract(id)
-        return jdbc.sql(
+        val lease = jdbc.sql(
             """
 			SELECT id, status, tenant_name, tenant_cpf, tenant_email, agency_signer_name, agency_signer_email,
 			       property_address, rent_amount, start_date, term_months, created_at, activated_at
@@ -70,11 +69,13 @@ class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
                     termMonths = rs.getInt("term_months"),
                     createdAt = checkNotNull(rs.getInstant("created_at")),
                     activatedAt = rs.getInstant("activated_at"),
-                    currentContract = currentContract,
+                    currentContract = null,
                 )
             }
             .optional()
-            .orElse(null)
+            .orElse(null) ?: return null
+
+        return lease.copy(currentContract = findCurrentContract(id))
     }
 
     /**

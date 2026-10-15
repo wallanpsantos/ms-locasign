@@ -3,6 +3,7 @@ package br.com.locasign.shared.infra.messaging
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.infra.config.LocaSignProperties
 import br.com.locasign.shared.infra.persistence.getInstant
+import br.com.locasign.shared.infra.persistence.singleOrNull
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -47,9 +48,9 @@ class OutboxRelay(
     fun relay() {
         try {
             // Continua enquanto os lotes vierem cheios e sem interrupção, para escoar um acúmulo sem esperar o próximo ciclo.
-            do {
-                val hasMore = relayBatch()
-            } while (hasMore)
+            while (relayBatch()) {
+                // Drena lotes subsequentes
+            }
         } catch (e: Exception) {
             log.error("Falha no relay do outbox; nova tentativa no próximo ciclo", e)
         }
@@ -157,8 +158,7 @@ class OutboxRelay(
         val oldest: Instant? =
             jdbc.sql("SELECT created_at FROM outbox_events WHERE published_at IS NULL ORDER BY seq LIMIT 1")
                 .query { rs, _ -> rs.getInstant("created_at") }
-                .list()
-                .firstOrNull()
+                .singleOrNull()
         oldest?.let { Duration.between(it, Instant.now()).toMillis() / MILLIS_PER_SECOND } ?: 0.0
     } catch (_: Exception) {
         0.0

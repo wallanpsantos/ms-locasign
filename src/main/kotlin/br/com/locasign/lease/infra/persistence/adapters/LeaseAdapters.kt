@@ -66,10 +66,9 @@ class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {
         )
             .param("id", id.value.toJavaUuid())
             .query { rs, _ ->
-                val contractId = rs.getString("contract_id")
-                val currentContract = contractId?.let {
+                val currentContract = rs.getString("contract_id")?.let { id ->
                     CurrentContractView(
-                        id = it,
+                        id = id,
                         versionNumber = rs.getInt("contract_version"),
                         status = rs.getString("contract_status"),
                         expiresAt = rs.getInstant("contract_expires_at"),

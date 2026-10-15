@@ -1,6 +1,7 @@
 package br.com.locasign.shared.interfaces.web
 
 import br.com.locasign.shared.app.DeadLetterReplayPort
+import br.com.locasign.shared.interfaces.web.dto.ReplayResponse
 import br.com.locasign.shared.interfaces.web.openapi.AdminApi
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable
@@ -28,9 +29,5 @@ class AdminController(
     override fun replay(@PathVariable topic: String): ReplayResponse {
         operatorAccess.requireOperator()
         return ReplayResponse(topic, deadLetters.replay(topic))
-    }
-
-    companion object {
-        typealias ReplayResponse = br.com.locasign.shared.interfaces.web.dto.ReplayResponse
     }
 }

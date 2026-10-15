@@ -57,14 +57,17 @@ class ReconcileContracts(
             val contract = contracts.findById(contractId)
                 ?: throw DomainException.NotFound("Contrato", contractId.toString())
             contract.providerDocumentId
-        } ?: return
+        } ?: run {
+            log.info("Contrato {} ainda não possui documento no provedor; reconciliação ignorada", contractId)
+            return
+        }
         reconcileDocument(contractId, documentId)
     }
 
     private fun reconcileDocument(id: ContractId, documentId: ProviderDocumentId) {
         val state = provider.fetchState(documentId)
 
-        val signals = buildList<ProviderSignal> {
+        val signals = buildList {
             if (state.completedRoles.isNotEmpty()) {
                 add(ProviderSignal.RecipientCompleted(state.documentId, id, state.completedRoles, state.modifiedAt))
             }

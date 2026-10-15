@@ -41,7 +41,7 @@ class PandaDocWebhookGateway(
         }
         if (signature.isNullOrBlank()) return false
         val mac = Mac.getInstance(HMAC_ALGORITHM).apply {
-            init(SecretKeySpec(sharedKey.toByteArray(Charsets.UTF_8), HMAC_ALGORITHM))
+            init(SecretKeySpec(sharedKey.encodeToByteArray(), HMAC_ALGORITHM))
         }
         val expected = HexFormat.of().formatHex(mac.doFinal(rawBody))
         // Comparação em tempo constante, para não vazar quantos caracteres coincidem.

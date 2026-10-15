@@ -63,13 +63,11 @@ class ApplyProviderUpdate(
             command.signals.forEach { handle(contract, it, command, now) }
             if (command.markReconciled) {
                 contract.markReconciled(now)
-                if (contract.hasPendingChanges) {
-                    persister.save(contract)
-                } else {
-                    reconciliationMarker.markReconciled(contract.id, now)
-                }
-            } else if (contract.hasPendingChanges) {
+            }
+            if (contract.hasPendingChanges) {
                 persister.save(contract)
+            } else if (command.markReconciled) {
+                reconciliationMarker.markReconciled(contract.id, now)
             }
         }
     }

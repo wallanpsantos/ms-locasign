@@ -114,12 +114,11 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         ResponseEntity.status(status).body(problemDetail(status, slug, title, detail).apply(customize))
 
     /** Problem Details (RFC 9457) com `type` `/problems/<slug>`; sem `detail`, o título também vira o detalhe. */
-    private fun problemDetail(status: HttpStatus, slug: String, title: String, detail: String?): ProblemDetail {
-        val body = ProblemDetail.forStatusAndDetail(status, detail ?: title)
-        body.type = problemType(slug)
-        body.title = title
-        return body
-    }
+    private fun problemDetail(status: HttpStatus, slug: String, title: String, detail: String?): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(status, detail ?: title).apply {
+            type = problemType(slug)
+            this.title = title
+        }
 
     private fun validationProblem(detail: String): ProblemDetail =
         problemDetail(HttpStatus.BAD_REQUEST, "validation", "Requisição inválida", detail)

@@ -66,9 +66,7 @@ class ContractRepositoryAdapter(
             .single()
 
     override fun existsOpenContract(leaseId: LeaseId): Boolean =
-        jdbc.sql(
-            "SELECT EXISTS (SELECT 1 FROM contracts WHERE lease_id = :leaseId AND status NOT IN (:finalStatuses))",
-        )
+        jdbc.sql("SELECT EXISTS (SELECT 1 FROM contracts WHERE lease_id = :leaseId AND status NOT IN (:finalStatuses))")
             .param("leaseId", leaseId.value.toJavaUuid())
             .param("finalStatuses", FINAL_STATUSES)
             .query(Boolean::class.java)

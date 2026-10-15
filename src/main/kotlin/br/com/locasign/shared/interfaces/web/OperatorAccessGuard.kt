@@ -1,6 +1,5 @@
 package br.com.locasign.shared.interfaces.web
 
-import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -20,26 +19,22 @@ import java.security.MessageDigest
 class OperatorAccessGuard(
     @param:Value("\${locasign.admin.token:}") private val configuredToken: String,
 ) {
+    private val configuredHash: ByteArray? = configuredToken.takeIf { it.isNotBlank() }?.let(::sha256)
 
     /** Falha com HTTP 403 se a requisição atual não trouxer o token de operador correto. */
     fun requireOperator() {
-        if (configuredToken.isBlank()) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Operações de operador desabilitadas: defina ADMIN_TOKEN para habilitá-las.",
-            )
-        }
+        val expectedHash = configuredHash ?: throw ResponseStatusException(
+            HttpStatus.FORBIDDEN,
+            "Operações de operador desabilitadas: defina ADMIN_TOKEN para habilitá-las.",
+        )
         val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
-        if (!tokenMatches(request)) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Operação restrita a operadores.")
+        val provided = request.getHeader(TOKEN_HEADER) ?: throw forbidden()
+        if (!MessageDigest.isEqual(sha256(provided), expectedHash)) {
+            throw forbidden()
         }
     }
 
-    private fun tokenMatches(request: HttpServletRequest): Boolean {
-        val provided = request.getHeader(TOKEN_HEADER) ?: return false
-        // Compara os hashes: tempo constante e sem vazar o tamanho do token.
-        return MessageDigest.isEqual(sha256(provided), sha256(configuredToken))
-    }
+    private fun forbidden() = ResponseStatusException(HttpStatus.FORBIDDEN, "Operação restrita a operadores.")
 
     private fun sha256(value: String): ByteArray =
         MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))

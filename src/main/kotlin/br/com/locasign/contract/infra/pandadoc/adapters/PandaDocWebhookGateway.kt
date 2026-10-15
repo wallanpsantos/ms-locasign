@@ -58,11 +58,11 @@ class PandaDocWebhookGateway(
             throw MalformedWebhookPayload("Corpo do webhook não é JSON válido", e)
         }
         val nodes = when {
-            root.isArray -> root.toList()
+            root.isArray -> root.filter { it.isObject }
             root.isObject -> listOf(root)
             else -> throw MalformedWebhookPayload("Corpo do webhook não é um array nem um objeto JSON")
         }
-        return nodes.filter { it.isObject }.map { node ->
+        return nodes.map { node ->
             WebhookItem(
                 json = mapper.writeValueAsString(node),
                 eventName = node.path("event").textOrNull(),

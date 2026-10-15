@@ -76,15 +76,16 @@ class RegisterLease(
     private fun resolveAgencySigner(command: RegisterLeaseCommand): AgencySigner {
         val requestedName = command.agencySignerName.trimToNull()
         val requestedEmail = command.agencySignerEmail.trimToNull()
-        val hasPartialSigner = (requestedName == null) xor (requestedEmail == null)
-        if (hasPartialSigner) {
-            throw DomainException.BusinessRuleViolation(
+
+        val (name, email) = when {
+            requestedName != null && requestedEmail != null -> requestedName to requestedEmail
+            requestedName == null && requestedEmail == null -> agencyDefaults.name.trimToNull() to agencyDefaults.email.trimToNull()
+            else -> throw DomainException.BusinessRuleViolation(
                 "agencySigner",
                 "Informe nome e e-mail do signatário da imobiliária, ou nenhum dos dois para usar o padrão.",
             )
         }
-        val name = requestedName ?: agencyDefaults.name.trimToNull()
-        val email = requestedEmail ?: agencyDefaults.email.trimToNull()
+
         if (name == null || email == null) {
             throw DomainException.BusinessRuleViolation(
                 "agencySigner",
@@ -96,5 +97,5 @@ class RegisterLease(
     }
 
     /** Texto em branco conta como não informado. */
-    private fun String?.trimToNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+    private fun String?.trimToNull(): String? = this?.trim()?.ifEmpty { null }
 }

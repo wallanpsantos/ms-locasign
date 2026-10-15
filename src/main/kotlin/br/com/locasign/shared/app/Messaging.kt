@@ -12,6 +12,8 @@ object Topics {
     const val CONTRACT_EVENTS = "locasign.contract.events.v1"
     const val DEAD_LETTER_SUFFIX = ".dlt"
 
+    fun dltOf(topic: String): String = "$topic$DEAD_LETTER_SUFFIX"
+
     val ALL: List<String> = listOf(PANDADOC_WEBHOOKS, CONTRACT_EVENTS)
 }
 

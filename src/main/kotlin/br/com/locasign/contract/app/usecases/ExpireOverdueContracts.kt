@@ -4,7 +4,6 @@ import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.TransitionResult
 import br.com.locasign.contract.domain.valueobjects.ContractId
-import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import org.slf4j.LoggerFactory
@@ -34,22 +33,21 @@ class ExpireOverdueContracts(
     }
 
     private fun expire(id: ContractId): Boolean = try {
-        val expired = transactions.run {
-            val contract = contracts.findById(id)
-            if (contract?.expireIfOverdue(clock.now()) == TransitionResult.APPLIED) {
+        val (wasExpired, documentToVoid) = transactions.run {
+            val contract = contracts.findById(id) ?: return@run false to null
+            if (contract.expireIfOverdue(clock.now()) == TransitionResult.APPLIED) {
                 persister.save(contract)
-                Expired(contract.providerDocumentId)
+                true to contract.providerDocumentId
             } else {
-                null
+                false to null
             }
         }
-        expired?.documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato expirado") }
-        expired != null
+        if (wasExpired) {
+            documentToVoid?.let { provider.cancelDocumentQuietly(it, log, "Contrato expirado") }
+        }
+        wasExpired
     } catch (e: RuntimeException) {
         log.error("Falha ao expirar o contrato {}", id, e)
         false
     }
-
-    /** Contrato expirado agora; o documento só é anulado no provedor depois que a transação confirma. */
-    private class Expired(val documentToVoid: ProviderDocumentId?)
 }

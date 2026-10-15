@@ -6,6 +6,7 @@ import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.valueobjects.ContractId
+import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
@@ -38,9 +39,12 @@ class ReconcileContracts(
 
     /** Reconciliação forçada de um contrato (operação e desenvolvimento). */
     fun executeFor(contractId: ContractId) {
-        val exists = transactions.run { contracts.findById(contractId) != null }
-        if (!exists) throw DomainException.NotFound("Contrato", contractId.toString())
-        reconcile(contractId)
+        val documentId = transactions.run {
+            val contract = contracts.findById(contractId)
+                ?: throw DomainException.NotFound("Contrato", contractId.toString())
+            contract.providerDocumentId
+        } ?: return
+        reconcileDocument(contractId, documentId)
     }
 
     private fun reconcileSafely(id: ContractId): Boolean = try {
@@ -55,6 +59,11 @@ class ReconcileContracts(
 
     private fun reconcile(id: ContractId): Boolean {
         val documentId = transactions.run { contracts.findById(id)?.providerDocumentId } ?: return false
+        reconcileDocument(id, documentId)
+        return true
+    }
+
+    private fun reconcileDocument(id: ContractId, documentId: ProviderDocumentId) {
         val state = provider.fetchState(documentId)
 
         val signals = buildList<ProviderSignal> {
@@ -71,6 +80,5 @@ class ReconcileContracts(
                 markReconciled = true,
             ),
         )
-        return true
     }
 }

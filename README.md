@@ -163,10 +163,10 @@ regride e estados terminais são absolutamente imutáveis.
 
 ```mermaid
 stateDiagram-v2
-    classDef draft fill:#E2E8F0,stroke:#64748B,stroke-width:2px,color:#0F172A
-    classDef inProgress fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF
-    classDef completed fill:#DCFCE7,stroke:#16A34A,stroke-width:3px,color:#166534
-    classDef terminal fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#991B1B
+    classDef draft fill: #E2E8F0, stroke: #64748B, stroke-width: 2px, color: #0F172A
+    classDef inProgress fill: #DBEAFE, stroke: #2563EB, stroke-width: 2px, color: #1E40AF
+    classDef completed fill: #DCFCE7, stroke: #16A34A, stroke-width: 3px, color: #166534
+    classDef terminal fill: #FEE2E2, stroke: #DC2626, stroke-width: 2px, color: #991B1B
     [*] --> DRAFT: POST /contracts (202 Accepted)
     DRAFT --> GENERATED: Documento criado na PandaDoc
     GENERATED --> SENT: Enviado aos signatários
@@ -293,85 +293,84 @@ sequenceDiagram
     actor Locatario as "📱 Locatário (Tenant)"
     actor Imobiliaria as "🏢 Imobiliária (Agency)"
     actor Operador as "🛠️ Operador (Admin)"
-
-    %% 1. Cadastro de Locação
+%% 1. Cadastro de Locação
     rect rgb(239, 246, 255)
-        Note over Corretor,DB: 1. Cadastro da Locação (Regras R2, R10)
-        Corretor->>API: POST /api/v1/leases (Dados cadastrais)
-        API->>API: Validação Bean Validation e Cpf mod 11 (R2, R10)
-        API->>DB: INSERT INTO leases (status: DRAFT)
-        API-->>Corretor: HTTP 201 Created (Location: /leases/:id)
-        Corretor->>API: GET /api/v1/leases/:id
-        API-->>Corretor: HTTP 200 OK (Dados da locação com CPF mascarado)
+        Note over Corretor, DB: 1. Cadastro da Locação (Regras R2, R10)
+        Corretor ->> API: POST /api/v1/leases (Dados cadastrais)
+        API ->> API: Validação Bean Validation e Cpf mod 11 (R2, R10)
+        API ->> DB: INSERT INTO leases (status: DRAFT)
+        API -->> Corretor: HTTP 201 Created (Location: /leases/:id)
+        Corretor ->> API: GET /api/v1/leases/:id
+        API -->> Corretor: HTTP 200 OK (Dados da locação com CPF mascarado)
     end
 
-    %% 2. Solicitação de Contrato
+%% 2. Solicitação de Contrato
     rect rgb(245, 243, 255)
-        Note over Corretor,Kafka: 2. Solicitação de Contrato (Regras R1, R2, R3, R4)
-        Corretor->>API: POST /api/v1/leases/:id/contracts
-        API->>API: Valida Unicidade R1 - rejeita se já existir contrato ativo (409)
-        API->>DB: ACID Commit - contracts (DRAFT) + outbox_events
-        API-->>Corretor: HTTP 202 Accepted (Location: /contracts/:id)
-        Corretor->>API: GET /api/v1/contracts/:id (Acompanhamento)
-        API-->>Corretor: HTTP 200 OK (status: DRAFT, prazo de 7 dias - R4)
+        Note over Corretor, Kafka: 2. Solicitação de Contrato (Regras R1, R2, R3, R4)
+        Corretor ->> API: POST /api/v1/leases/:id/contracts
+        API ->> API: Valida Unicidade R1 - rejeita se já existir contrato ativo (409)
+        API ->> DB: ACID Commit - contracts (DRAFT) + outbox_events
+        API -->> Corretor: HTTP 202 Accepted (Location: /contracts/:id)
+        Corretor ->> API: GET /api/v1/contracts/:id (Acompanhamento)
+        API -->> Corretor: HTTP 200 OK (status: DRAFT, prazo de 7 dias - R4)
     end
 
-    %% 3. Orquestração Assíncrona & PandaDoc
+%% 3. Orquestração Assíncrona & PandaDoc
     rect rgb(254, 243, 199)
-        Note over DB,PandaDoc: 3. Outbox Relay e Envio PandaDoc (Regras R3, R4)
-        DB->>API: OutboxRelay - SELECT FOR UPDATE SKIP LOCKED
-        API->>Kafka: Publica ContractRequested (locasign.contract.events.v1)
-        Kafka->>API: ContractOrchestratorConsumer consome evento (markProcessed)
-        API->>PandaDoc: POST /public/v1/documents (Signing Order 1: Locatario, 2: Imobiliaria)
-        PandaDoc-->>API: Retorna doc_id (doc_123)
-        API->>PandaDoc: POST /public/v1/documents/doc_123/send
-        PandaDoc-->>API: HTTP 200 OK (Contrato enviado)
-        API->>DB: UPDATE contracts (status: SENT)
+        Note over DB, PandaDoc: 3. Outbox Relay e Envio PandaDoc (Regras R3, R4)
+        DB ->> API: OutboxRelay - SELECT FOR UPDATE SKIP LOCKED
+        API ->> Kafka: Publica ContractRequested (locasign.contract.events.v1)
+        Kafka ->> API: ContractOrchestratorConsumer consome evento (markProcessed)
+        API ->> PandaDoc: POST /public/v1/documents (Signing Order 1: Locatario, 2: Imobiliaria)
+        PandaDoc -->> API: Retorna doc_id (doc_123)
+        API ->> PandaDoc: POST /public/v1/documents/doc_123/send
+        PandaDoc -->> API: HTTP 200 OK (Contrato enviado)
+        API ->> DB: UPDATE contracts (status: SENT)
     end
 
-    %% 4. Webhooks de Assinatura
+%% 4. Webhooks de Assinatura
     rect rgb(236, 253, 245)
-        Note over PandaDoc,DB: 4. Assinatura Sequencial e Webhook Seguro (Regras R3, R5, R6, R7)
-        PandaDoc->>Locatario: Notificação de assinatura por e-mail/SMS (Ordem 1)
-        Locatario->>PandaDoc: Assina digitalmente o documento
-        PandaDoc->>API: POST /webhooks/pandadoc (document_state_changed)
-        API->>API: Valida assinatura HMAC-SHA256 em tempo constante (R7)
-        API->>DB: INSERT INTO webhook_inbox + outbox_events (HTTP 200 rápido)
-        DB->>API: OutboxRelay publica ProviderWebhookReceived
-        Kafka->>API: WebhookConsumer processa evento com deduplicação (R6)
-        API->>DB: UPDATE contracts (status: PARTIALLY_SIGNED)
-        PandaDoc->>Imobiliaria: Libera link de assinatura para Imobiliária (Ordem 2)
-        Imobiliaria->>PandaDoc: Assina digitalmente o documento
-        PandaDoc->>API: POST /webhooks/pandadoc (status: document.completed)
-        API->>API: Valida HMAC-SHA256 em tempo constante
-        API->>DB: Grava no Inbox e atualiza contracts (status: COMPLETED)
+        Note over PandaDoc, DB: 4. Assinatura Sequencial e Webhook Seguro (Regras R3, R5, R6, R7)
+        PandaDoc ->> Locatario: Notificação de assinatura por e-mail/SMS (Ordem 1)
+        Locatario ->> PandaDoc: Assina digitalmente o documento
+        PandaDoc ->> API: POST /webhooks/pandadoc (document_state_changed)
+        API ->> API: Valida assinatura HMAC-SHA256 em tempo constante (R7)
+        API ->> DB: INSERT INTO webhook_inbox + outbox_events (HTTP 200 rápido)
+        DB ->> API: OutboxRelay publica ProviderWebhookReceived
+        Kafka ->> API: WebhookConsumer processa evento com deduplicação (R6)
+        API ->> DB: UPDATE contracts (status: PARTIALLY_SIGNED)
+        PandaDoc ->> Imobiliaria: Libera link de assinatura para Imobiliária (Ordem 2)
+        Imobiliaria ->> PandaDoc: Assina digitalmente o documento
+        PandaDoc ->> API: POST /webhooks/pandadoc (status: document.completed)
+        API ->> API: Valida HMAC-SHA256 em tempo constante
+        API ->> DB: Grava no Inbox e atualiza contracts (status: COMPLETED)
     end
 
-    %% 5. Gatilho Pós-Assinatura
+%% 5. Gatilho Pós-Assinatura
     rect rgb(220, 252, 231)
-        Note over API,DB: 5. Gatilho Pós-Assinatura Reativo (Regra R8)
-        API->>Kafka: Publica ContractCompleted (locasign.contract.events.v1)
-        Kafka->>API: PostSigningConsumer consome ContractCompleted (R6)
-        API->>DB: Ativa Locação (leases status: ACTIVE)
-        API->>DB: Agenda Vistoria de Entrada do Imóvel
-        API->>DB: Registra Primeira Fatura e Cobrança
-        API->>DB: Salva cópia do PDF assinado no storage local
+        Note over API, DB: 5. Gatilho Pós-Assinatura Reativo (Regra R8)
+        API ->> Kafka: Publica ContractCompleted (locasign.contract.events.v1)
+        Kafka ->> API: PostSigningConsumer consome ContractCompleted (R6)
+        API ->> DB: Ativa Locação (leases status: ACTIVE)
+        API ->> DB: Agenda Vistoria de Entrada do Imóvel
+        API ->> DB: Registra Primeira Fatura e Cobrança
+        API ->> DB: Salva cópia do PDF assinado no storage local
     end
 
-    %% 6. Operações, Histórico & Resiliência
+%% 6. Operações, Histórico & Resiliência
     rect rgb(254, 242, 242)
-        Note over Operador,Kafka: 6. Auditoria, Cancelamento e Resiliência (Regras R1, R5, R6, R9)
-        Corretor->>API: GET /api/v1/contracts/:id/history (Auditoria imutável)
-        API-->>Corretor: HTTP 200 OK (Trilha cronológica com eventos tardios ignorados)
-        Corretor->>API: POST /api/v1/contracts/:id/cancel (motivo: Dados incorretos - R9)
-        API->>DB: Transiciona para CANCELLED e desocupa locação para v2 (R1, R9)
-        API-->>Corretor: HTTP 202 Accepted
-        Operador->>API: POST /api/v1/contracts/:id/reconcile (Header: X-Admin-Token)
-        API->>PandaDoc: GET /public/v1/documents/:id (Reconciliação manual de status)
-        API-->>Operador: HTTP 202 Accepted
-        Operador->>API: POST /api/v1/admin/dead-letters/:topic/replay (Header: X-Admin-Token)
-        API->>Kafka: Reenvia mensagens represadas na DLT ao tópico original (R6)
-        API-->>Operador: HTTP 200 OK
+        Note over Operador, Kafka: 6. Auditoria, Cancelamento e Resiliência (Regras R1, R5, R6, R9)
+        Corretor ->> API: GET /api/v1/contracts/:id/history (Auditoria imutável)
+        API -->> Corretor: HTTP 200 OK (Trilha cronológica com eventos tardios ignorados)
+        Corretor ->> API: POST /api/v1/contracts/:id/cancel (motivo: Dados incorretos - R9)
+        API ->> DB: Transiciona para CANCELLED e desocupa locação para v2 (R1, R9)
+        API -->> Corretor: HTTP 202 Accepted
+        Operador ->> API: POST /api/v1/contracts/:id/reconcile (Header: X-Admin-Token)
+        API ->> PandaDoc: GET /public/v1/documents/:id (Reconciliação manual de status)
+        API -->> Operador: HTTP 202 Accepted
+        Operador ->> API: POST /api/v1/admin/dead-letters/:topic/replay (Header: X-Admin-Token)
+        API ->> Kafka: Reenvia mensagens represadas na DLT ao tópico original (R6)
+        API -->> Operador: HTTP 200 OK
     end
 ```
 

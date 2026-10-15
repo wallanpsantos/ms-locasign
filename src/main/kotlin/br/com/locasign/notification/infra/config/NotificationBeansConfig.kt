@@ -21,8 +21,8 @@ class NotificationBeansConfig {
     @Bean
     fun recordNotifications(
         recipients: NotificationRecipientsPort,
-        log: NotificationLogPort,
+        notificationLog: NotificationLogPort,
         processed: ProcessedMessagesPort,
         transactions: TransactionRunner,
-    ): RecordNotifications = RecordNotifications(recipients, log, processed, transactions)
+    ): RecordNotifications = RecordNotifications(recipients, notificationLog, processed, transactions)
 }

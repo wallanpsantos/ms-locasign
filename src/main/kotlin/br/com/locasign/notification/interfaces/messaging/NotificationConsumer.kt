@@ -28,7 +28,7 @@ class NotificationConsumer(
         val contractId = envelope.aggregateUuid()
         reader.handle(envelope) {
             recordNotifications.execute(
-                RecordNotificationsCommand(envelope.eventId, envelope.eventType, contractId.toString()),
+                RecordNotificationsCommand(envelope.eventId, envelope.eventType, contractId),
             )
         }
     }

@@ -7,7 +7,8 @@ import br.com.locasign.notification.domain.Audience
 import br.com.locasign.shared.domain.valueobjects.Email
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
-import java.util.UUID
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
 
 /**
  * Adaptador de persistência JDBC para resolução dos destinatários de notificação de um contrato.
@@ -19,7 +20,7 @@ import java.util.UUID
 @Repository
 class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : NotificationRecipientsPort {
 
-    override fun recipientsOf(contractId: String, audience: Audience): List<NotificationRecipient> =
+    override fun recipientsOf(contractId: Uuid, audience: Audience): List<NotificationRecipient> =
         jdbc.sql(
             """
 			SELECT role, email FROM contract_signers
@@ -27,12 +28,12 @@ class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : Notifica
 			ORDER BY signing_order
 			""".trimIndent(),
         )
-            .param("contractId", UUID.fromString(contractId))
+            .param("contractId", contractId.toJavaUuid())
             .param("allParties", audience == Audience.ALL_PARTIES)
             .query { rs, _ ->
                 NotificationRecipient(
                     rs.getString("role"),
-                    Email.fromStorage(rs.getString("email")).masked()
+                    Email.fromStorage(rs.getString("email")).masked(),
                 )
             }
             .list()
@@ -48,14 +49,14 @@ class JdbcNotificationRecipientsAdapter(private val jdbc: JdbcClient) : Notifica
 @Repository
 class JdbcNotificationLogAdapter(private val jdbc: JdbcClient) : NotificationLogPort {
 
-    override fun record(contractId: String, eventId: String, eventType: String, recipientMasked: String) {
+    override fun record(contractId: Uuid, eventId: String, eventType: String, recipientMasked: String) {
         jdbc.sql(
             """
 			INSERT INTO notifications_log (contract_id, event_id, event_type, recipient_masked)
 			VALUES (:contractId, :eventId, :eventType, :recipientMasked)
 			""".trimIndent(),
         )
-            .param("contractId", UUID.fromString(contractId))
+            .param("contractId", contractId.toJavaUuid())
             .param("eventId", eventId)
             .param("eventType", eventType)
             .param("recipientMasked", recipientMasked)

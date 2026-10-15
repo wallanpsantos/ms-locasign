@@ -1,6 +1,7 @@
 package br.com.locasign.notification.app.ports.out
 
 import br.com.locasign.notification.domain.Audience
+import kotlin.uuid.Uuid
 
 /**
  * Representa um destinatário de notificação com papel no contrato e e-mail já mascarado para preservação de privacidade.
@@ -19,7 +20,7 @@ data class NotificationRecipient(val role: String, val emailMasked: String)
  * - Abstrair a recuperação dos dados de contato do contrato para uso pelos casos de uso de notificação.
  */
 interface NotificationRecipientsPort {
-    fun recipientsOf(contractId: String, audience: Audience): List<NotificationRecipient>
+    fun recipientsOf(contractId: Uuid, audience: Audience): List<NotificationRecipient>
 }
 
 /**
@@ -30,5 +31,5 @@ interface NotificationRecipientsPort {
  * - Garantir rastreabilidade de comunicação com partes interessadas para conformidade legal e suporte operacional.
  */
 interface NotificationLogPort {
-    fun record(contractId: String, eventId: String, eventType: String, recipientMasked: String)
+    fun record(contractId: Uuid, eventId: String, eventType: String, recipientMasked: String)
 }

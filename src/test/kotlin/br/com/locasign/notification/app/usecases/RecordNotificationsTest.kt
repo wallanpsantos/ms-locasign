@@ -37,7 +37,7 @@ class RecordNotificationsTest {
     }
 
     private fun command(eventType: String, eventId: String = "evt-1") =
-        RecordNotificationsCommand(eventId, eventType, contractId.toString())
+        RecordNotificationsCommand(eventId, eventType, contractId)
 
     private fun logged(recipient: NotificationRecipient, eventType: String) =
         LoggedNotification(contractId.toString(), "evt-1", eventType, recipient.emailMasked)

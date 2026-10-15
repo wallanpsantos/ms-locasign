@@ -15,9 +15,9 @@ class InMemoryNotificationRecipients : NotificationRecipientsPort {
         byContract.getOrPut(contractId.toString()) { mutableListOf() } += recipient
     }
 
-    override fun recipientsOf(contractId: String, audience: Audience): List<NotificationRecipient> {
-        requested += contractId to audience
-        val all = byContract[contractId].orEmpty()
+    override fun recipientsOf(contractId: Uuid, audience: Audience): List<NotificationRecipient> {
+        requested += contractId.toString() to audience
+        val all = byContract[contractId.toString()].orEmpty()
         return when (audience) {
             Audience.ALL_PARTIES -> all
             Audience.AGENCY_ONLY -> all.filter { it.role == "AGENCY" }
@@ -37,7 +37,7 @@ data class LoggedNotification(
 class InMemoryNotificationLog : NotificationLogPort {
     val records = mutableListOf<LoggedNotification>()
 
-    override fun record(contractId: String, eventId: String, eventType: String, recipientMasked: String) {
-        records += LoggedNotification(contractId, eventId, eventType, recipientMasked)
+    override fun record(contractId: Uuid, eventId: String, eventType: String, recipientMasked: String) {
+        records += LoggedNotification(contractId.toString(), eventId, eventType, recipientMasked)
     }
 }

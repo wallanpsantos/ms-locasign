@@ -23,23 +23,28 @@ import br.com.locasign.contract.domain.events.SignedDocumentArchived
  * - Proteger a privacidade e cumprir a LGPD assegurando que dados cadastrais completos (CPF e e-mail) nunca sejam publicados nos tópicos Kafka.
  * - Garantir mapeamento exaustivo via `when` sobre a hierarquia selada [ContractEvent], impedindo novos eventos sem contrato de serialização.
  */
-fun ContractEvent.toPayload(): Map<String, Any?> {
-    val payload = linkedMapOf<String, Any?>("contractId" to contractId.toString())
-    payload += when (this) {
-        is ContractRequested -> mapOf("leaseId" to leaseId.toString(), "versionNumber" to versionNumber)
-        is ContractDocumentCreated -> mapOf("providerDocumentId" to providerDocumentId.value)
-        is ContractGenerated -> emptyMap()
-        is ContractGenerationFailed -> mapOf("detail" to detail)
-        is ContractSent -> mapOf("expiresAt" to expiresAt?.toString())
-        is ContractViewed -> emptyMap()
-        is ContractSignerCompleted -> mapOf("role" to role.name)
-        is ContractCompleted -> mapOf("leaseId" to leaseId.toString())
-        is ContractDeclined -> mapOf("reason" to reason)
-        is ContractExpired -> emptyMap()
-        is ContractCancelled -> mapOf("reason" to reason)
-        is ContractReminderSent -> emptyMap()
-        is SignedDocumentArchived -> mapOf("storage" to storage, "location" to location)
-        is LeaseActivated -> mapOf("leaseId" to leaseId.toString())
+fun ContractEvent.toPayload(): Map<String, Any?> = buildMap {
+    put("contractId", contractId.toString())
+    when (this@toPayload) {
+        is ContractRequested -> {
+            put("leaseId", leaseId.toString())
+            put("versionNumber", versionNumber)
+        }
+        is ContractDocumentCreated -> put("providerDocumentId", providerDocumentId.value)
+        is ContractGenerated -> Unit
+        is ContractGenerationFailed -> put("detail", detail)
+        is ContractSent -> put("expiresAt", expiresAt?.toString())
+        is ContractViewed -> Unit
+        is ContractSignerCompleted -> put("role", role.name)
+        is ContractCompleted -> put("leaseId", leaseId.toString())
+        is ContractDeclined -> put("reason", reason)
+        is ContractExpired -> Unit
+        is ContractCancelled -> put("reason", reason)
+        is ContractReminderSent -> Unit
+        is SignedDocumentArchived -> {
+            put("storage", storage)
+            put("location", location)
+        }
+        is LeaseActivated -> put("leaseId", leaseId.toString())
     }
-    return payload
 }

@@ -44,22 +44,30 @@ pós-assinatura (ativação da locação, agendamento de vistoria, emissão da p
 
 ## 1. Regras de Negócio Fundamentais (R1 a R10)
 
-As regras abaixo constituem os invariantes absolutos do domínio ([`docs/plano-de-negocio.md`](docs/plano-de-negocio.md)
-§8) e
-prevalecem sobre qualquer outra decisão de engenharia:
+> [!IMPORTANT]
+> **Precedência Canônica:** As regras **R1 a R10** ([`docs/plano-de-negocio.md`](docs/plano-de-negocio.md) §8)
+constituem os invariantes absolutos de negócio da aplicação e prevalecem rigorosamente sobre qualquer ADR, princípio de
+design ou detalhe de infraestrutura.
 
-|  Regra  | Nome / Tema                      | Descrição Sucinta                                                                                                     | Consequência Técnica no Sistema                                                                                      |
-|:-------:|:---------------------------------|:----------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------|
-| **R1**  | Unicidade de Contrato Ativo      | Uma locação só pode ter um contrato em estado não terminal por vez.                                                   | Rejeição com `409 Conflict` (`/problems/active-contract-exists`) e índice parcial único no PostgreSQL.               |
-| **R2**  | Dados Obrigatórios da Locação    | Locatário com CPF válido, endereço do imóvel, aluguel positivo (> 0), data presente/futura e prazo (padrão 30 meses). | Validação de domínio defensiva devolvendo `422 Unprocessable` (`/problems/business-rule`) e Bean Validation (`400`). |
-| **R3**  | Ordem de Assinatura              | Primeiro assina o locatário; apenas após a conclusão deste, o representante da imobiliária é acionado.                | Orquestrado via PandaDoc signing order (`recipient_completed`).                                                      |
-| **R4**  | Prazos e Lembretes               | Prazo máximo de 7 dias para assinatura, com lembrete automático disparado no 3º dia.                                  | Jobs agendados `@Scheduled` (`ExpirationJob` e `ReminderJob`).                                                       |
-| **R5**  | Imutabilidade e Não Regressão    | O status nunca regride. Estados finais (`COMPLETED`, `CANCELLED`, `DECLINED`, `EXPIRED`) são estritamente imutáveis.  | Rejeição de transição com `409 Conflict` (`/problems/contract-final`) e log na trilha de auditoria.                  |
-| **R6**  | Idempotência Estrita             | A recepção repetida do mesmo evento ou webhook nunca gera efeito duplicado.                                           | Consumidores com controle de versão/deduplicação (`markProcessed`) e checagem de transições válidas.                 |
-| **R7**  | Gravação Bruta no Inbox          | Todo webhook da PandaDoc é gravado bruto no banco antes de qualquer processamento síncrono.                           | Persistência atômica em `webhook_inbox` + `outbox_events` devolvendo `HTTP 200` rápido (nunca `410`).                |
-| **R8**  | Gatilho das Ações Pós-Assinatura | Ações pós-assinatura (ativação, vistoria, primeira cobrança) só ocorrem quando o contrato está `COMPLETED`.           | Consumidor Kafka escutando `locasign.contract.events.v1` disparado exclusivamente pelo evento terminal.              |
-| **R9**  | Correção de Contrato             | Correções exigem cancelamento formal com motivo registrado e emissão de nova versão (v2, v3).                         | O histórico anterior é integralmente preservado; transiciona o anterior para `CANCELLED` e gera novo `DRAFT`.        |
-| **R10** | Proteção de Dados (LGPD)         | Uso estrito de dados fictícios. CPF e e-mail nunca são exibidos abertos em logs ou DTOs externos.                     | Value objects `Cpf.masked()` e `Email.masked()` aplicados em serializadores, logs e auditoria.                       |
+### 1.1 Invariantes Estruturais e de Negócio (R1 a R5)
+
+|                                           Regra                                           | Invariante Mandatório                                                                                                                                               | Consequência Técnica no Sistema                                                                                 |                            Resposta HTTP (RFC 9457)                             |
+|:-----------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------:|
+|         ![R1](https://img.shields.io/badge/R1-Unicidade-DC2626?style=flat-square)         | **Unicidade de Contrato Ativo**<br>Uma locação só pode ter 1 contrato em estado não terminal por vez.                                                               | Bloqueio atômico via índice parcial único no PostgreSQL (`WHERE status NOT IN (...)`).                          |            `HTTP 409 Conflict`<br>`/problems/active-contract-exists`            |
+| ![R2](https://img.shields.io/badge/R2-Dados%20Obrigat%C3%B3rios-EA580C?style=flat-square) | **Dados Obrigatórios da Locação**<br>Locatário com CPF válido (algoritmo mod 11), endereço, aluguel positivo (> 0), data presente/futura e prazo (1 a 120 meses).   | Validação defensiva no construtor do agregado e Bean Validation nos controllers.                                | `HTTP 422 Unprocessable`<br>`/problems/business-rule`<br>`HTTP 400 Bad Request` |
+|  ![R3](https://img.shields.io/badge/R3-Ordem%20de%20Assinatura-2563EB?style=flat-square)  | **Ordem Sequencial de Assinatura**<br>Primeiro assina o Locatário (`Tenant`, ordem 1); somente após a conclusão dele, a Imobiliária (`Agency`, ordem 2) é acionada. | Orquestrado na PandaDoc via signing order sequencial com papéis dedicados. Previne minutas assinadas em branco. |                   `HTTP 200 OK`<br>`(PandaDoc Signing Order)`                   |
+|    ![R4](https://img.shields.io/badge/R4-Prazos%20%26%20Jobs-D97706?style=flat-square)    | **Prazos e Lembretes Automáticos**<br>Prazo máximo de 7 dias para assinatura, com lembrete automático disparado no 3º dia.                                          | Jobs agendados `@Scheduled` (`ExpirationJob` e `ReminderJob`) operando sobre o `BusinessClock`.                 |                       `HTTP 200 OK`<br>`(Job Automático)`                       |
+|       ![R5](https://img.shields.io/badge/R5-Imutabilidade-7C3AED?style=flat-square)       | **Imutabilidade e Não Regressão**<br>O status nunca regride. Estados finais (`COMPLETED`, `CANCELLED`, `DECLINED`, `EXPIRED`) são estritamente imutáveis.           | `ContractTransitionPolicy` rejeita transições retrógradas. Webhooks atrasados geram `IGNORED_TRANSITION`.       |                `HTTP 409 Conflict`<br>`/problems/contract-final`                |
+
+### 1.2 Garantias Técnicas, Idempotência e LGPD (R6 a R10)
+
+|                                            Regra                                            | Invariante Mandatório                                                                                                                                   | Consequência Técnica no Sistema                                                                             |            Resposta HTTP (RFC 9457)            |
+|:-------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------|:----------------------------------------------:|
+|      ![R6](https://img.shields.io/badge/R6-Idempot%C3%AAncia-059669?style=flat-square)      | **Idempotência Estrita**<br>A recepção repetida do mesmo evento ou webhook nunca produz efeito colateral duplicado.                                     | Consumidores Kafka com controle atômico de deduplicação via `ProcessedMessagesPort.markProcessed(eventId)`. |      `HTTP 200 OK`<br>`(Skip Silencioso)`      |
+| ![R7](https://img.shields.io/badge/R7-Grava%C3%A7%C3%A3o%20Inbox-0891B2?style=flat-square)  | **Gravação Bruta no Inbox**<br>Todo webhook da PandaDoc é gravado bruto no banco antes de qualquer processamento de negócio.                            | Persistência atômica em `webhook_inbox` + `outbox_events` devolvendo resposta ultrarrápida (< 30ms).        |     `HTTP 200 OK`<br>`(Gravação Imediata)`     |
+|    ![R8](https://img.shields.io/badge/R8-P%C3%B3s--Assinatura-16A34A?style=flat-square)     | **Gatilho das Ações Pós-Assinatura**<br>Ativação da locação, vistoria de entrada e primeira fatura só ocorrem quando o contrato alcança `COMPLETED`.    | `PostSigningConsumer` escutando Kafka acionado estritamente pela chegada do evento `ContractCompleted`.     |       `HTTP 200 OK`<br>`(Reação Kafka)`        |
+|   ![R9](https://img.shields.io/badge/R9-Cancelamento%20%26%20v2-6366F1?style=flat-square)   | **Correção de Contrato com Nova Versão**<br>Alterações após o envio exigem cancelamento formal com motivo registrado e emissão de nova versão (v2, v3). | O contrato atual transiciona para `CANCELLED` (histórico preservado) e um novo `DRAFT` é gerado na locação. |     `HTTP 200 OK`<br>`(Trilha Auditável)`      |
+| ![R10](https://img.shields.io/badge/R10-Prote%C3%A7%C3%A3o%20LGPD-DB2777?style=flat-square) | **Proteção de Dados Pessoais (LGPD)**<br>Uso exclusivo de dados fictícios. CPF e e-mail nunca podem ser logados ou expostos abertos.                    | Value objects seguros com mascaramento nativo: `Cpf.masked()` e `Email.masked()` aplicados em logs e DTOs.  | `Conformidade Legal`<br>`(toString Mascarado)` |
 
 ---
 
@@ -136,38 +144,80 @@ flowchart TD
 
 ## 4. Ciclo de Vida do Contrato (Máquina de Estados)
 
-O ciclo de vida do contrato residencial é governado pelo agregado `Contract` e pela política centralizada
-`ContractTransitionPolicy`. Conforme a regra **R5**, o status nunca regride e estados terminais são absolutamente
-imutáveis:
+O ciclo de vida do contrato residencial é governado pelo agregado `Contract` e pela política determinística centralizada
+`ContractTransitionPolicy` (Kotlin puro, sem dependências de infraestrutura). Conforme a regra **R5**, o status nunca
+regride e estados terminais são absolutamente imutáveis.
+
+### 4.1 Pipeline Linear de Progressão de Estados
+
+```
+[DRAFT] ➔ [GENERATED] ➔ [SENT] ➔ [VIEWED] ➔ [PARTIALLY_SIGNED] ➔ [COMPLETED] 🏆
+   │           │           │        │               │
+   ▼           ▼           ▼        ▼               ▼
+[CANCELLED] [CANCELLED] [CANCELLED, [CANCELLED, [CANCELLED,
+                        DECLINED,   DECLINED,   DECLINED,
+                        EXPIRED]    EXPIRED]    EXPIRED]
+```
+
+### 4.2 Diagrama de Estados do Domínio
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT: Solicitação de Contrato (202)
+    classDef draft fill:#E2E8F0,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef inProgress fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF
+    classDef completed fill:#DCFCE7,stroke:#16A34A,stroke-width:3px,color:#166534
+    classDef terminal fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#991B1B
+    [*] --> DRAFT: POST /contracts (202 Accepted)
     DRAFT --> GENERATED: Documento criado na PandaDoc
-    GENERATED --> SENT: Documento enviado aos signatários
-    SENT --> VIEWED: Locatário abriu o documento
-    VIEWED --> PARTIALLY_SIGNED: Locatário assinou (R3)
-    PARTIALLY_SIGNED --> COMPLETED: Imobiliária assinou (R3)
-    DRAFT --> CANCELLED: Cancelamento Formal (R9)
-    GENERATED --> CANCELLED: Cancelamento Formal (R9)
-    SENT --> CANCELLED: Cancelamento Formal (R9)
-    VIEWED --> CANCELLED: Cancelamento Formal (R9)
-    PARTIALLY_SIGNED --> CANCELLED: Cancelamento Formal (R9)
+    GENERATED --> SENT: Enviado aos signatários
+    SENT --> VIEWED: Locatário visualizou documento
+    VIEWED --> PARTIALLY_SIGNED: Locatário assinou (Ordem 1)
+    PARTIALLY_SIGNED --> COMPLETED: Imobiliária assinou (Ordem 2)
+    DRAFT --> CANCELLED: Cancelamento com motivo (R9)
+    GENERATED --> CANCELLED: Cancelamento com motivo (R9)
+    SENT --> CANCELLED: Cancelamento com motivo (R9)
+    VIEWED --> CANCELLED: Cancelamento com motivo (R9)
+    PARTIALLY_SIGNED --> CANCELLED: Cancelamento com motivo (R9)
     SENT --> DECLINED: Signatário recusou assinar
     VIEWED --> DECLINED: Signatário recusou assinar
-    PARTIALLY_SIGNED --> DECLINED: Imobiliária recusou assinar
+    PARTIALLY_SIGNED --> DECLINED: Signatário recusou assinar
     SENT --> EXPIRED: Prazo de 7 dias esgotado (R4)
     VIEWED --> EXPIRED: Prazo de 7 dias esgotado (R4)
     PARTIALLY_SIGNED --> EXPIRED: Prazo de 7 dias esgotado (R4)
     COMPLETED --> [*]: Dispara Ações Pós-Assinatura (R8)
-    CANCELLED --> [*]: Permite Nova Versão v2 (R1, R9)
-    DECLINED --> [*]: Permite Nova Versão v2 (R1, R9)
-    EXPIRED --> [*]: Permite Nova Versão v2 (R1, R9)
+    CANCELLED --> [*]: Histórico auditado - permite nova versão (R1, R9)
+    DECLINED --> [*]: Histórico auditado - permite nova versão (R1, R9)
+    EXPIRED --> [*]: Histórico auditado - permite nova versão (R1, R9)
+    class DRAFT draft
+    class GENERATED,SENT,VIEWED,PARTIALLY_SIGNED inProgress
+    class COMPLETED completed
+    class CANCELLED,DECLINED,EXPIRED terminal
 ```
 
-> **Atenção (Saltos para Frente):** Como a PandaDoc não garante a retransmissão de webhooks intermediários perdidos,
-> saltos
-> diretamente para `COMPLETED` ou `VIEWED` são válidos para garantir a convergência do estado final (ADR-010).
+### 4.3 Matriz de Estados e Políticas de Transição
+
+| Categoria              | Estados                                                           | Comportamento e Regras de Negócio                                                                                                                                                                             |
+|:-----------------------|:------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Em Andamento**       | `DRAFT`, `GENERATED`, `SENT`, `VIEWED`, `PARTIALLY_SIGNED`        | Aceitam transições estritamente progressivas (avanço monotônico de progresso ordinal).                                                                                                                        |
+| **Terminais Estritos** | `COMPLETED` 🏆<br>`CANCELLED` 🚫<br>`DECLINED` ❌<br>`EXPIRED` ⏰ | **Estritamente imutáveis (R5):** Não aceitam nenhuma mutação subsequente. Tentativas via API devolvem `HTTP 409 Conflict` (`/problems/contract-final`).                                                       |
+| **Eventos Tardios**    | Webhooks desordenados na rede (ex: `VIEWED` após `COMPLETED`)     | **Tratamento Defensivo:** Em vez de quebrar a transação com erro 500 ou regredir o status, a política sinaliza `IGNORED_TRANSITION`. O evento é registrado na auditoria mas o estado final permanece intacto. |
+
+```kotlin
+// ContractTransitionPolicy.kt — Decisão Determinística sem Frameworks
+object ContractTransitionPolicy {
+    fun decide(current: ContractStatus, target: ContractStatus): TransitionDecision = when {
+        current == target -> TransitionDecision.NoOp
+        current.isFinal -> TransitionDecision.Reject("Contrato em estado final ($current) é imutável.")
+        target.isFinal || target.progress > current.progress -> TransitionDecision.Apply
+        else -> TransitionDecision.Reject("A transição $current -> $target regrediria o status.")
+    }
+}
+```
+
+> [!NOTE]
+> **Saltos para Frente (ADR-010):** Como a PandaDoc não garante a retransmissão de webhooks intermediários perdidos na
+internet, transições diretas com saltos (ex.: de `SENT` diretamente para `COMPLETED`) são formalmente autorizadas para
+garantir a convergência do estado real.
 
 ---
 
@@ -225,6 +275,123 @@ Consulte o [**Guia Completo da Coleção**](http/demonstracao-do-plano-de-negoci
 | `GET`  | `/actuator/health`                          |          Público           | Health check consolidado de banco e broker Kafka (`200 OK`).           |
 | `GET`  | `/actuator/metrics/locasign.*`              |          Público           | Métricas dimensionais Micrometer de transições e webhooks (`200 OK`).  |
 | `GET`  | `/v3/api-docs` / `/swagger-ui.html`         |          Público           | Especificação OpenAPI 3.1 e documentação interativa Swagger.           |
+
+<details>
+<summary>🔍 <b>Clique aqui para expandir o Diagrama de Sequência Ponta a Ponta e a Legenda das Regras por Endpoint</b></summary>
+<br>
+
+#### Diagrama de Sequência: Ciclo de Vida Completo da Locação e Contrato
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Corretor as "👤 Corretor / Cliente"
+    participant API as "⚡ LocaSign API"
+    participant DB as "🐘 PostgreSQL 18"
+    participant Kafka as "📨 Apache Kafka"
+    participant PandaDoc as "🐼 PandaDoc Cloud"
+    actor Locatario as "📱 Locatário (Tenant)"
+    actor Imobiliaria as "🏢 Imobiliária (Agency)"
+    actor Operador as "🛠️ Operador (Admin)"
+
+    %% 1. Cadastro de Locação
+    rect rgb(239, 246, 255)
+        Note over Corretor,DB: 1. Cadastro da Locação (Regras R2, R10)
+        Corretor->>API: POST /api/v1/leases (Dados cadastrais)
+        API->>API: Validação Bean Validation e Cpf mod 11 (R2, R10)
+        API->>DB: INSERT INTO leases (status: DRAFT)
+        API-->>Corretor: HTTP 201 Created (Location: /leases/:id)
+        Corretor->>API: GET /api/v1/leases/:id
+        API-->>Corretor: HTTP 200 OK (Dados da locação com CPF mascarado)
+    end
+
+    %% 2. Solicitação de Contrato
+    rect rgb(245, 243, 255)
+        Note over Corretor,Kafka: 2. Solicitação de Contrato (Regras R1, R2, R3, R4)
+        Corretor->>API: POST /api/v1/leases/:id/contracts
+        API->>API: Valida Unicidade R1 - rejeita se já existir contrato ativo (409)
+        API->>DB: ACID Commit - contracts (DRAFT) + outbox_events
+        API-->>Corretor: HTTP 202 Accepted (Location: /contracts/:id)
+        Corretor->>API: GET /api/v1/contracts/:id (Acompanhamento)
+        API-->>Corretor: HTTP 200 OK (status: DRAFT, prazo de 7 dias - R4)
+    end
+
+    %% 3. Orquestração Assíncrona & PandaDoc
+    rect rgb(254, 243, 199)
+        Note over DB,PandaDoc: 3. Outbox Relay e Envio PandaDoc (Regras R3, R4)
+        DB->>API: OutboxRelay - SELECT FOR UPDATE SKIP LOCKED
+        API->>Kafka: Publica ContractRequested (locasign.contract.events.v1)
+        Kafka->>API: ContractOrchestratorConsumer consome evento (markProcessed)
+        API->>PandaDoc: POST /public/v1/documents (Signing Order 1: Locatario, 2: Imobiliaria)
+        PandaDoc-->>API: Retorna doc_id (doc_123)
+        API->>PandaDoc: POST /public/v1/documents/doc_123/send
+        PandaDoc-->>API: HTTP 200 OK (Contrato enviado)
+        API->>DB: UPDATE contracts (status: SENT)
+    end
+
+    %% 4. Webhooks de Assinatura
+    rect rgb(236, 253, 245)
+        Note over PandaDoc,DB: 4. Assinatura Sequencial e Webhook Seguro (Regras R3, R5, R6, R7)
+        PandaDoc->>Locatario: Notificação de assinatura por e-mail/SMS (Ordem 1)
+        Locatario->>PandaDoc: Assina digitalmente o documento
+        PandaDoc->>API: POST /webhooks/pandadoc (document_state_changed)
+        API->>API: Valida assinatura HMAC-SHA256 em tempo constante (R7)
+        API->>DB: INSERT INTO webhook_inbox + outbox_events (HTTP 200 rápido)
+        DB->>API: OutboxRelay publica ProviderWebhookReceived
+        Kafka->>API: WebhookConsumer processa evento com deduplicação (R6)
+        API->>DB: UPDATE contracts (status: PARTIALLY_SIGNED)
+        PandaDoc->>Imobiliaria: Libera link de assinatura para Imobiliária (Ordem 2)
+        Imobiliaria->>PandaDoc: Assina digitalmente o documento
+        PandaDoc->>API: POST /webhooks/pandadoc (status: document.completed)
+        API->>API: Valida HMAC-SHA256 em tempo constante
+        API->>DB: Grava no Inbox e atualiza contracts (status: COMPLETED)
+    end
+
+    %% 5. Gatilho Pós-Assinatura
+    rect rgb(220, 252, 231)
+        Note over API,DB: 5. Gatilho Pós-Assinatura Reativo (Regra R8)
+        API->>Kafka: Publica ContractCompleted (locasign.contract.events.v1)
+        Kafka->>API: PostSigningConsumer consome ContractCompleted (R6)
+        API->>DB: Ativa Locação (leases status: ACTIVE)
+        API->>DB: Agenda Vistoria de Entrada do Imóvel
+        API->>DB: Registra Primeira Fatura e Cobrança
+        API->>DB: Salva cópia do PDF assinado no storage local
+    end
+
+    %% 6. Operações, Histórico & Resiliência
+    rect rgb(254, 242, 242)
+        Note over Operador,Kafka: 6. Auditoria, Cancelamento e Resiliência (Regras R1, R5, R6, R9)
+        Corretor->>API: GET /api/v1/contracts/:id/history (Auditoria imutável)
+        API-->>Corretor: HTTP 200 OK (Trilha cronológica com eventos tardios ignorados)
+        Corretor->>API: POST /api/v1/contracts/:id/cancel (motivo: Dados incorretos - R9)
+        API->>DB: Transiciona para CANCELLED e desocupa locação para v2 (R1, R9)
+        API-->>Corretor: HTTP 202 Accepted
+        Operador->>API: POST /api/v1/contracts/:id/reconcile (Header: X-Admin-Token)
+        API->>PandaDoc: GET /public/v1/documents/:id (Reconciliação manual de status)
+        API-->>Operador: HTTP 202 Accepted
+        Operador->>API: POST /api/v1/admin/dead-letters/:topic/replay (Header: X-Admin-Token)
+        API->>Kafka: Reenvia mensagens represadas na DLT ao tópico original (R6)
+        API-->>Operador: HTTP 200 OK
+    end
+```
+
+---
+
+#### Legenda das Regras de Negócio e Comportamento por Endpoint
+
+| Método | Caminho                                     | Regras de Negócio Aplicadas | Comportamento de Domínio e Validações                                                                                                                                                                                                                                                                                                                                                                                                                                       | Respostas Típicas (RFC 9457)                                                                                                       |
+|:------:|:--------------------------------------------|:---------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| `POST` | `/api/v1/leases`                            |         **R2, R10**         | Cadastra a locação residencial em estado `DRAFT`. Valida Bean Validation (`@NotNull`, `@NotBlank`, `@Positive`) e invariantes no value object `Cpf` (algoritmo módulo 11), `Email` (RFC 5322), aluguel positivo e prazo de 1 a 120 meses. Garante mascaramento estrito de dados pessoais em logs e DTOs.                                                                                                                                                                    | `201 Created` (`Location: /leases/{id}`)<br>`400 Bad Request` (campos ausentes)<br>`422 Unprocessable` (`/problems/business-rule`) |
+| `GET`  | `/api/v1/leases/{id}`                       |         **R1, R10**         | Consulta os dados cadastrais da locação e projeta o contrato ativo associado (se houver). Comprova que no máximo 1 contrato não terminal pode coexistir na mesma locação. Retorna os dados com o CPF do locatário mascarado (`Cpf.masked()`).                                                                                                                                                                                                                               | `200 OK`<br>`404 Not Found` (`/problems/not-found`)                                                                                |
+| `POST` | `/api/v1/leases/{id}/contracts`             |     **R1, R2, R3, R4**      | Ponto de partida do ciclo de vida contratual. Consulta a locação e **valida a Regra R1**: se já existir contrato não terminal, rejeita imediatamente com `HTTP 409 Conflict`. Agregado nasce em `DRAFT`, define prazo de 7 dias (R4), estabelece a ordem sequencial de assinatura (R3) e grava atomicamente o estado e o evento em `outbox_events` no PostgreSQL 18.                                                                                                        | `202 Accepted` (`Location: /contracts/{id}`)<br>`404 Not Found`<br>`409 Conflict` (`/problems/active-contract-exists`)             |
+| `GET`  | `/api/v1/contracts/{id}`                    |     **R3, R4, R5, R10**     | Consulta o estado atual da máquina de estados (`DRAFT` a `COMPLETED`), os signatários associados com suas respectivas ordens de assinatura (1: Locatário, 2: Imobiliária) e o prazo limite de expiração calculado pelo `BusinessClock`. Dados pessoais saem estritamente mascarados.                                                                                                                                                                                        | `200 OK`<br>`404 Not Found` (`/problems/not-found`)                                                                                |
+| `GET`  | `/api/v1/contracts/{id}/history`            |         **R5, R10**         | Linha do tempo cronológica com trilha de auditoria completa e imutável. Exibe cada transição de status com timestamp exato, autor/origem (`API`, `PANDADOC`, `JOB`) e registra eventuais webhooks atrasados ignorados pela política defensiva (`IGNORED_TRANSITION`).                                                                                                                                                                                                       | `200 OK`<br>`404 Not Found` (`/problems/not-found`)                                                                                |
+| `POST` | `/api/v1/contracts/{id}/cancel`             |       **R1, R5, R9**        | Cancelamento formal de contrato com justificativa obrigatória (`reason`). Se o contrato já estiver em estado final (`COMPLETED`, `CANCELLED`, `DECLINED`, `EXPIRED`), rejeita com `HTTP 409 Conflict` (R5). Se válido, transiciona para `CANCELLED`, preserva o histórico e desocupa a locação, viabilizando a emissão de uma nova versão v2/v3 (R1, R9).                                                                                                                   | `202 Accepted`<br>`400 Bad Request` (sem motivo)<br>`404 Not Found`<br>`409 Conflict` (`/problems/contract-final`)                 |
+| `POST` | `/webhooks/pandadoc`                        |   **R3, R5, R6, R7, R8**    | Receptor HTTP assíncrono para eventos da PandaDoc. Valida a assinatura HMAC-SHA256 sobre bytes brutos em tempo constante (`MessageDigest.isEqual`). Se inválido, rejeita prontamente com `HTTP 401 Unauthorized`. Se válido, grava bruto atômico em `webhook_inbox` + `outbox_events` e devolve `HTTP 200 OK` rápido (< 30ms - R7). O consumidor Kafka subsequente deduplica a mensagem (R6), aplica a transição segura (R5) e aciona o pós-assinatura em `COMPLETED` (R8). | `200 OK` (gravação imediata)<br>`401 Unauthorized` (HMAC inválido)                                                                 |
+| `POST` | `/api/v1/contracts/{id}/reconcile`          |       **R3, R5, R6**        | Rota de suporte operacional protegida pelo header `X-Admin-Token`. Força consulta síncrona à API da PandaDoc (`GET /public/v1/documents/{id}`) para reconciliar o status do contrato caso algum webhook tenha sido perdido na internet. Aplica a transição via `ContractTransitionPolicy` com idempotência estrita.                                                                                                                                                         | `202 Accepted`<br>`401 Unauthorized` (token inválido/ausente)<br>`404 Not Found` (`/problems/not-found`)                           |
+| `POST` | `/api/v1/admin/dead-letters/{topic}/replay` |           **R6**            | Rota de resiliência protegida por `X-Admin-Token`. Permite ao operador reenviar mensagens represadas no tópico de dead-letter (`.dlt`) de volta ao tópico Kafka original. Graças à idempotência estrita (R6), mensagens que já haviam sido processadas com sucesso são descartadas pelos consumidores sem efeitos colaterais duplicados.                                                                                                                                    | `200 OK`<br>`401 Unauthorized` (token ausente/inválido)<br>`400 Bad Request` (tópico inválido)                                     |
+
+</details>
 
 ### 6.2 Mapeamento de Erros Determinísticos (RFC 9457)
 

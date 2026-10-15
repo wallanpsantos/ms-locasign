@@ -7,7 +7,7 @@ import br.com.locasign.shared.domain.valueobjects.Email
 private const val MIN_NAME_LENGTH = 3
 private const val MAX_NAME_LENGTH = 120
 
-internal fun requireValidName(raw: String, field: String) {
+private fun requireValidName(raw: String, field: String) {
     if (raw.trim().length !in MIN_NAME_LENGTH..MAX_NAME_LENGTH) {
         throw DomainException.BusinessRuleViolation(
             field,

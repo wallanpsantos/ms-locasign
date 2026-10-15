@@ -72,7 +72,7 @@ class DeadLetterReplayer(
         sourceTopic: String,
     ): ProducerRecord<String, String> {
         val target = record.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC)
-            ?.value()?.toString(Charsets.UTF_8) ?: sourceTopic
+            ?.value()?.decodeToString() ?: sourceTopic
         val outgoing = ProducerRecord(target, record.key(), record.value())
         record.headers().filterNot { it.key().startsWith(DLT_HEADER_PREFIX) }.forEach { outgoing.headers().add(it) }
         return outgoing

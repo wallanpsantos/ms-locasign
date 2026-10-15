@@ -4,6 +4,7 @@ import br.com.locasign.shared.app.DeadLetterReplayPort
 import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.infra.config.LocaSignProperties
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.ConsumerFactory
@@ -51,12 +52,7 @@ class DeadLetterReplayer(
                 }
                 emptyPolls = 0
                 for (record in records) {
-                    val target = record.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC)
-                        ?.value()?.toString(Charsets.UTF_8) ?: sourceTopic
-                    val outgoing = ProducerRecord(target, record.key(), record.value())
-                    record.headers().forEach { header ->
-                        if (!header.key().startsWith(DLT_HEADER_PREFIX)) outgoing.headers().add(header)
-                    }
+                    val outgoing = replayRecord(record, sourceTopic)
                     kafka.send(outgoing).get(properties.outbox.sendTimeout.toMillis(), TimeUnit.MILLISECONDS)
                     replayed++
                 }
@@ -65,6 +61,18 @@ class DeadLetterReplayer(
         }
         log.info("Reprocessamento da DLT de {} concluído: {} mensagens reenviadas", sourceTopic, replayed)
         return replayed
+    }
+
+    /** Volta ao tópico original (header `kafka_dlt-original-topic`) sem os headers `kafka_dlt-*` da DLT. */
+    private fun replayRecord(
+        record: ConsumerRecord<String, String>,
+        sourceTopic: String,
+    ): ProducerRecord<String, String> {
+        val target = record.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC)
+            ?.value()?.toString(Charsets.UTF_8) ?: sourceTopic
+        val outgoing = ProducerRecord(target, record.key(), record.value())
+        record.headers().filterNot { it.key().startsWith(DLT_HEADER_PREFIX) }.forEach { outgoing.headers().add(it) }
+        return outgoing
     }
 
     private companion object {

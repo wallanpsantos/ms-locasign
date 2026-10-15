@@ -17,6 +17,15 @@ http:
       }
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 202) {
+          const body = res.getBody();
+          console.log("Contrato cancelado formalmente com sucesso (HTTP 202). Status:", body ? body.status : "CANCELLED");
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

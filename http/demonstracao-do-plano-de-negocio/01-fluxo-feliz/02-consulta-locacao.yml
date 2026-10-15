@@ -8,6 +8,15 @@ http:
   url: "{{baseUrl}}/api/v1/leases/{{leaseId}}"
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          const body = res.getBody();
+          console.log("Consulta da locação realizada. Status:", body ? body.status : "OK");
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

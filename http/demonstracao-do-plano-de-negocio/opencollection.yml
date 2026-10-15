@@ -3,66 +3,6 @@ opencollection: 1.0.0
 info:
   name: Demonstração do plano de negócio
   version: 1.0.0
-  description: >-
-    Coleção Bruno para demonstração interativa do LocaSign cobrindo o ciclo de vida completo
-    de locações residenciais e contratos eletrônicos. Inclui todos os fluxos felizes e cenários
-    de erro mapeados deterministicamente (Problem Details RFC 9457), ordenados do início ao fim.
-
-docs: |-
-  # LocaSign — Demonstração do Plano de Negócio
-
-  Serviço backend que automatiza o ciclo de vida de contratos de locação residencial: cadastra a locação,
-  solicita a confecção do contrato, integra de forma assíncrona com a PandaDoc para assinatura eletrônica,
-  recebe e processa webhooks com idempotência e dispara as ações pós-assinatura com rastreabilidade total.
-
-  ---
-
-  ## 1. Arquitetura e Fundamentos Técnicos
-  - **Estilo:** Monólito modular hexagonal (`lease`, `contract`, `notification`, `shared`).
-  - **Linguagem & Framework:** Kotlin 2.4.21, Java 25 (toolchain), Spring Boot 4.1.1 (Spring Framework 7).
-  - **Persistência:** PostgreSQL 18.6 com Spring Data JDBC e `JdbcClient` (sem JPA/Hibernate).
-  - **Mensageria:** Apache Kafka 4.3.1 em modo KRaft com catálogo de tópicos tipado e Dead Letter Topics (`.dlt`).
-  - **Transações:** Porta transacional explícita `TransactionRunner.run { }` (ADR-011, sem `@Transactional`).
-  - **Resiliência:** Padrões Outbox (publicação garantida) e Inbox (auditoria e deduplicação de webhooks R7/R6).
-
-  ---
-
-  ## 2. Regras de Negócio Críticas (R1 a R10)
-  - **R1.** Uma locação só pode ter um contrato não final por vez (`409 Conflict`).
-  - **R2.** Dados obrigatórios: locatário com nome e CPF válido, endereço, aluguel positivo, data presente/futura e prazo (padrão 30 meses).
-  - **R3.** Ordem de assinatura: primeiro o locatário, depois o representante da imobiliária.
-  - **R4.** Prazo de 7 dias para assinatura, com lembrete no 3º dia.
-  - **R5.** O status nunca regride e estados finais (`COMPLETED`, `CANCELLED`, `DECLINED`, `EXPIRED`) são estritamente imutáveis (`409 Conflict`).
-  - **R6.** O mesmo evento recebido mais de uma vez nunca produz efeito duplicado (idempotência no consumidor).
-  - **R7.** Todo webhook recebido da PandaDoc é gravado bruto no inbox antes de qualquer processamento (`HTTP 200`).
-  - **R8.** Ações pós-assinatura (vistoria, 1ª cobrança, ativação) só ocorrem quando o contrato está `COMPLETED`.
-  - **R9.** Correções após envio exigem cancelamento formal e geração de nova versão (histórico preservado).
-  - **R10.** Uso exclusivo de dados fictícios e proteção de dados pessoais (CPF e e-mail mascarados em logs e DTOs).
-
-  ---
-
-  ## 3. Mapeamento de Erros (RFC 9457 Problem Details)
-  | Código HTTP | Tipo (`type`) | Causa / Violação |
-  |---|---|---|
-  | `400 Bad Request` | `/problems/validation` | Campos obrigatórios ausentes, em branco ou JSON malformado |
-  | `401 Unauthorized` | — | Assinatura HMAC-SHA256 ausente ou inválida no receptor de webhooks |
-  | `403 Forbidden` | — | Operação restrita sem o cabeçalho `X-Admin-Token` configurado no ambiente |
-  | `404 Not Found` | `/problems/not-found` | Identificador UUID de locação, contrato ou tópico não encontrado |
-  | `409 Conflict` | `/problems/active-contract-exists` | Tentativa de criar contrato concorrente para locação ativa (R1) |
-  | `409 Conflict` | `/problems/contract-final` | Tentativa de alteração sobre contrato em estado terminal imutável (R5) |
-  | `422 Unprocessable` | `/problems/business-rule` | Regra de negócio violada (CPF com dígito inválido, data passada, valor <= 0) |
-
-  ---
-
-  ## 4. Estrutura e Como Executar a Demonstração
-  1. No canto superior direito do Bruno, ative o ambiente **Local** (que define `baseUrl = http://localhost:8080`).
-  2. A coleção está organizada visualmente em 4 pastas temáticas:
-     - **01 - Fluxo Feliz (Ponta a Ponta):** ciclo de vida sequencial do contrato (01 a 08), capturando automaticamente `leaseId` e `contractId`.
-     - **02 - Cenários de Erro e Regras de Negócio:** validações de regras R1, R2, R5, R7 e erros deterministicamente mapeados (400, 401, 404, 409, 422).
-     - **03 - Operação e Resiliência:** reconciliação externa PandaDoc e reprocessamento administrativo de tópicos de cartas mortas (DLT) do Kafka.
-     - **04 - Infraestrutura e Observabilidade:** endpoints de saúde (Postgres/Kafka), especificação OpenAPI e métricas de negócio Micrometer.
-  3. Cada requisição possui documentação contextual própria e o comando `curl` equivalente pronto para terminal.
-
 config:
   proxy:
     inherit: true
@@ -75,15 +15,14 @@ config:
         password: ""
       bypassProxy: ""
 
-bundled: false
-
-extensions:
-  bruno:
-    ignore:
-      - node_modules
-      - .git
-
 request:
+  scripts:
+    - type: before-request
+      code: |-
+        console.log(`[LocaSign HTTP] >> ${req.getMethod()} ${req.getUrl()}`);
+    - type: after-response
+      code: |-
+        console.log(`[LocaSign HTTP] << Status: ${res.getStatus()} ${res.getStatusText()} (${res.getResponseTime()}ms)`);
   variables:
     - name: baseUrl
       value: http://localhost:8080
@@ -97,3 +36,66 @@ request:
     - name: contractId
       value: 00000000-0000-0000-0000-000000000000
       description: Identificador UUID do contrato ativo (capturado automaticamente na solicitação)
+
+docs:
+  content: |-
+    # LocaSign — Demonstração do Plano de Negócio
+
+    Serviço backend que automatiza o ciclo de vida de contratos de locação residencial: cadastra a locação,
+    solicita a confecção do contrato, integra de forma assíncrona com a PandaDoc para assinatura eletrônica,
+    recebe e processa webhooks com idempotência e dispara as ações pós-assinatura com rastreabilidade total.
+
+    ---
+
+    ## 1. Arquitetura e Fundamentos Técnicos
+    - **Estilo:** Monólito modular hexagonal (`lease`, `contract`, `notification`, `shared`).
+    - **Linguagem & Framework:** Kotlin 2.4.21, Java 25 (toolchain), Spring Boot 4.1.1 (Spring Framework 7).
+    - **Persistência:** PostgreSQL 18.6 com Spring Data JDBC e `JdbcClient` (sem JPA/Hibernate).
+    - **Mensageria:** Apache Kafka 4.3.1 em modo KRaft com catálogo de tópicos tipado e Dead Letter Topics (`.dlt`).
+    - **Transações:** Porta transacional explícita `TransactionRunner.run { }` (ADR-011, sem `@Transactional`).
+    - **Resiliência:** Padrões Outbox (publicação garantida) e Inbox (auditoria e deduplicação de webhooks R7/R6).
+
+    ---
+
+    ## 2. Regras de Negócio Críticas (R1 a R10)
+    - **R1.** Uma locação só pode ter um contrato não final por vez (`409 Conflict`).
+    - **R2.** Dados obrigatórios: locatário com nome e CPF válido, endereço, aluguel positivo, data presente/futura e prazo (padrão 30 meses).
+    - **R3.** Ordem de assinatura: primeiro o locatário, depois o representante da imobiliária.
+    - **R4.** Prazo de 7 dias para assinatura, com lembrete no 3º dia.
+    - **R5.** O status nunca regride e estados finais (`COMPLETED`, `CANCELLED`, `DECLINED`, `EXPIRED`) são estritamente imutáveis (`409 Conflict`).
+    - **R6.** O mesmo evento recebido mais de uma vez nunca produz efeito duplicado (idempotência no consumidor).
+    - **R7.** Todo webhook recebido da PandaDoc é gravado bruto no inbox antes de qualquer processamento (`HTTP 200`).
+    - **R8.** Ações pós-assinatura (vistoria, 1ª cobrança, ativação) só ocorrem quando o contrato está `COMPLETED`.
+    - **R9.** Correções após envio exigem cancelamento formal e geração de nova versão (histórico preservado).
+    - **R10.** Uso exclusivo de dados fictícios e proteção de dados pessoais (CPF e e-mail mascarados em logs e DTOs).
+
+    ---
+
+    ## 3. Mapeamento de Erros (RFC 9457 Problem Details)
+    | Código HTTP | Tipo (`type`) | Causa / Violação |
+    |---|---|---|
+    | `400 Bad Request` | `/problems/validation` | Campos obrigatórios ausentes, em branco ou JSON malformado |
+    | `401 Unauthorized` | — | Assinatura HMAC-SHA256 ausente ou inválida no receptor de webhooks |
+    | `403 Forbidden` | — | Operação restrita sem o cabeçalho `X-Admin-Token` configurado no ambiente |
+    | `404 Not Found` | `/problems/not-found` | Identificador UUID de locação, contrato ou tópico não encontrado |
+    | `409 Conflict` | `/problems/active-contract-exists` | Tentativa de criar contrato concorrente para locação ativa (R1) |
+    | `409 Conflict` | `/problems/contract-final` | Tentativa de alteração sobre contrato em estado terminal imutável (R5) |
+    | `422 Unprocessable` | `/problems/business-rule` | Regra de negócio violada (CPF com dígito inválido, data passada, valor <= 0) |
+
+    ---
+
+    ## 4. Estrutura e Como Executar a Demonstração
+    1. No canto superior direito do Bruno, ative o ambiente **Local** (que define `baseUrl = http://localhost:8080`).
+    2. A coleção está organizada visualmente em 4 pastas temáticas:
+       - **01 - Fluxo Feliz (Ponta a Ponta):** ciclo de vida sequencial do contrato (01 a 08), capturando automaticamente `leaseId` e `contractId`.
+       - **02 - Cenários de Erro e Regras de Negócio:** validações de regras R1, R2, R5, R7 e erros deterministicamente mapeados (400, 401, 404, 409, 422).
+       - **03 - Operação e Resiliência:** reconciliação externa PandaDoc e reprocessamento administrativo de tópicos de cartas mortas (DLT) do Kafka.
+       - **04 - Infraestrutura e Observabilidade:** endpoints de saúde (Postgres/Kafka), especificação OpenAPI e métricas de negócio Micrometer.
+    3. Cada requisição possui documentação contextual própria e o comando `curl` equivalente pronto para terminal.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

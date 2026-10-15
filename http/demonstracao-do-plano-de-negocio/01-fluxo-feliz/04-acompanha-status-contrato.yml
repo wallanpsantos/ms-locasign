@@ -8,6 +8,17 @@ http:
   url: "{{baseUrl}}/api/v1/contracts/{{contractId}}"
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          const body = res.getBody();
+          if (body) {
+            console.log("Status atual do contrato:", body.status, "(versão " + body.versionNumber + ")");
+          }
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

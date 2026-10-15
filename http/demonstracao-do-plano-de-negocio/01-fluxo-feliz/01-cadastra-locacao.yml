@@ -31,14 +31,18 @@ http:
       }
   auth: inherit
 
-scripts:
-  post-response: |-
-    if (res.getStatus() === 201) {
-      const body = res.getBody();
-      if (body && body.id) {
-        bru.setVar("leaseId", body.id);
-      }
-    }
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 201) {
+          const body = res.getBody();
+          if (body && body.id) {
+            bru.setVar("leaseId", body.id);
+            bru.setEnvVar("leaseId", body.id);
+            console.log("Locação cadastrada com sucesso. leaseId:", body.id);
+          }
+        }
 
 settings:
   encodeUrl: true

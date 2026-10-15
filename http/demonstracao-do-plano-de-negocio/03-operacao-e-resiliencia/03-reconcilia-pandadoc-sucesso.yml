@@ -11,6 +11,15 @@ http:
       value: "{{adminToken}}"
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 202) {
+          const body = res.getBody();
+          console.log("Reconciliação com a PandaDoc disparada com sucesso (HTTP 202). Status:", body ? body.status : "OK");
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

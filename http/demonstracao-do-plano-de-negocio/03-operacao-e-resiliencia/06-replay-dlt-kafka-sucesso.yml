@@ -11,6 +11,15 @@ http:
       value: "{{adminToken}}"
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          const body = res.getBody();
+          console.log("Replay da DLT executado com sucesso (HTTP 200). Tópico:", body ? body.topic : "", "- Mensagens reenviadas:", body ? body.replayed : 0);
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

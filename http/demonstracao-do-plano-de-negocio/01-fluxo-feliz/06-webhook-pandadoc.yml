@@ -42,6 +42,18 @@ http:
       ]
   auth: inherit
 
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const targetContractId = bru.getVar("contractId") || bru.getEnvVar("contractId");
+        console.log("Disparando webhook simulado PandaDoc para o contractId:", targetContractId);
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 200) {
+          console.log("Webhook PandaDoc recebido com sucesso (HTTP 200). Gravado no inbox para processamento assíncrono (R7).");
+        }
+
 settings:
   encodeUrl: true
   timeout: 0

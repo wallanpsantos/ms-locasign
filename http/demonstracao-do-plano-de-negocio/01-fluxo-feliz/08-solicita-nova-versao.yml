@@ -8,14 +8,18 @@ http:
   url: "{{baseUrl}}/api/v1/leases/{{leaseId}}/contracts"
   auth: inherit
 
-scripts:
-  post-response: |-
-    if (res.getStatus() === 202) {
-      const body = res.getBody();
-      if (body && body.id) {
-        bru.setVar("contractId", body.id);
-      }
-    }
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 202) {
+          const body = res.getBody();
+          if (body && body.id) {
+            bru.setVar("contractId", body.id);
+            bru.setEnvVar("contractId", body.id);
+            console.log("Nova versão do contrato solicitada com sucesso. Novo contractId:", body.id);
+          }
+        }
 
 settings:
   encodeUrl: true

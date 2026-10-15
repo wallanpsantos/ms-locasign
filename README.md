@@ -227,9 +227,3 @@ com 100% de aprovação**:
 - **`409`/`404` ao enviar logo após criar:** esperado; o documento só pode ser enviado em `document.draft`.
   O consumidor retenta com backoff.
 - **Porta 5432 ou 9092 ocupada:** defina `POSTGRES_PORT` / `KAFKA_PORT`.
-
-## Meu resumo do fluxo (exercício de estudo)
-
-> Regra de estudo do plano: ao fim de cada dia, explique aqui o fluxo completo **sem olhar o código**.
-
-*(escreva aqui)*

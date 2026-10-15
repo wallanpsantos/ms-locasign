@@ -65,7 +65,7 @@ class Lease private constructor(
             now: Instant,
         ): Lease {
             val address = propertyAddress.trim()
-            if (address.isEmpty() || address.length > MAX_ADDRESS_LENGTH) {
+            if (address.length !in 1..MAX_ADDRESS_LENGTH) {
                 throw DomainException.BusinessRuleViolation(
                     "property.address",
                     "O endereço do imóvel é obrigatório (até $MAX_ADDRESS_LENGTH caracteres).",

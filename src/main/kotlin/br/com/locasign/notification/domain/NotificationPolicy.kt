@@ -25,16 +25,15 @@ enum class Audience {
 object NotificationPolicy {
 
     fun audienceFor(eventType: String): Audience? = when (eventType) {
+        "ContractCompleted" -> Audience.ALL_PARTIES
         "ContractSent",
         "ContractSignerCompleted",
         "ContractDeclined",
         "ContractExpired",
         "ContractCancelled",
         "ContractGenerationFailed",
-        "ContractReminderSent",
-            -> Audience.AGENCY_ONLY
+        "ContractReminderSent" -> Audience.AGENCY_ONLY
 
-        "ContractCompleted" -> Audience.ALL_PARTIES
         else -> null
     }
 }

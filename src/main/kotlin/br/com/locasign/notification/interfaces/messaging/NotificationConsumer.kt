@@ -25,11 +25,9 @@ class NotificationConsumer(
     @KafkaListener(topics = [Topics.CONTRACT_EVENTS], groupId = ConsumerGroups.NOTIFICATIONS)
     fun onMessage(message: String) {
         val envelope = reader.read(message)
-        val contractId = envelope.aggregateUuid()
+        val command = RecordNotificationsCommand(envelope.eventId, envelope.eventType, envelope.aggregateUuid())
         reader.handle(envelope) {
-            recordNotifications.execute(
-                RecordNotificationsCommand(envelope.eventId, envelope.eventType, contractId),
-            )
+            recordNotifications.execute(command)
         }
     }
 }

@@ -35,14 +35,16 @@ class LeaseController(
 ) : LeaseApi {
 
     @PostMapping
-    override fun register(@Valid @RequestBody request: CreateLeaseRequest): ResponseEntity<LeaseCreatedResponse> {
-        val id = registerLease.execute(request.toCommand())
-        val location =
-            ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id.toString()).toUri()
-        return ResponseEntity.created(location).body(LeaseCreatedResponse(id.toString(), LeaseStatus.REGISTERED.name))
-    }
+    override fun register(@Valid @RequestBody request: CreateLeaseRequest): ResponseEntity<LeaseCreatedResponse> =
+        created(registerLease.execute(request.toCommand()))
 
     @GetMapping("/{leaseId}")
     override fun get(@PathVariable leaseId: String): LeaseResponse =
         getLease.execute(LeaseId.parse(leaseId)).toResponse()
+
+    private fun created(id: LeaseId): ResponseEntity<LeaseCreatedResponse> {
+        val location =
+            ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id.toString()).toUri()
+        return ResponseEntity.created(location).body(LeaseCreatedResponse(id.toString(), LeaseStatus.REGISTERED.name))
+    }
 }

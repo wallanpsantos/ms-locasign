@@ -3,7 +3,6 @@ package br.com.locasign.contract.interfaces.web
 import br.com.locasign.contract.app.queries.GetContract
 import br.com.locasign.contract.app.queries.GetContractHistory
 import br.com.locasign.contract.app.usecases.CancelContract
-import br.com.locasign.contract.app.usecases.CancelContractCommand
 import br.com.locasign.contract.app.usecases.ReconcileContracts
 import br.com.locasign.contract.app.usecases.RequestContract
 import br.com.locasign.contract.app.usecases.RequestContractCommand
@@ -13,6 +12,7 @@ import br.com.locasign.contract.interfaces.web.dto.request.CancelContractRequest
 import br.com.locasign.contract.interfaces.web.dto.response.ContractAcceptedResponse
 import br.com.locasign.contract.interfaces.web.dto.response.ContractHistoryResponse
 import br.com.locasign.contract.interfaces.web.dto.response.ContractResponse
+import br.com.locasign.contract.interfaces.web.mappers.toCommand
 import br.com.locasign.contract.interfaces.web.mappers.toResponse
 import br.com.locasign.contract.interfaces.web.openapi.ContractApi
 import br.com.locasign.lease.domain.valueobjects.LeaseId
@@ -70,7 +70,7 @@ class ContractController(
         @Valid @RequestBody request: CancelContractRequest,
     ): ResponseEntity<ContractAcceptedResponse> {
         val id = ContractId.parse(contractId)
-        cancelContract.execute(CancelContractCommand(id, request.reason))
+        cancelContract.execute(request.toCommand(id))
         return accepted(id, leaseId = null, status = ContractStatus.CANCELLED.name)
     }
 

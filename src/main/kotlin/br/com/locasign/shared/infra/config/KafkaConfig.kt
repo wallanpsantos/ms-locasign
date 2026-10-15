@@ -35,18 +35,18 @@ class KafkaConfig {
 
     @Bean
     fun pandaDocWebhooksDeadLetterTopic(): NewTopic =
-        topic(Topics.PANDADOC_WEBHOOKS + Topics.DEAD_LETTER_SUFFIX, partitions = DLT_PARTITIONS)
+        topic(Topics.dltOf(Topics.PANDADOC_WEBHOOKS), partitions = DLT_PARTITIONS)
 
     @Bean
     fun contractEventsDeadLetterTopic(): NewTopic =
-        topic(Topics.CONTRACT_EVENTS + Topics.DEAD_LETTER_SUFFIX, partitions = DLT_PARTITIONS)
+        topic(Topics.dltOf(Topics.CONTRACT_EVENTS), partitions = DLT_PARTITIONS)
 
     /** O Spring Boot aplica este `CommonErrorHandler` ao container factory dos `@KafkaListener`. */
     @Bean
     fun kafkaErrorHandler(kafka: KafkaTemplate<*, *>, metrics: MetricsPort): DefaultErrorHandler {
         val deadLetters = DeadLetterPublishingRecoverer(kafka) { record, _ ->
             // A DLT tem 1 partição: o destino é sempre a partição 0 do tópico original com o sufixo `.dlt`.
-            TopicPartition(record.topic() + Topics.DEAD_LETTER_SUFFIX, 0)
+            TopicPartition(Topics.dltOf(record.topic()), 0)
         }
         val recoverer = ConsumerRecordRecoverer { record, error ->
             metrics.count(Metrics.DEAD_LETTER, "topic", record.topic())

@@ -3,24 +3,20 @@ package br.com.locasign.contract.app.usecases
 import br.com.locasign.contract.app.fakes.FakeLeaseLookup
 import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
-import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.domain.events.ContractRequested
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
+import br.com.locasign.contract.domain.models.sampleLeaseSnapshot
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.domain.DomainException
-import br.com.locasign.shared.domain.valueobjects.Cpf
-import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import java.time.Instant
-import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -45,18 +41,7 @@ class RequestContractTest {
     )
 
     private val leaseId = LeaseId.new()
-    private val leaseSnapshot = LeaseSnapshot(
-        leaseId = leaseId,
-        tenantName = "Ana Paula",
-        tenantCpf = Cpf.of("529.982.247-25"),
-        tenantEmail = Email.of("ana@example.com"),
-        agencySignerName = "Imobiliária Prime",
-        agencySignerEmail = Email.of("prime@imobiliaria.com"),
-        propertyAddress = "Rua Bela Cintra, 500",
-        rentAmount = Money.positive("4200.00"),
-        startDate = LocalDate.of(2026, 11, 1),
-        termMonths = 30,
-    )
+    private val leaseSnapshot = sampleLeaseSnapshot(leaseId = leaseId)
 
     /** Reconstitui a versão salva num status final, simulando o encerramento do ciclo dela. */
     private fun finishContract(

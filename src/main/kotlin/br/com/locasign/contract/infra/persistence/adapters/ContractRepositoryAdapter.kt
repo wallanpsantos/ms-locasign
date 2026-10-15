@@ -11,13 +11,13 @@ import br.com.locasign.contract.infra.persistence.mappers.toEntity
 import br.com.locasign.contract.infra.persistence.repositories.ContractJdbcRepository
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.domain.DomainException
+import br.com.locasign.shared.infra.persistence.getRequiredKotlinUuid
 import br.com.locasign.shared.infra.persistence.toDb
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import kotlin.uuid.toJavaUuid
-import kotlin.uuid.toKotlinUuid
 
 /**
  * Adaptador de persistência que implementa a porta de escrita [ContractRepositoryPort].
@@ -143,7 +143,7 @@ class ContractRepositoryAdapter(
     }
 
     private fun JdbcClient.StatementSpec.queryIds(): List<ContractId> =
-        query { rs, _ -> ContractId(rs.getObject("id", java.util.UUID::class.java).toKotlinUuid()) }.list()
+        query { rs, _ -> ContractId(rs.getRequiredKotlinUuid("id")) }.list()
 
     /** O Spring Data JDBC embrulha a violação em `DbActionExecutionException`; a causa raiz traz o nome da constraint. */
     private fun isActiveContractViolation(error: Throwable): Boolean =

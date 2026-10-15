@@ -23,19 +23,20 @@ value class Cpf private constructor(val digits: String) {
         private val INPUT = Regex("""^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$""")
 
         fun of(raw: String, field: String = "cpf"): Cpf {
+            fun fail(): Nothing = throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
+
             val trimmed = raw.trim()
-            if (!INPUT.matches(trimmed)) {
-                throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
-            }
+            if (!INPUT.matches(trimmed)) fail()
+
             val digits = trimmed.filter(Char::isDigit)
-            if (digits.all { it == digits[0] }) {
-                throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
-            }
+            if (digits.all { it == digits[0] }) fail()
+
             val first = checkDigit(digits.take(9), 10)
-            val second = checkDigit(digits.take(9) + first, 11)
-            if (digits[9].digitToInt() != first || digits[10].digitToInt() != second) {
-                throw DomainException.BusinessRuleViolation(field, "CPF inválido.")
-            }
+            if (digits[9].digitToInt() != first) fail()
+
+            val second = checkDigit(digits.take(10), 11)
+            if (digits[10].digitToInt() != second) fail()
+
             return Cpf(digits)
         }
 

@@ -30,6 +30,7 @@ fun ContractEvent.toPayload(): Map<String, Any?> = buildMap {
             put("leaseId", leaseId.toString())
             put("versionNumber", versionNumber)
         }
+
         is ContractDocumentCreated -> put("providerDocumentId", providerDocumentId.value)
         is ContractGenerated -> Unit
         is ContractGenerationFailed -> put("detail", detail)
@@ -45,6 +46,7 @@ fun ContractEvent.toPayload(): Map<String, Any?> = buildMap {
             put("storage", storage)
             put("location", location)
         }
+
         is LeaseActivated -> put("leaseId", leaseId.toString())
     }
 }

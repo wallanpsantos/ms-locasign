@@ -39,18 +39,18 @@ class Contract private constructor(
     val leaseId: LeaseId,
     val versionNumber: Int,
     status: ContractStatus,
-    providerDocumentId: ProviderDocumentId?,
-    providerLastModifiedAt: Instant?,
-    sentAt: Instant?,
-    expiresAt: Instant?,
-    reminderSentAt: Instant?,
-    lastReconciledAt: Instant?,
-    cancelReason: CancelReason?,
-    signedDocumentRef: String?,
+    providerDocumentId: ProviderDocumentId? = null,
+    providerLastModifiedAt: Instant? = null,
+    sentAt: Instant? = null,
+    expiresAt: Instant? = null,
+    reminderSentAt: Instant? = null,
+    lastReconciledAt: Instant? = null,
+    cancelReason: CancelReason? = null,
+    signedDocumentRef: String? = null,
     signers: List<Signer>,
     val createdAt: Instant,
     updatedAt: Instant,
-    val rowVersion: Long?,
+    val rowVersion: Long? = null,
 ) {
     var status: ContractStatus = status
         private set
@@ -85,11 +85,8 @@ class Contract private constructor(
     var updatedAt: Instant = updatedAt
         private set
 
-    val pendingEvents: List<ContractEvent>
-        field = mutableListOf<ContractEvent>()
-
-    val pendingHistory: List<StatusHistoryEntry>
-        field = mutableListOf<StatusHistoryEntry>()
+    private val pendingEvents = mutableListOf<ContractEvent>()
+    private val pendingHistory = mutableListOf<StatusHistoryEntry>()
 
     /** Entrega e limpa os eventos pendentes, para publicação pelo outbox. */
     fun pullEvents(): List<ContractEvent> = pendingEvents.toList().also { pendingEvents.clear() }
@@ -263,8 +260,12 @@ class Contract private constructor(
         val from = status
         status = change.target
         change.providerModifiedAt?.let { modified ->
-            providerLastModifiedAt = providerLastModifiedAt?.let { maxOf(it, modified) } ?: modified
+            val current = providerLastModifiedAt
+            if (current == null || modified.isAfter(current)) {
+                providerLastModifiedAt = modified
+            }
         }
+        val effectiveReason = if (change.target == ContractStatus.CANCELLED) effectiveCancelReason(change) else null
         when (change.target) {
             ContractStatus.SENT, ContractStatus.VIEWED, ContractStatus.PARTIALLY_SIGNED -> {
                 // Cobre também saltos para frente (webhook de envio perdido): o prazo sempre existe.
@@ -274,12 +275,12 @@ class Contract private constructor(
             }
 
             ContractStatus.COMPLETED -> signers = signers.map { it.copy(completedAt = it.completedAt ?: now) }
-            ContractStatus.CANCELLED -> cancelReason = effectiveCancelReason(change)
+            ContractStatus.CANCELLED -> cancelReason = effectiveReason
 
             ContractStatus.DRAFT, ContractStatus.GENERATED, ContractStatus.DECLINED, ContractStatus.EXPIRED -> Unit
         }
         touch(now)
-        eventFor(change, now)?.let { pendingEvents += it }
+        eventFor(change, effectiveReason, now)?.let { pendingEvents += it }
         appendHistory(
             from = from,
             to = change.target,
@@ -291,19 +292,20 @@ class Contract private constructor(
         )
     }
 
-    private fun eventFor(change: StatusChange, now: Instant): ContractEvent? = when (change.target) {
-        ContractStatus.DRAFT, ContractStatus.PARTIALLY_SIGNED -> null
-        ContractStatus.GENERATED -> ContractGenerated(id, now)
-        ContractStatus.SENT -> ContractSent(id, expiresAt, now)
-        ContractStatus.VIEWED -> ContractViewed(id, now)
-        ContractStatus.COMPLETED -> ContractCompleted(id, leaseId, now)
-        ContractStatus.DECLINED -> ContractDeclined(id, change.note, now)
-        ContractStatus.EXPIRED -> ContractExpired(id, now)
-        ContractStatus.CANCELLED -> when (val reason = effectiveCancelReason(change)) {
-            is CancelReason.GenerationFailed -> ContractGenerationFailed(id, reason.detail, now)
-            is CancelReason.Requested -> ContractCancelled(id, reason.text, now)
+    private fun eventFor(change: StatusChange, cancelReason: CancelReason?, now: Instant): ContractEvent? =
+        when (change.target) {
+            ContractStatus.DRAFT, ContractStatus.PARTIALLY_SIGNED -> null
+            ContractStatus.GENERATED -> ContractGenerated(id, now)
+            ContractStatus.SENT -> ContractSent(id, expiresAt, now)
+            ContractStatus.VIEWED -> ContractViewed(id, now)
+            ContractStatus.COMPLETED -> ContractCompleted(id, leaseId, now)
+            ContractStatus.DECLINED -> ContractDeclined(id, change.note, now)
+            ContractStatus.EXPIRED -> ContractExpired(id, now)
+            ContractStatus.CANCELLED -> when (val reason = checkNotNull(cancelReason)) {
+                is CancelReason.GenerationFailed -> ContractGenerationFailed(id, reason.detail, now)
+                is CancelReason.Requested -> ContractCancelled(id, reason.text, now)
+            }
         }
-    }
 
     /** Motivo gravado e publicado no cancelamento: o explícito da mudança ou, na falta dele, a nota como pedido. */
     private fun effectiveCancelReason(change: StatusChange): CancelReason =
@@ -375,18 +377,9 @@ class Contract private constructor(
                 leaseId = leaseId,
                 versionNumber = versionNumber,
                 status = ContractStatus.DRAFT,
-                providerDocumentId = null,
-                providerLastModifiedAt = null,
-                sentAt = null,
-                expiresAt = null,
-                reminderSentAt = null,
-                lastReconciledAt = null,
-                cancelReason = null,
-                signedDocumentRef = null,
                 signers = signers,
                 createdAt = now,
                 updatedAt = now,
-                rowVersion = null,
             )
             contract.pendingEvents += ContractRequested(contract.id, leaseId, versionNumber, now)
             contract.appendHistory(

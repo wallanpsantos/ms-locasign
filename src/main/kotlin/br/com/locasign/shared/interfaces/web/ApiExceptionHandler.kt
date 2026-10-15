@@ -29,10 +29,12 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
 
     @ExceptionHandler(DomainException::class)
     fun handleDomain(e: DomainException): ResponseEntity<ProblemDetail> = when (e) {
-        is DomainException.BusinessRuleViolation -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(
-            problemDetail(HttpStatus.UNPROCESSABLE_CONTENT, "business-rule", "Regra de negócio violada", e.message)
-                .apply { setProperty("field", e.field) },
-        )
+        is DomainException.BusinessRuleViolation -> problem(
+            HttpStatus.UNPROCESSABLE_CONTENT,
+            "business-rule",
+            "Regra de negócio violada",
+            e.message,
+        ) { setProperty("field", e.field) }
 
         is DomainException.NotFound ->
             problem(HttpStatus.NOT_FOUND, "not-found", "Recurso não encontrado", e.message)
@@ -102,7 +104,9 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         slug: String,
         title: String,
         detail: String?,
-    ): ResponseEntity<ProblemDetail> = ResponseEntity.status(status).body(problemDetail(status, slug, title, detail))
+        customize: ProblemDetail.() -> Unit = {},
+    ): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(status).body(problemDetail(status, slug, title, detail).apply(customize))
 
     /** Problem Details (RFC 9457) com `type` `/problems/<slug>`; sem `detail`, o título também vira o detalhe. */
     private fun problemDetail(status: HttpStatus, slug: String, title: String, detail: String?): ProblemDetail {

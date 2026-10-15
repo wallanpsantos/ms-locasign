@@ -3,6 +3,9 @@ package br.com.locasign.contract.interfaces.web.mappers
 import br.com.locasign.contract.app.queries.ContractDetailView
 import br.com.locasign.contract.app.queries.HistoryEntryView
 import br.com.locasign.contract.app.queries.SignerView
+import br.com.locasign.contract.app.usecases.CancelContractCommand
+import br.com.locasign.contract.domain.valueobjects.ContractId
+import br.com.locasign.contract.interfaces.web.dto.request.CancelContractRequest
 import br.com.locasign.contract.interfaces.web.dto.response.ContractHistoryResponse
 import br.com.locasign.contract.interfaces.web.dto.response.ContractResponse
 import br.com.locasign.contract.interfaces.web.dto.response.HistoryEntryResponse
@@ -59,3 +62,10 @@ fun HistoryEntryView.toResponse(): HistoryEntryResponse = HistoryEntryResponse(
  */
 fun List<HistoryEntryView>.toResponse(contractId: String): ContractHistoryResponse =
     ContractHistoryResponse(contractId, map { it.toResponse() })
+
+/**
+ * Converte o DTO de cancelamento [CancelContractRequest] no comando [CancelContractCommand].
+ */
+fun CancelContractRequest.toCommand(contractId: ContractId): CancelContractCommand =
+    CancelContractCommand(contractId, reason)
+

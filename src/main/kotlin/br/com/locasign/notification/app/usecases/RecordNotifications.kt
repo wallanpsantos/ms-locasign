@@ -36,16 +36,17 @@ class RecordNotifications(
 
     fun execute(command: RecordNotificationsCommand) {
         val audience = NotificationPolicy.audienceFor(command.eventType) ?: return
+        val (eventId, eventType, contractId) = command
         transactions.run {
-            if (!processed.markProcessed(ConsumerGroups.NOTIFICATIONS, command.eventId)) return@run
-            recipients.recipientsOf(command.contractId, audience).forEach { recipient ->
-                notificationLog.record(command.contractId, command.eventId, command.eventType, recipient.emailMasked)
+            if (!processed.markProcessed(ConsumerGroups.NOTIFICATIONS, eventId)) return@run
+            recipients.recipientsOf(contractId, audience).forEach { recipient ->
+                notificationLog.record(contractId, eventId, eventType, recipient.emailMasked)
                 log.info(
                     "[simulado] Notificação {} para {} ({}) sobre o contrato {}",
-                    command.eventType,
+                    eventType,
                     recipient.emailMasked,
                     recipient.role,
-                    command.contractId,
+                    contractId,
                 )
             }
         }

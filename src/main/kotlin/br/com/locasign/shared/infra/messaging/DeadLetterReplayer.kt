@@ -42,7 +42,7 @@ class DeadLetterReplayer(
     private fun replayLocked(sourceTopic: String): Int {
         var replayed = 0
         consumerFactory.createConsumer(REPLAY_GROUP, "").use { consumer ->
-            consumer.subscribe(listOf(sourceTopic + Topics.DEAD_LETTER_SUFFIX))
+            consumer.subscribe(listOf(Topics.dltOf(sourceTopic)))
             var emptyPolls = 0
             while (emptyPolls < MAX_EMPTY_POLLS) {
                 val records = consumer.poll(POLL_TIMEOUT)

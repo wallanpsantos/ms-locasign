@@ -35,7 +35,10 @@ class SlidingWindowRateLimiter(
     /** Bloqueia (thread virtual ou do consumidor) até haver permissão para [operation]. */
     fun acquire(operation: String, wait: RateLimitWait = RateLimitWait.SHORT) {
         val window = windows.computeIfAbsent(operation) { ArrayDeque() }
-        val timeout = if (wait == RateLimitWait.FULL_WINDOW) fullWindowMaxWait else maxWait
+        val timeout = when (wait) {
+            RateLimitWait.SHORT -> maxWait
+            RateLimitWait.FULL_WINDOW -> fullWindowMaxWait
+        }
         val deadline = nanoTime() + timeout.toNanos()
         while (true) {
             val waitNanos = synchronized(window) {

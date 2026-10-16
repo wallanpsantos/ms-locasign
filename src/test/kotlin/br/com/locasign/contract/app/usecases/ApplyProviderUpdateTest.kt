@@ -10,17 +10,12 @@ import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.models.HistoryOutcome
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.app.fakes.RecordingMetricsPort
 import br.com.locasign.shared.app.ports.Metrics
-import br.com.locasign.shared.domain.valueobjects.Email
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
@@ -52,15 +47,8 @@ class ApplyProviderUpdateTest {
         transactions = ImmediateTransactionRunner,
     )
 
-    private val signers = listOf(
-        Signer(SignerRole.TENANT, "Juliana Mendes", Email.of("juliana@example.com"), SigningOrder.of(1)),
-        Signer(SignerRole.AGENCY, "Imobiliária Alfa", Email.of("alfa@example.com"), SigningOrder.of(2)),
-    )
-
     private fun contractIn(status: ContractStatus, providerLastModifiedAt: Instant? = null): Contract = restoreContract(
         status = status,
-        leaseId = LeaseId.new(),
-        signers = signers,
         now = now.minusSeconds(3600),
         providerDocumentId = document,
         providerLastModifiedAt = providerLastModifiedAt,

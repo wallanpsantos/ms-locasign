@@ -4,6 +4,7 @@ import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.app.ports.OutboxMessage
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.infra.persistence.JdbcOutboxAdapter
+import br.com.locasign.shared.infra.persistence.getRequiredInstant
 import br.com.locasign.shared.infra.persistence.toDb
 import br.com.locasign.support.IntegrationTestSupport
 import br.com.locasign.support.runAndRollback
@@ -32,7 +33,7 @@ class OutboxRelayIT(
 ) : IntegrationTestSupport() {
 
     /**
-     * `eventType` sem roteamento e `aggregateId` UUID: os três consumidores do tópico aceitam e ignoram a mensagem.
+     * `eventType` sem roteamento e `aggregateId` UUID: os quatro consumidores do tópico aceitam e ignoram a mensagem.
      * Uma mensagem ilegível iria para a DLT e faria o replay do [DeadLetterReplayerIT] entrar em laço (`plan.md`, B8).
      */
     private fun appendProbe(key: String, payloadJson: String = """{"probe":true}"""): String {
@@ -65,7 +66,7 @@ class OutboxRelayIT(
             .query(String::class.java)
             .single()
         assertEquals(storedPayload, record.value())
-        val headers = record.headers().associate { it.key() to it.value().toString(Charsets.UTF_8) }
+        val headers = record.headers().associate { it.key() to it.value().decodeToString() }
         assertEquals(
             mapOf("eventType" to "RelayProbe", "eventId" to id, "schemaVersion" to "1", "correlationId" to id),
             headers,
@@ -168,7 +169,7 @@ class OutboxRelayIT(
     private fun publishedAt(id: String): Instant =
         jdbc.sql("SELECT published_at FROM outbox_events WHERE id = :id")
             .param("id", id)
-            .query { rs, _ -> rs.getTimestamp("published_at").toInstant() }
+            .query { rs, _ -> rs.getRequiredInstant("published_at") }
             .single()
 
     private fun consumeEventIds(key: String, until: String): List<String> {
@@ -178,7 +179,7 @@ class OutboxRelayIT(
             await().atMost(Duration.ofSeconds(30)).until {
                 consumer.poll(Duration.ofMillis(500))
                     .filter { it.key() == key }
-                    .forEach { eventIds += it.headers().lastHeader("eventId").value().toString(Charsets.UTF_8) }
+                    .forEach { eventIds += it.headers().lastHeader("eventId").value().decodeToString() }
                 until in eventIds
             }
         }

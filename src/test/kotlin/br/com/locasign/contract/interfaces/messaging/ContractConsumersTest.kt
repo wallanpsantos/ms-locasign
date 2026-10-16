@@ -6,7 +6,6 @@ import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.InMemoryPostSignatureActions
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
 import br.com.locasign.contract.app.fakes.RecordingSignatureProvider
-import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.app.usecases.AnnulProviderDocument
 import br.com.locasign.contract.app.usecases.ContractPersister
 import br.com.locasign.contract.app.usecases.ContractSettings
@@ -14,20 +13,15 @@ import br.com.locasign.contract.app.usecases.CreateProviderDocument
 import br.com.locasign.contract.app.usecases.RunPostSignatureActions
 import br.com.locasign.contract.app.usecases.SendContract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
+import br.com.locasign.contract.domain.models.DEFAULT_TEST_NOW
 import br.com.locasign.contract.domain.models.restoreContract
+import br.com.locasign.contract.domain.models.sampleLeaseSnapshot
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.ConsumerGroups
 import br.com.locasign.shared.app.UnreadableMessageException
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.app.fakes.InMemoryProcessedMessages
-import br.com.locasign.shared.domain.valueobjects.Cpf
-import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import br.com.locasign.shared.interfaces.messaging.EnvelopeReader
 import org.junit.jupiter.params.ParameterizedTest
@@ -35,8 +29,6 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import tools.jackson.databind.json.JsonMapper
 import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -45,7 +37,7 @@ import kotlin.test.assertTrue
 
 class ContractConsumersTest {
 
-    private val now = Instant.parse("2026-10-09T10:00:00Z")
+    private val now = DEFAULT_TEST_NOW
     private val clock = FixedBusinessClock(now)
     private val contracts = InMemoryContractRepository()
     private val persister = ContractPersister(contracts, RecordingContractEventPublisher())
@@ -105,26 +97,8 @@ class ContractConsumersTest {
 
     @Test
     fun `orquestrador repassa o id do contrato do aggregateId ao caso de uso`() {
-        val leaseId = LeaseId.new()
-        leases.register(
-            LeaseSnapshot(
-                leaseId = leaseId,
-                tenantName = "Juliana Mendes",
-                tenantCpf = Cpf.of("529.982.247-25"),
-                tenantEmail = Email.of("juliana@example.com"),
-                agencySignerName = "Imobiliária Alfa",
-                agencySignerEmail = Email.of("alfa@example.com"),
-                propertyAddress = "Rua Oscar Freire, 100",
-                rentAmount = Money.positive("5000.00"),
-                startDate = LocalDate.of(2026, 11, 1),
-                termMonths = 30,
-            ),
-        )
-        val signers = listOf(
-            Signer(SignerRole.TENANT, "Juliana Mendes", Email.of("juliana@example.com"), SigningOrder.of(1)),
-            Signer(SignerRole.AGENCY, "Imobiliária Alfa", Email.of("alfa@example.com"), SigningOrder.of(2)),
-        )
-        val contract = restoreContract(ContractStatus.DRAFT, leaseId, signers, now).also(contracts::save)
+        val snapshot = sampleLeaseSnapshot().also(leases::register)
+        val contract = restoreContract(ContractStatus.DRAFT, leaseId = snapshot.leaseId).also(contracts::save)
 
         orchestrator.onMessage(message("ContractRequested", contract.id.toString()))
 

@@ -3,28 +3,15 @@ package br.com.locasign.contract.infra.persistence.mappers
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
-import br.com.locasign.shared.domain.valueobjects.Email
-import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class ContractEntityMappersTest {
 
-    private val now = Instant.parse("2026-10-09T10:00:00Z")
-
-    private val signers = listOf(
-        Signer(SignerRole.TENANT, "João da Silva", Email.of("joao@example.com"), SigningOrder.of(1)),
-        Signer(SignerRole.AGENCY, "Imobiliária Central", Email.of("contato@example.com"), SigningOrder.of(2)),
-    )
-
     private fun cancelledWith(reason: CancelReason?): Contract =
-        restoreContract(ContractStatus.CANCELLED, LeaseId.new(), signers, now, cancelReason = reason)
+        restoreContract(ContractStatus.CANCELLED, cancelReason = reason)
 
     /** Lê a coluna `cancel_reason` como o repositório: a entidade com o valor gravado volta para o domínio. */
     private fun readColumn(column: String?): CancelReason? =

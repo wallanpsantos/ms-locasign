@@ -5,24 +5,18 @@ import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
 import br.com.locasign.contract.infra.persistence.adapters.ContractRepositoryAdapter
-import br.com.locasign.lease.domain.models.AgencySigner
-import br.com.locasign.lease.domain.models.Lease
-import br.com.locasign.lease.domain.models.Tenant
-import br.com.locasign.lease.domain.valueobjects.LeaseTerm
+import br.com.locasign.lease.domain.models.sampleLease
 import br.com.locasign.lease.infra.persistence.adapters.LeaseRepositoryAdapter
 import br.com.locasign.notification.app.ports.out.NotificationRecipient
 import br.com.locasign.notification.domain.Audience
-import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.simple.JdbcClient
 import java.time.Instant
-import java.time.LocalDate
-import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
 class JdbcNotificationAdaptersIT(
@@ -37,15 +31,9 @@ class JdbcNotificationAdaptersIT(
     private val agencyEmail = Email.of("alianca@example.com")
 
     private fun savedContract(): Contract {
-        val lease = Lease.register(
-            tenant = Tenant("Maria Silva", Cpf.of("529.982.247-25"), tenantEmail),
-            agencySigner = AgencySigner("Imobiliária Aliança", agencyEmail),
-            propertyAddress = "Rua das Flores, 123",
-            rentAmount = Money.positive("3200.00"),
-            startDate = LocalDate.of(2026, 11, 1),
-            term = LeaseTerm.of(30),
-            today = LocalDate.of(2026, 10, 9),
-            now = Instant.parse("2026-10-09T10:00:00Z"),
+        val lease = sampleLease(
+            tenantEmail = tenantEmail,
+            agencySignerEmail = agencyEmail,
         ).also(leases::save)
         // Gravados fora da ordem de assinatura: a ordem devolvida vem do ORDER BY signing_order do adapter.
         val signers = listOf(
@@ -68,7 +56,7 @@ class JdbcNotificationAdaptersIT(
     @Test
     fun `registro grava a notificação com o id do contrato, o evento e o destinatário mascarado`() {
         val contractId = savedContract().id.value
-        val eventId = UUID.randomUUID().toString()
+        val eventId = Uuid.random().toString()
 
         notificationLog.record(contractId, eventId, "ContractSent", agencyEmail.masked())
 

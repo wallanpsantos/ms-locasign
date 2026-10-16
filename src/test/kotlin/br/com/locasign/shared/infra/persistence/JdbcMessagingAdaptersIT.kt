@@ -1,5 +1,6 @@
 package br.com.locasign.shared.infra.persistence
 
+import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.app.ports.OutboxMessage
 import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,7 +47,7 @@ class JdbcMessagingAdaptersIT(
             aggregateType = "Contract",
             aggregateId = aggregateId,
             eventType = "ContractRequested",
-            topic = "locasign.contract.events.v1",
+            topic = Topics.CONTRACT_EVENTS,
             key = aggregateId,
             payloadJson = """{"contractId":"$aggregateId","version":1}""",
             occurredAt = Instant.now(),

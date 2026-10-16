@@ -1,6 +1,5 @@
 package br.com.locasign.lease.domain.models
 
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.lease.domain.valueobjects.LeaseTerm
 import br.com.locasign.shared.domain.valueobjects.Cpf
 import br.com.locasign.shared.domain.valueobjects.Email
@@ -12,7 +11,6 @@ import java.time.LocalDate
  * Cria uma instância de [Lease] registrada para cenários de teste com dados válidos (CPF mod 11 conforme R2/R10).
  */
 fun sampleLease(
-    id: LeaseId = LeaseId.new(),
     tenantName: String = "Maria Oliveira",
     tenantCpf: Cpf = Cpf.of("529.982.247-25"),
     tenantEmail: Email = Email.of("maria@example.com"),

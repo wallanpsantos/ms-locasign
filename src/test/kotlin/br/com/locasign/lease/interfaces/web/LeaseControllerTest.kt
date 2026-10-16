@@ -133,23 +133,7 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
     @Test
     fun `consulta de locação por id existente responde 200 com os dados detalhados`() {
         val leaseId = LeaseId.new()
-        val detail = LeaseDetailView(
-            id = leaseId.toString(),
-            status = "REGISTERED",
-            tenantName = "Maria Silva",
-            tenantCpfMasked = "***.982.247-**",
-            tenantEmail = "maria@example.com",
-            agencySignerName = "Imobiliária Central",
-            agencySignerEmail = "contato@imobiliaria.com",
-            propertyAddress = "Av Paulista, 1000",
-            rentAmount = "3500.00",
-            startDate = LocalDate.of(2026, 11, 1),
-            termMonths = 30,
-            createdAt = Instant.parse("2026-10-09T10:00:00Z"),
-            activatedAt = null,
-            currentContract = null,
-        )
-        given(getLease.execute(leaseId)).willReturn(detail)
+        given(getLease.execute(leaseId)).willReturn(leaseDetail(leaseId))
 
         val result = mvc.perform(get("/api/v1/leases/$leaseId"))
 
@@ -159,7 +143,7 @@ class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
             .extractingPath("$.tenant.name").isEqualTo("Maria Silva")
     }
 
-    private fun leaseDetail(leaseId: LeaseId, currentContract: CurrentContractView?) = LeaseDetailView(
+    private fun leaseDetail(leaseId: LeaseId, currentContract: CurrentContractView? = null) = LeaseDetailView(
         id = leaseId.toString(),
         status = "REGISTERED",
         tenantName = "Maria Silva",

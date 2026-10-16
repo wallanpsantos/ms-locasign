@@ -10,17 +10,12 @@ import br.com.locasign.contract.domain.events.SignedDocumentArchived
 import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.ConsumerGroups
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.InMemoryProcessedMessages
 import br.com.locasign.shared.app.fakes.RecordingTransactionRunner
-import br.com.locasign.shared.domain.valueobjects.Email
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import java.time.Instant
@@ -56,13 +51,12 @@ class ArchiveSignedDocumentTest {
     private val document = ProviderDocumentId.of("doc-1")
     private val pdfReady = ArchiveSignedDocumentCommand("evt-pdf", document)
 
-    private val signers = listOf(
-        Signer(SignerRole.TENANT, "Juliana Mendes", Email.of("juliana@example.com"), SigningOrder.of(1)),
-        Signer(SignerRole.AGENCY, "Imobiliária Alfa", Email.of("alfa@example.com"), SigningOrder.of(2)),
-    )
-
-    private fun contractIn(status: ContractStatus): Contract =
-        restoreContract(status, LeaseId.new(), signers, now, providerDocumentId = document).also(contracts::save)
+    private fun contractIn(status: ContractStatus, signedDocumentRef: String? = null): Contract = restoreContract(
+        status = status,
+        now = now,
+        providerDocumentId = document,
+        signedDocumentRef = signedDocumentRef,
+    ).also(contracts::save)
 
     private val eventMarked: Boolean
         get() = processed.isProcessed(ConsumerGroups.PROVIDER_EVENTS, "evt-pdf")
@@ -180,14 +174,7 @@ class ArchiveSignedDocumentTest {
 
     @Test
     fun `contrato já arquivado por outro evento marca o evento sem gravar nem publicar de novo`() {
-        val contract = restoreContract(
-            status = ContractStatus.COMPLETED,
-            leaseId = LeaseId.new(),
-            signers = signers,
-            now = now,
-            providerDocumentId = document,
-            signedDocumentRef = "provider:doc-0",
-        ).also(contracts::save)
+        val contract = contractIn(ContractStatus.COMPLETED, signedDocumentRef = "provider:doc-0")
 
         archiveSignedDocument.execute(pdfReady)
 

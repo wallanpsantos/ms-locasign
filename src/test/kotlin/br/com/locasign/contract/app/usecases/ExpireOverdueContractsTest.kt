@@ -5,10 +5,8 @@ import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
 import br.com.locasign.contract.domain.events.ContractExpired
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.defaultSigners
 import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import org.junit.jupiter.params.ParameterizedTest
@@ -36,8 +34,6 @@ class ExpireOverdueContractsTest {
     private fun overdueContract(status: ContractStatus = ContractStatus.SENT, documentId: String = "doc-1"): Contract =
         restoreContract(
             status = status,
-            leaseId = LeaseId.new(),
-            signers = defaultSigners(),
             now = now.minus(Duration.ofDays(8)),
             providerDocumentId = ProviderDocumentId.of(documentId),
             sentAt = now.minus(Duration.ofDays(8)),

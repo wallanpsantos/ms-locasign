@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 /**
  * O replay devolve a mensagem da DLT ao tópico original sem os headers `kafka_dlt-*`.
  *
- * O valor é um envelope que os três consumidores de `contract.events` aceitam sem erro (`eventType` sem roteamento e
+ * O valor é um envelope que os quatro consumidores de `contract.events` aceitam sem erro (`eventType` sem roteamento e
  * `aggregateId` UUID): um valor ilegível voltaria à DLT na hora e seria relido pelo mesmo replay (`plan.md`, B8).
  */
 class DeadLetterReplayerIT(
@@ -32,7 +32,7 @@ class DeadLetterReplayerIT(
         val key = "replay-it-${UUID.randomUUID()}"
         val value =
             """{"eventId":"${UUID.randomUUID()}","eventType":"ReplayProbe","aggregateId":"${UUID.randomUUID()}"}"""
-        val deadLetter = ProducerRecord(Topics.CONTRACT_EVENTS + Topics.DEAD_LETTER_SUFFIX, key, value)
+        val deadLetter = ProducerRecord(Topics.dltOf(Topics.CONTRACT_EVENTS), key, value)
         deadLetter.headers().add(KafkaHeaders.DLT_ORIGINAL_TOPIC, Topics.CONTRACT_EVENTS.toByteArray())
         deadLetter.headers().add("kafka_dlt-exception-message", "falha simulada".toByteArray())
         deadLetter.headers().add("x-locasign-probe", "mantido".toByteArray())
@@ -56,6 +56,6 @@ class DeadLetterReplayerIT(
         assertEquals(0, replayer.replay(Topics.CONTRACT_EVENTS))
         assertEquals(value, replayed.value())
         assertEquals(listOf("x-locasign-probe", "x-locasign-ordem"), replayed.headers().map { it.key() })
-        assertEquals("mantido", replayed.headers().lastHeader("x-locasign-probe")?.value()?.toString(Charsets.UTF_8))
+        assertEquals("mantido", replayed.headers().lastHeader("x-locasign-probe")?.value()?.decodeToString())
     }
 }

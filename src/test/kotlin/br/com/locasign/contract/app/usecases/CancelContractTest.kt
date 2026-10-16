@@ -6,17 +6,12 @@ import br.com.locasign.contract.domain.events.ContractCancelled
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.domain.DomainException
-import br.com.locasign.shared.domain.valueobjects.Email
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.junit.jupiter.params.provider.ValueSource
@@ -40,17 +35,12 @@ class CancelContractTest {
         transactions = ImmediateTransactionRunner,
     )
 
-    private val signers = listOf(
-        Signer(SignerRole.TENANT, "Juliana Mendes", Email.of("juliana@example.com"), SigningOrder.of(1)),
-        Signer(SignerRole.AGENCY, "Imobiliária Alfa", Email.of("alfa@example.com"), SigningOrder.of(2)),
-    )
-
     /**
      * Todo contrato tem documento no provedor, mas o caso de uso não recebe `SignatureProviderPort`: a anulação é
      * assíncrona e parte do evento no outbox (ADR-016).
      */
     private fun contractIn(status: ContractStatus): Contract =
-        restoreContract(status, LeaseId.new(), signers, now, providerDocumentId = document).also(contracts::save)
+        restoreContract(status = status, now = now, providerDocumentId = document).also(contracts::save)
 
     private fun cancel(contractId: ContractId, reason: String) =
         cancelContract.execute(CancelContractCommand(contractId, reason))

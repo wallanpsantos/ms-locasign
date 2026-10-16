@@ -3,25 +3,17 @@ package br.com.locasign.contract.infra.persistence.adapters
 import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
+import br.com.locasign.contract.domain.models.DEFAULT_TEST_NOW
 import br.com.locasign.contract.domain.models.StatusChange
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.models.AgencySigner
+import br.com.locasign.contract.domain.models.defaultSigners
 import br.com.locasign.lease.domain.models.Lease
-import br.com.locasign.lease.domain.models.Tenant
-import br.com.locasign.lease.domain.valueobjects.LeaseTerm
+import br.com.locasign.lease.domain.models.sampleLease
 import br.com.locasign.lease.infra.persistence.adapters.LeaseQueryAdapter
 import br.com.locasign.lease.infra.persistence.adapters.LeaseRepositoryAdapter
 import br.com.locasign.shared.domain.DomainException
-import br.com.locasign.shared.domain.valueobjects.Cpf
-import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import br.com.locasign.support.IntegrationTestSupport
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,36 +25,18 @@ class ContractRepositoryAdapterIT(
     @Autowired private val leaseQueryAdapter: LeaseQueryAdapter,
 ) : IntegrationTestSupport() {
 
-    private val today = LocalDate.of(2026, 11, 1)
-    private val now = Instant.parse("2026-10-09T10:00:00Z")
+    private val now = DEFAULT_TEST_NOW
 
-    private fun createAndSaveLease(): Lease {
-        val lease = Lease.register(
-            tenant = Tenant("Maria Silva", Cpf.of("529.982.247-25"), Email.of("maria@example.com")),
-            agencySigner = AgencySigner("Imobiliária Aliança", Email.of("alianca@example.com")),
-            propertyAddress = "Rua das Flores, 123",
-            rentAmount = Money.positive("3200.00"),
-            startDate = today,
-            term = LeaseTerm.of(30),
-            today = today,
-            now = now,
-        )
-        leaseRepositoryAdapter.save(lease)
-        return lease
-    }
+    private fun createAndSaveLease(): Lease =
+        sampleLease(now = now).also(leaseRepositoryAdapter::save)
 
-    private fun createContract(lease: Lease, versionNumber: Int = 1): Contract {
-        val signers = listOf(
-            Signer(SignerRole.TENANT, "Maria Silva", Email.of("maria@example.com"), SigningOrder.of(1)),
-            Signer(SignerRole.AGENCY, "Imobiliária Aliança", Email.of("alianca@example.com"), SigningOrder.of(2)),
-        )
-        return Contract.request(
+    private fun createContract(lease: Lease, versionNumber: Int = 1): Contract =
+        Contract.request(
             leaseId = lease.id,
             versionNumber = versionNumber,
-            signers = signers,
+            signers = defaultSigners(),
             now = now,
         )
-    }
 
     @Test
     fun `persiste contrato e recupera com sucesso por id`() {

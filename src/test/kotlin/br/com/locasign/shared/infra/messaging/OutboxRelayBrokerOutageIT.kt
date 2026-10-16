@@ -58,14 +58,7 @@ class OutboxRelayBrokerOutageIT(
 
     @Test
     fun `rejeição de transporte no primeiro envio interrompe o lote e só essa linha recebe a marcação de falha`() {
-        kafka.outcome = {
-            rejectedSynchronously(
-                KafkaException(
-                    "Send failed",
-                    KafkaTimeoutException("sem metadados após 60000 ms")
-                )
-            )
-        }
+        kafka.outcome = { rejectedSynchronously(KafkaTimeoutException("sem metadados após 60000 ms")) }
 
         assertBatchStopsAfterFirstSend()
     }
@@ -86,93 +79,78 @@ class OutboxRelayBrokerOutageIT(
 
     @Test
     fun `linhas deixadas pendentes pela interrupção saem no ciclo seguinte e a que falhou espera o backoff`() {
-        kafka.outcome = {
-            rejectedSynchronously(
-                KafkaException(
-                    "Send failed",
-                    KafkaTimeoutException("sem metadados após 60000 ms")
-                )
-            )
-        }
+        kafka.outcome = { rejectedSynchronously(KafkaTimeoutException("sem metadados após 60000 ms")) }
         val relay = relay()
 
-        val observed = transactions.runAndRollback {
-            holdOtherPendingRows()
+        val observed = observeInRollback {
             val ids = List(3) { appendProbe("relay-outage-it-${UUID.randomUUID()}") }
             relay.relay()
             kafka.outcome = ::acknowledged
             relay.relay()
-            Observed(ids, kafka.sentEventIds.toList(), stateOf(ids))
+            ids
         }
 
         assertEquals(
             observed.ids,
             observed.sentEventIds,
-            "a segunda linha só é tentada no ciclo seguinte, com o broker de volta"
+            "a segunda linha só é tentada no ciclo seguinte, com o broker de volta",
         )
         val (failed, second, third) = observed.states
-        assertEquals(RowState(failed.id, attempts = 1, hasError = true, published = false, inBackoff = true), failed)
-        assertEquals(RowState(second.id, attempts = 0, hasError = false, published = true, inBackoff = false), second)
-        assertEquals(RowState(third.id, attempts = 0, hasError = false, published = true, inBackoff = false), third)
+        assertEquals(RowState(failed.id, attempts = 1, hasError = true, inBackoff = true), failed)
+        assertEquals(RowState(second.id, published = true), second)
+        assertEquals(RowState(third.id, published = true), third)
     }
 
     @Test
     fun `falha de um único registro não interrompe o lote, outras chaves saem e a mesma chave espera`() {
         val relay = relay()
 
-        val observed = transactions.runAndRollback {
-            holdOtherPendingRows()
+        val observed = observeInRollback {
             val key = "relay-outage-it-${UUID.randomUUID()}"
             val ids = listOf(appendProbe(key), appendProbe(key), appendProbe("relay-outage-it-${UUID.randomUUID()}"))
             kafka.outcome = { record ->
                 if (eventIdOf(record) == ids.first()) {
-                    rejectedSynchronously(
-                        KafkaException(
-                            "Send failed",
-                            RecordTooLargeException("registro acima do limite")
-                        )
-                    )
+                    rejectedSynchronously(RecordTooLargeException("registro acima do limite"))
                 } else {
                     acknowledged(record)
                 }
             }
             relay.relay()
-            Observed(ids, kafka.sentEventIds.toList(), stateOf(ids))
+            ids
         }
 
         assertEquals(
             listOf(observed.ids[0], observed.ids[2]),
             observed.sentEventIds,
-            "a segunda linha da chave com falha é pulada"
+            "a segunda linha da chave com falha é pulada",
         )
         val (failed, sameKey, otherKey) = observed.states
-        assertEquals(RowState(failed.id, attempts = 1, hasError = true, published = false, inBackoff = true), failed)
-        assertEquals(
-            RowState(sameKey.id, attempts = 0, hasError = false, published = false, inBackoff = false),
-            sameKey
-        )
-        assertEquals(
-            RowState(otherKey.id, attempts = 0, hasError = false, published = true, inBackoff = false),
-            otherKey
-        )
+        assertEquals(RowState(failed.id, attempts = 1, hasError = true, inBackoff = true), failed)
+        assertEquals(RowState(sameKey.id), sameKey)
+        assertEquals(RowState(otherKey.id, published = true), otherKey)
     }
 
     /** Um lote cheio de linhas com chaves distintas e um envio que falha por transporte: só a primeira linha é tentada. */
     private fun assertBatchStopsAfterFirstSend(relay: OutboxRelay = relay()) {
-        val observed = transactions.runAndRollback {
-            holdOtherPendingRows()
+        val observed = observeInRollback {
             val ids = List(properties.outbox.batchSize) { appendProbe("relay-outage-it-${UUID.randomUUID()}") }
             relay.relay()
-            Observed(ids, kafka.sentEventIds.toList(), stateOf(ids))
+            ids
         }
 
         assertTrue(observed.ids.size > 1, "o lote precisa ter mais de uma linha")
         assertEquals(observed.ids.take(1), observed.sentEventIds, "só a primeira linha chega a ser enviada")
         val (failed, untouched) = observed.states.first() to observed.states.drop(1)
-        assertEquals(RowState(failed.id, attempts = 1, hasError = true, published = false, inBackoff = true), failed)
+        assertEquals(RowState(failed.id, attempts = 1, hasError = true, inBackoff = true), failed)
         untouched.forEach { row ->
-            assertEquals(RowState(row.id, attempts = 0, hasError = false, published = false, inBackoff = false), row)
+            assertEquals(RowState(row.id), row)
         }
+    }
+
+    private fun observeInRollback(block: () -> List<String>): Observed = transactions.runAndRollback {
+        holdOtherPendingRows()
+        val ids = block()
+        Observed(ids, kafka.sentEventIds.toList(), stateOf(ids))
     }
 
     /** Tira da frente, só nesta transação, as linhas pendentes de outros testes: o lote do relay fica só com as do teste. */
@@ -225,10 +203,10 @@ class OutboxRelayBrokerOutageIT(
     /** Estado de uma linha do outbox; `inBackoff` compara `available_at` com o `now()` da transação. */
     private data class RowState(
         val id: String,
-        val attempts: Int,
-        val hasError: Boolean,
-        val published: Boolean,
-        val inBackoff: Boolean,
+        val attempts: Int = 0,
+        val hasError: Boolean = false,
+        val published: Boolean = false,
+        val inBackoff: Boolean = false,
     )
 
     /** `KafkaTemplate` que não fala com broker: registra o `eventId` de cada envio e responde como o roteiro manda. */
@@ -246,7 +224,7 @@ class OutboxRelayBrokerOutageIT(
 }
 
 private fun eventIdOf(record: ProducerRecord<String, String>): String =
-    record.headers().lastHeader("eventId").value().toString(Charsets.UTF_8)
+    record.headers().lastHeader("eventId").value().decodeToString()
 
 private fun acknowledged(record: ProducerRecord<String, String>): CompletableFuture<SendResult<String, String>> =
     CompletableFuture.completedFuture(
@@ -254,7 +232,7 @@ private fun acknowledged(record: ProducerRecord<String, String>): CompletableFut
     )
 
 /** O produtor recusa o envio na própria chamada, como o `KafkaTemplate` faz com falha imediata (`Send failed`). */
-private fun rejectedSynchronously(failure: KafkaException): Nothing = throw failure
+private fun rejectedSynchronously(cause: Throwable): Nothing = throw KafkaException("Send failed", cause)
 
 private fun failedAsynchronously(failure: Throwable): CompletableFuture<SendResult<String, String>> =
     CompletableFuture.failedFuture(failure)

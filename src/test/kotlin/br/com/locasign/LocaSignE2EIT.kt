@@ -188,27 +188,32 @@ class LocaSignE2EIT {
         assertEquals(200, webhookResponse.statusCode.value())
     }
 
+    /** Configura os stubs da PandaDoc para criação e envio do documento [docId]. */
+    private fun stubCreateAndSendDocument(docId: String) {
+        wireMockServer.stubFor(
+            post(urlEqualTo("/documents"))
+                .willReturn(jsonResponse("""{"id": "$docId", "status": "document.uploaded"}""", 201)),
+        )
+        wireMockServer.stubFor(
+            post(urlEqualTo("/documents/$docId/send"))
+                .willReturn(okJson("""{"id": "$docId", "status": "document.sent"}""")),
+        )
+    }
+
     @Test
     fun `fluxo completo ponta a ponta com cadastro de locação, solicitação de contrato, Kafka e webhook de conclusão`() {
         val docId = "doc-e2e-" + UUID.randomUUID()
 
         // 1. Stubs no WireMock para a PandaDoc
-        wireMockServer.stubFor(
-            post(urlEqualTo("/documents"))
-                .willReturn(jsonResponse("""{"id": "$docId", "status": "document.uploaded"}""", 201))
-        )
-        wireMockServer.stubFor(
-            post(urlEqualTo("/documents/$docId/send"))
-                .willReturn(okJson("""{"id": "$docId", "status": "document.sent"}"""))
-        )
+        stubCreateAndSendDocument(docId)
         wireMockServer.stubFor(
             get(urlEqualTo("/documents/$docId/download-protected"))
                 .willReturn(
                     aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/pdf")
-                        .withBody("PDF-ASSINADO-E2E".toByteArray())
-                )
+                        .withBody("PDF-ASSINADO-E2E".toByteArray()),
+                ),
         )
 
         // 2. Cadastro da locação via POST /api/v1/leases
@@ -247,17 +252,10 @@ class LocaSignE2EIT {
     @Test
     fun `cancelamento responde na hora e a anulação do documento chega à PandaDoc de forma assíncrona`() {
         val docId = "doc-e2e-cancel-" + UUID.randomUUID()
-        wireMockServer.stubFor(
-            post(urlEqualTo("/documents"))
-                .willReturn(jsonResponse("""{"id": "$docId", "status": "document.uploaded"}""", 201))
-        )
-        wireMockServer.stubFor(
-            post(urlEqualTo("/documents/$docId/send"))
-                .willReturn(okJson("""{"id": "$docId", "status": "document.sent"}"""))
-        )
+        stubCreateAndSendDocument(docId)
         wireMockServer.stubFor(
             patch(urlEqualTo("/documents/$docId/status"))
-                .willReturn(aResponse().withStatus(200).withFixedDelay(VOID_DELAY.inWholeMilliseconds.toInt()))
+                .willReturn(aResponse().withStatus(200).withFixedDelay(VOID_DELAY.inWholeMilliseconds.toInt())),
         )
 
         val contractId = requestContract(registerLease())

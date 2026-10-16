@@ -80,7 +80,7 @@ class OutboxRelay(
                 if (e.isBrokerUnavailable()) {
                     log.warn(
                         "Broker indisponível; lote interrompido, {} linha(s) ficam pendentes para o próximo ciclo",
-                        rows.size - index - 1
+                        rows.size - index - 1,
                     )
                     return@run false
                 }

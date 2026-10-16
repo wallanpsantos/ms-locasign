@@ -5,23 +5,16 @@ import br.com.locasign.contract.app.fakes.FakeLeaseLookup
 import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.InMemoryPostSignatureActions
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
-import br.com.locasign.contract.app.ports.out.lease.LeaseSnapshot
 import br.com.locasign.contract.domain.models.Contract
 import br.com.locasign.contract.domain.models.ContractStatus
-import br.com.locasign.contract.domain.models.Signer
-import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.models.restoreContract
-import br.com.locasign.contract.domain.valueobjects.SigningOrder
+import br.com.locasign.contract.domain.models.sampleLeaseSnapshot
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner
 import br.com.locasign.shared.app.fakes.InMemoryProcessedMessages
-import br.com.locasign.shared.domain.valueobjects.Cpf
-import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -50,26 +43,11 @@ class RunPostSignatureActionsTest {
     )
 
     private val leaseId = LeaseId.new()
-    private val leaseSnapshot = LeaseSnapshot(
-        leaseId = leaseId,
-        tenantName = "Juliana Mendes",
-        tenantCpf = Cpf.of("529.982.247-25"),
-        tenantEmail = Email.of("juliana@example.com"),
-        agencySignerName = "Imobiliária Alfa",
-        agencySignerEmail = Email.of("alfa@imobiliaria.com"),
-        propertyAddress = "Rua Oscar Freire, 100",
-        rentAmount = Money.positive("5000.00"),
-        startDate = LocalDate.of(2026, 11, 1),
-        termMonths = 30,
-    )
+    private val leaseSnapshot = sampleLeaseSnapshot(leaseId = leaseId)
 
     private fun createContract(status: ContractStatus): Contract = restoreContract(
         status = status,
         leaseId = leaseId,
-        signers = listOf(
-            Signer(SignerRole.TENANT, "Juliana", Email.of("juliana@example.com"), SigningOrder.of(1)),
-            Signer(SignerRole.AGENCY, "Alfa", Email.of("alfa@imobiliaria.com"), SigningOrder.of(2)),
-        ),
         now = now,
         sentAt = now,
         expiresAt = now.plus(Duration.ofDays(7)),

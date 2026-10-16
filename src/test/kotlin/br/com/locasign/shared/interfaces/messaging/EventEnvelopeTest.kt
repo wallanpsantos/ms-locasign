@@ -1,6 +1,7 @@
 package br.com.locasign.shared.interfaces.messaging
 
 import br.com.locasign.shared.app.UnreadableMessageException
+import br.com.locasign.shared.app.ports.ContextKeys
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import org.slf4j.MDC
 import tools.jackson.databind.json.JsonMapper
@@ -8,6 +9,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 class EventEnvelopeTest {
@@ -51,7 +54,7 @@ class EventEnvelopeTest {
         val corruptJson = "{nao-e-json}"
         val ex = assertFailsWith<UnreadableMessageException> { reader.read(corruptJson) }
 
-        assertEquals(true, ex.message?.contains("Envelope inválido"))
+        assertTrue("Envelope inválido" in assertNotNull(ex.message))
     }
 
     @Test
@@ -72,14 +75,14 @@ class EventEnvelopeTest {
         )
 
         reader.handle(env, mapOf("customKey" to "customValue")) {
-            assertEquals("corr-fixed", MDC.get("correlationId"))
-            assertEquals("evt-300", MDC.get("causationId"))
-            assertEquals("evt-300", MDC.get("eventId"))
+            assertEquals("corr-fixed", MDC.get(ContextKeys.CORRELATION_ID))
+            assertEquals("evt-300", MDC.get(ContextKeys.CAUSATION_ID))
+            assertEquals("evt-300", MDC.get(ContextKeys.EVENT_ID))
             assertEquals("customValue", MDC.get("customKey"))
         }
 
         // Verifica que o MDC foi limpo após o bloco
-        assertEquals(null, MDC.get("correlationId"))
-        assertEquals(null, MDC.get("causationId"))
+        assertNull(MDC.get(ContextKeys.CORRELATION_ID))
+        assertNull(MDC.get(ContextKeys.CAUSATION_ID))
     }
 }

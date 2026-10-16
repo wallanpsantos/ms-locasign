@@ -1,10 +1,6 @@
 package br.com.locasign.lease.domain.models
 
-import br.com.locasign.lease.domain.valueobjects.LeaseTerm
 import br.com.locasign.shared.domain.DomainException
-import br.com.locasign.shared.domain.valueobjects.Cpf
-import br.com.locasign.shared.domain.valueobjects.Email
-import br.com.locasign.shared.domain.valueobjects.Money
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -18,27 +14,12 @@ class LeaseTest {
     private val today = LocalDate.of(2026, 10, 9)
     private val now = Instant.parse("2026-10-09T10:00:00Z")
 
-    private val tenant = Tenant(
-        name = "Maria Oliveira",
-        cpf = Cpf.of("529.982.247-25"),
-        email = Email.of("maria@example.com"),
-    )
-
-    private val agencySigner = AgencySigner(
-        name = "Carlos Corretor",
-        email = Email.of("carlos@imobiliaria.com"),
-    )
-
     private fun register(
         propertyAddress: String = "Rua das Flores, 123",
         startDate: LocalDate = today,
-    ): Lease = Lease.register(
-        tenant = tenant,
-        agencySigner = agencySigner,
+    ): Lease = sampleLease(
         propertyAddress = propertyAddress,
-        rentAmount = Money.positive("2800.00"),
         startDate = startDate,
-        term = LeaseTerm.of(30),
         today = today,
         now = now,
     )

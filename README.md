@@ -169,27 +169,27 @@ stateDiagram-v2
     classDef inProgress fill: #DBEAFE, stroke: #2563EB, stroke-width: 2px, color: #1E40AF
     classDef completed fill: #DCFCE7, stroke: #16A34A, stroke-width: 3px, color: #166534
     classDef terminal fill: #FEE2E2, stroke: #DC2626, stroke-width: 2px, color: #991B1B
-    [*] --> DRAFT: POST /contracts (202 Accepted)
-    DRAFT --> GENERATED: Documento criado na PandaDoc
-    GENERATED --> SENT: Enviado aos signatários
-    SENT --> VIEWED: Locatário visualizou documento
-    VIEWED --> PARTIALLY_SIGNED: Locatário assinou (Ordem 1)
-    PARTIALLY_SIGNED --> COMPLETED: Imobiliária assinou (Ordem 2)
-    DRAFT --> CANCELLED: Cancelamento com motivo (R9)
-    GENERATED --> CANCELLED: Cancelamento com motivo (R9)
-    SENT --> CANCELLED: Cancelamento com motivo (R9)
-    VIEWED --> CANCELLED: Cancelamento com motivo (R9)
-    PARTIALLY_SIGNED --> CANCELLED: Cancelamento com motivo (R9)
-    SENT --> DECLINED: Signatário recusou assinar
-    VIEWED --> DECLINED: Signatário recusou assinar
-    PARTIALLY_SIGNED --> DECLINED: Signatário recusou assinar
-    SENT --> EXPIRED: Prazo de 7 dias esgotado (R4)
-    VIEWED --> EXPIRED: Prazo de 7 dias esgotado (R4)
-    PARTIALLY_SIGNED --> EXPIRED: Prazo de 7 dias esgotado (R4)
-    COMPLETED --> [*]: Dispara Ações Pós-Assinatura (R8)
-    CANCELLED --> [*]: Histórico auditado - permite nova versão (R1, R9)
-    DECLINED --> [*]: Histórico auditado - permite nova versão (R1, R9)
-    EXPIRED --> [*]: Histórico auditado - permite nova versão (R1, R9)
+    [*] --> DRAFT: POST /contracts<br/>(202 Accepted)
+    DRAFT --> GENERATED: Documento criado<br/>na PandaDoc
+    GENERATED --> SENT: Enviado aos<br/>signatários
+    SENT --> VIEWED: Locatário visualizou<br/>documento
+    VIEWED --> PARTIALLY_SIGNED: Locatário assinou<br/>(Ordem 1)
+    PARTIALLY_SIGNED --> COMPLETED: Imobiliária assinou<br/>(Ordem 2)
+    DRAFT --> CANCELLED: Cancelamento com<br/>motivo (R9)
+    GENERATED --> CANCELLED: Cancelamento com<br/>motivo (R9)
+    SENT --> CANCELLED: Cancelamento com<br/>motivo (R9)
+    VIEWED --> CANCELLED: Cancelamento com<br/>motivo (R9)
+    PARTIALLY_SIGNED --> CANCELLED: Cancelamento com<br/>motivo (R9)
+    SENT --> DECLINED: Signatário recusou<br/>assinar
+    VIEWED --> DECLINED: Signatário recusou<br/>assinar
+    PARTIALLY_SIGNED --> DECLINED: Signatário recusou<br/>assinar
+    SENT --> EXPIRED: Prazo de 7 dias<br/>esgotado (R4)
+    VIEWED --> EXPIRED: Prazo de 7 dias<br/>esgotado (R4)
+    PARTIALLY_SIGNED --> EXPIRED: Prazo de 7 dias<br/>esgotado (R4)
+    COMPLETED --> [*]: Dispara Ações<br/>Pós-Assinatura (R8)
+    CANCELLED --> [*]: Histórico auditado<br/>(permite v2 - R1, R9)
+    DECLINED --> [*]: Histórico auditado<br/>(permite v2 - R1, R9)
+    EXPIRED --> [*]: Histórico auditado<br/>(permite v2 - R1, R9)
     class DRAFT draft
     class GENERATED,SENT,VIEWED,PARTIALLY_SIGNED inProgress
     class COMPLETED completed

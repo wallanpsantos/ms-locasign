@@ -207,8 +207,8 @@
 - **Eventos de domínio:** o `eventType` é o nome simples da classe e viaja no envelope. Renomear um `ContractEvent`
   quebra consumidores e mensagens já gravadas: trate como mudança de contrato (tópicos `.v1`, ADR-009). Ao criar um
   evento (`data class` em `contract/domain/events/ContractEvent.kt`), o `when` de `ContractEvent.toPayload()` obriga a
-  tratá-lo. O roteamento, porém, é por `String`: atualize à mão `OrchestratorConsumer`, `PostSignatureConsumer` e
-  `NotificationPolicy.audienceFor`.
+  tratá-lo. O roteamento, porém, é por `String`: atualize à mão `OrchestratorConsumer`, `PostSignatureConsumer`,
+  `DocumentAnnulmentConsumer` e `NotificationPolicy.audienceFor`.
 - **Webhook (inbox, R7):**
     - O controller recebe o corpo como `ByteArray`. `ReceiveProviderWebhook` valida o HMAC-SHA256 (hex, query
       `signature`) sobre esses bytes, em tempo constante e antes de qualquer parse.

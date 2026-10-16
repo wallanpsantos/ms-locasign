@@ -134,7 +134,8 @@ Toda alteração que toque regras de negócio deve ser acompanhada do teste auto
   Ao testar mensagens venenosas ou [UnreadableMessageException], aguarde a conclusão das tentativas via Awaitility antes
   de consumir o tópico `.dlt`.
 - **Mensagens de teste em `locasign.contract.events.v1`:** os ITs que herdam de `IntegrationTestSupport` dividem o
-  mesmo Kafka e os quatro consumidores do tópico (orquestrador, pós-assinatura, anulação e notificações) ficam ligados.
+  mesmo Kafka e os quatro consumidores do tópico (`OrchestratorConsumer`, `PostSignatureConsumer`,
+  `DocumentAnnulmentConsumer` e `NotificationConsumer`) ficam ligados.
   Publique só envelopes que todos aceitem (`eventType` sem
   roteamento, como `RelayProbe`, e `aggregateId` UUID). Uma mensagem ilegível vai para a DLT, e o
   `DeadLetterReplayerIT` passaria a reenviar e reler a mesma mensagem em loop sem terminar.

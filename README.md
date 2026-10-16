@@ -65,7 +65,7 @@ design ou detalhe de infraestrutura.
 |:-------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------|:----------------------------------------------:|
 |      ![R6](https://img.shields.io/badge/R6-Idempot%C3%AAncia-059669?style=flat-square)      | **Idempotência Estrita**<br>A recepção repetida do mesmo evento ou webhook nunca produz efeito colateral duplicado.                                     | Consumidores Kafka com controle atômico de deduplicação via `ProcessedMessagesPort.markProcessed(eventId)`. |      `HTTP 200 OK`<br>`(Skip Silencioso)`      |
 | ![R7](https://img.shields.io/badge/R7-Grava%C3%A7%C3%A3o%20Inbox-0891B2?style=flat-square)  | **Gravação Bruta no Inbox**<br>Todo webhook da PandaDoc é gravado bruto no banco antes de qualquer processamento de negócio.                            | Persistência atômica em `webhook_inbox` + `outbox_events` devolvendo resposta ultrarrápida (< 30ms).        |     `HTTP 200 OK`<br>`(Gravação Imediata)`     |
-|    ![R8](https://img.shields.io/badge/R8-P%C3%B3s--Assinatura-16A34A?style=flat-square)     | **Gatilho das Ações Pós-Assinatura**<br>Ativação da locação, vistoria de entrada e primeira fatura só ocorrem quando o contrato alcança `COMPLETED`.    | `PostSigningConsumer` escutando Kafka acionado estritamente pela chegada do evento `ContractCompleted`.     |       `HTTP 200 OK`<br>`(Reação Kafka)`        |
+|    ![R8](https://img.shields.io/badge/R8-P%C3%B3s--Assinatura-16A34A?style=flat-square)     | **Gatilho das Ações Pós-Assinatura**<br>Ativação da locação, vistoria de entrada e primeira fatura só ocorrem quando o contrato alcança `COMPLETED`.    | `PostSignatureConsumer` escutando Kafka acionado estritamente pela chegada do evento `ContractCompleted`.   |       `HTTP 200 OK`<br>`(Reação Kafka)`        |
 |   ![R9](https://img.shields.io/badge/R9-Cancelamento%20%26%20v2-6366F1?style=flat-square)   | **Correção de Contrato com Nova Versão**<br>Alterações após o envio exigem cancelamento formal com motivo registrado e emissão de nova versão (v2, v3). | O contrato atual transiciona para `CANCELLED` (histórico preservado) e um novo `DRAFT` é gerado na locação. |     `HTTP 200 OK`<br>`(Trilha Auditável)`      |
 | ![R10](https://img.shields.io/badge/R10-Prote%C3%A7%C3%A3o%20LGPD-DB2777?style=flat-square) | **Proteção de Dados Pessoais (LGPD)**<br>Uso exclusivo de dados fictícios. CPF e e-mail nunca podem ser logados ou expostos abertos.                    | Value objects seguros com mascaramento nativo: `Cpf.masked()` e `Email.masked()` aplicados em logs e DTOs.  | `Conformidade Legal`<br>`(toString Mascarado)` |
 
@@ -83,7 +83,7 @@ A stack técnica é estritamente fixada e controlada via Version Catalog (`gradl
 | **Persistência Relacional**  | PostgreSQL `18.6`               | Spring Data JDBC e `JdbcClient` (SQL explícito, sem sobrecarga de JPA/Hibernate). |
 | **Mensageria Distribuída**   | Apache Kafka `4.3.1` (KRaft)    | Broker em modo KRaft (sem ZooKeeper) e biblioteca cliente `kafka-clients` 4.2.    |
 | **Automação de Build**       | Gradle `9.8.1`                  | Build determinístico, checagem de warnings (`-Werror`) e geração de `app.jar`.    |
-| **Testes de Integração**     | Testcontainers `1.20.6`         | Subida real de instâncias de PostgreSQL e Kafka para validação rigorosa.          |
+| **Testes de Integração**     | Testcontainers `2.0.5` (`2.x`)  | Subida real de instâncias de PostgreSQL e Kafka para validação rigorosa.          |
 | **Mocking de APIs Externas** | WireMock `3.13.2` (ADR-014)     | Isolamento completo da API da PandaDoc com testes de rate limit e resiliência.    |
 | **Arquitetura Estática**     | ArchUnit `1.5.1` (ADR-014)      | Validação automatizada contínua das 13 regras do monólito modular hexagonal.      |
 | **Containers**               | Docker / Compose v5+            | Ambientes padronizados para desenvolvimento local e pipelines de CI.              |
@@ -109,9 +109,10 @@ flowchart TD
         OutboxTable[("outbox_events")]
         InboxTable[("webhook_inbox")]
         Relay["OutboxRelay (@Scheduled)"]
-        Consumer["ContractEventsConsumer"]
+        Orchestrator["OrchestratorConsumer"]
         WebHookRecv["POST /webhooks/pandadoc"]
-        AppProvider["ApplyProviderUpdate"]
+        ProviderConsumer["ProviderEventsConsumer"]
+        AppProvider["ProcessProviderWebhookItem"]
     end
 
     subgraph Broker["Apache Kafka (KRaft)"]
@@ -129,15 +130,16 @@ flowchart TD
     UC -.->|3 . Resposta Rápida 202 Accepted| Cliente
     Relay -->|4 . Polling & Publicação| OutboxTable
     Relay -->|5 . Publica ContractRequested| TopicContract
-    TopicContract -->|6 . Consome Evento| Consumer
-    Consumer -->|7 . Chamada Assíncrona REST| PandaDocAPI
+    TopicContract -->|6 . Consome Evento| Orchestrator
+    Orchestrator -->|7 . Chamada Assíncrona REST| PandaDocAPI
     PandaDocAPI -.->|8 . Webhook HTTPS com HMAC| WebHookRecv
     WebHookRecv -->|9 . Grava Bruto no Inbox| InboxTable
     WebHookRecv -->|9 . Grava no Outbox| OutboxTable
     WebHookRecv -.->|10 . Resposta Rápida 200 OK| PandaDocAPI
     Relay -->|11 . Publica WebhookReceived| TopicWebhooks
-    TopicWebhooks -->|12 . Consome Webhook| AppProvider
-    AppProvider -->|13 . Transiciona Contrato| Agg
+    TopicWebhooks -->|12 . Consome Webhook| ProviderConsumer
+    ProviderConsumer -->|13 . Processa Item| AppProvider
+    AppProvider -->|14 . Transiciona Contrato| Agg
 ```
 
 ---
@@ -313,35 +315,41 @@ sequenceDiagram
     Note over DB, PandaDoc: 3. Outbox Relay e Envio PandaDoc (Regras R3, R4)
     DB ->> API: OutboxRelay - SELECT FOR UPDATE SKIP LOCKED
     API ->> Kafka: Publica ContractRequested (locasign.contract.events.v1)
-    Kafka ->> API: ContractOrchestratorConsumer consome evento (markProcessed)
+    Kafka ->> API: OrchestratorConsumer consome evento (markProcessed)
     API ->> PandaDoc: POST /public/v1/documents (Signing Order 1: Locatario, 2: Imobiliaria)
     PandaDoc -->> API: Retorna doc_id (doc_123)
     API ->> PandaDoc: POST /public/v1/documents/doc_123/send
     PandaDoc -->> API: HTTP 200 OK (Contrato enviado)
     API ->> DB: UPDATE contracts (status: SENT)
-%% 4. Webhooks de Assinatura
-    Note over PandaDoc, DB: 4. Assinatura Sequencial e Webhook Seguro (Regras R3, R5, R6, R7)
+%% 4. Webhooks de Assinatura & Arquivamento de PDF
+    Note over PandaDoc, DB: 4. Assinatura Sequencial, Webhook Seguro e Arquivamento (Regras R3, R5, R6, R7)
     PandaDoc ->> Locatario: Notificação de assinatura por e-mail/SMS (Ordem 1)
     Locatario ->> PandaDoc: Assina digitalmente o documento
     PandaDoc ->> API: POST /webhooks/pandadoc (document_state_changed)
     API ->> API: Valida assinatura HMAC-SHA256 em tempo constante (R7)
     API ->> DB: INSERT INTO webhook_inbox + outbox_events (HTTP 200 rápido)
     DB ->> API: OutboxRelay publica ProviderWebhookReceived
-    Kafka ->> API: WebhookConsumer processa evento com deduplicação (R6)
+    Kafka ->> API: ProviderEventsConsumer processa evento com deduplicação (R6)
     API ->> DB: UPDATE contracts (status: PARTIALLY_SIGNED)
     PandaDoc ->> Imobiliaria: Libera link de assinatura para Imobiliária (Ordem 2)
     Imobiliaria ->> PandaDoc: Assina digitalmente o documento
     PandaDoc ->> API: POST /webhooks/pandadoc (status: document.completed)
     API ->> API: Valida HMAC-SHA256 em tempo constante
     API ->> DB: Grava no Inbox e atualiza contracts (status: COMPLETED)
+    PandaDoc ->> API: POST /webhooks/pandadoc (event: document_completed_pdf_ready)
+    API ->> DB: Grava no Inbox e Outbox (HTTP 200 rápido)
+    Kafka ->> API: ProviderEventsConsumer consome e aciona ArchiveSignedDocument (R6)
+    API ->> PandaDoc: GET /public/v1/documents/:id/pdf (Download protegido)
+    API ->> DB: Salva PDF no storage e registra caminho em contracts
 %% 5. Gatilho Pós-Assinatura
     Note over API, DB: 5. Gatilho Pós-Assinatura Reativo (Regra R8)
     API ->> Kafka: Publica ContractCompleted (locasign.contract.events.v1)
-    Kafka ->> API: PostSigningConsumer consome ContractCompleted (R6)
+    Kafka ->> API: PostSignatureConsumer consome ContractCompleted (R6)
     API ->> DB: Ativa Locação (leases status: ACTIVE)
-    API ->> DB: Agenda Vistoria de Entrada do Imóvel
-    API ->> DB: Registra Primeira Fatura e Cobrança
-    API ->> DB: Salva cópia do PDF assinado no storage local
+    API ->> DB: Agenda Vistoria de Entrada do Imóvel (post_signature_actions)
+    API ->> DB: Registra Primeira Fatura e Cobrança (post_signature_actions)
+    Kafka ->> API: NotificationConsumer consome ContractCompleted (R6)
+    API ->> DB: Registra notificação aos envolvidos (notifications_log)
 %% 6. Operações, Histórico & Resiliência
     Note over Operador, Kafka: 6. Auditoria, Cancelamento e Resiliência (Regras R1, R5, R6, R9)
     Corretor ->> API: GET /api/v1/contracts/:id/history (Auditoria imutável)
@@ -586,23 +594,23 @@ da arquitetura hexagonal (formalizada no [ADR-014](docs/adr/0014-estrategia-e-fe
 ```text
               ▲
              / \
-            /E2E\             LocaSignE2EIT (1 teste)
+            /E2E\             LocaSignE2EIT (2 testes)
            /-----\            Fluxo assíncrono completo: REST ➔ Outbox ➔ Kafka ➔ WireMock ➔ Webhook ➔ Ativação
           /  IT   \
-         /---------\          Testcontainers (PostgreSQL 18.6 + Kafka 4.3.1 KRaft) (19 testes)
+         /---------\          Testcontainers (PostgreSQL 18.6 + Kafka 4.3.1 KRaft) (34 testes)
         / WireMock  \         Persistência real, índices parciais (R1), outbox, inbox e idempotência (R6, R7, R8)
        /-------------\
-      /   ArchUnit    \       PandaDocSignatureProviderAdapterTest e PandaDocErrorsTest (20 testes)
+      /   ArchUnit    \       WireMock e Infra PandaDoc (25 testes)
      /-----------------\      Contratos REST, resiliência HTTP/1.1, rate limit 429, backoff e tradução de erros
     /     Web Slices    \
    /---------------------\    HexagonalArchitectureTest (13 testes)
   /   Unitários de Domínio\   Fronteiras arquiteturais do AGENTS.md §5 (docs/agents/arquitetura.md §6)
  /_________________________\
-                              @WebMvcTest com MockMvcTester (27 testes)
+                              @WebMvcTest com MockMvcTester (38 testes)
                               Validação Jakarta Bean Validation, RFC 9457 Problem Details e segurança do operador
 
-                              Domínio e Aplicação Puros (154 testes)
-                              Agregados Contract e Lease, políticas de transição (R5), value objects (Cpf, Email, Money)
+                              Domínio, Casos de Uso com Fakes e Utilitários (229 testes)
+                              Agregados Contract e Lease, políticas de transição (R5), value objects, mappers e consumers
 ```
 
 ### Comandos de Execução da Suíte

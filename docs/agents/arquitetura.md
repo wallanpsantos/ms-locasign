@@ -71,7 +71,10 @@ contract/
 │   ├── usecases/                    # um use case por arquivo; ContractSupport.kt (ContractPersister, ContractSettings, ContractEventCommand)
 │   ├── queries/                     # GetContract, GetContractHistory + views
 │   └── ports/out/{repository,integration,messaging,lease} # integration: IntegrationPorts.kt, ProviderErrors.kt (MalformedWebhookPayload), ProviderModels.kt
-├── interfaces/{web/{dto/request,dto/response,mappers,openapi},webhook/pandadoc,messaging}
+├── interfaces/
+│   ├── web/{dto/request,dto/response,mappers,openapi}
+│   ├── webhook/pandadoc/            # PandaDocWebhookController
+│   └── messaging/                   # ContractConsumers.kt (OrchestratorConsumer, PostSignatureConsumer, DocumentAnnulmentConsumer, ProviderEventsConsumer)
 └── infra/
     ├── config/                      # ContractBeansConfig, PandaDocConfig
     ├── persistence/{adapters,entities,mappers,repositories}   # adapters/LeaseBridgeAdapters.kt = ponte para lease
@@ -81,7 +84,7 @@ contract/
     ├── scheduling/                  # ReconciliationJob, ExpirationJob, ReminderJob
     └── storage/                     # FileSystemSignedDocumentStorage
 notification/                        # enxuto, com pacotes planos
-├── domain/  app/{usecases,ports/out}  interfaces/messaging/  infra/{config,persistence}
+├── domain/  app/{usecases,ports/out}  interfaces/messaging/ (NotificationConsumer.kt)  infra/{config,persistence}
 ```
 
 Migrations ficam em `src/main/resources/db/migration/`.

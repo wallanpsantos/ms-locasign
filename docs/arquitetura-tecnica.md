@@ -693,6 +693,10 @@ A garantia resultante é "pelo menos uma vez". A idempotência dos consumidores 
 
 ## 8. PostgreSQL
 
+> O diagrama visual completo em Mermaid (ERD), modelagem detalhada de tipos nativos do PostgreSQL 18.6, dicionário de
+> dados por módulo e dossiê de índices parciais e housekeeping encontram-se em [**
+`docs/diagrama-er-banco-de-dados.md`**](diagrama-er-banco-de-dados.md).
+
 ### 8.1 Convenções
 
 - Tabelas e colunas em `snake_case`, em inglês.

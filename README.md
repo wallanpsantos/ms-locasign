@@ -75,18 +75,18 @@ design ou detalhe de infraestrutura.
 
 A stack técnica é estritamente fixada e controlada via Version Catalog (`gradle/libs.versions.toml`) e BOM gerenciado:
 
-| Tecnologia ou Área           | Versão / Configuração           | Papel e Justificativa de Engenharia                                               |
-|------------------------------|---------------------------------|-----------------------------------------------------------------------------------|
-| **Linguagem**                | Kotlin `2.4.21`                 | Null-safety nativa, `sealed classes` exaustivas e imutabilidade de domínio.       |
-| **Plataforma / JVM**         | Java `25 LTS` (Eclipse Temurin) | Toolchain fixada, compilação moderna e execução de alta performance.              |
-| **Framework Base**           | Spring Boot `4.1.1`             | Spring Framework 7.0.7, Jackson 3 e inicialização otimizada sem `open` classes.   |
-| **Persistência Relacional**  | PostgreSQL `18.6`               | Spring Data JDBC e `JdbcClient` (SQL explícito, sem sobrecarga de JPA/Hibernate). |
-| **Mensageria Distribuída**   | Apache Kafka `4.3.1` (KRaft)    | Broker em modo KRaft (sem ZooKeeper) e biblioteca cliente `kafka-clients` 4.2.    |
-| **Automação de Build**       | Gradle `9.8.1`                  | Build determinístico, checagem de warnings (`-Werror`) e geração de `app.jar`.    |
-| **Testes de Integração**     | Testcontainers `2.0.5` (`2.x`)  | Subida real de instâncias de PostgreSQL e Kafka para validação rigorosa.          |
-| **Mocking de APIs Externas** | WireMock `3.13.2` (ADR-014)     | Isolamento completo da API da PandaDoc com testes de rate limit e resiliência.    |
-| **Arquitetura Estática**     | ArchUnit `1.5.1` (ADR-014)      | Validação automatizada contínua das 13 regras do monólito modular hexagonal.      |
-| **Containers**               | Docker / Compose v5+            | Ambientes padronizados para desenvolvimento local e pipelines de CI.              |
+| Tecnologia ou Área           | Versão / Configuração           | Papel e Justificativa de Engenharia                                                                                                      |
+|------------------------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| **Linguagem**                | Kotlin `2.4.21`                 | Null-safety nativa, `sealed classes` exaustivas e imutabilidade de domínio.                                                              |
+| **Plataforma / JVM**         | Java `25 LTS` (Eclipse Temurin) | Toolchain fixada, compilação moderna e execução de alta performance.                                                                     |
+| **Framework Base**           | Spring Boot `4.1.1`             | Spring Framework 7.0.7, Jackson 3 e inicialização otimizada sem `open` classes.                                                          |
+| **Persistência Relacional**  | PostgreSQL `18.6`               | Spring Data JDBC e `JdbcClient` (SQL explícito, sem sobrecarga de JPA/Hibernate). Ver [Diagrama ER](docs/diagrama-er-banco-de-dados.md). |
+| **Mensageria Distribuída**   | Apache Kafka `4.3.1` (KRaft)    | Broker em modo KRaft (sem ZooKeeper) e biblioteca cliente `kafka-clients` 4.2.                                                           |
+| **Automação de Build**       | Gradle `9.8.1`                  | Build determinístico, checagem de warnings (`-Werror`) e geração de `app.jar`.                                                           |
+| **Testes de Integração**     | Testcontainers `2.0.5` (`2.x`)  | Subida real de instâncias de PostgreSQL e Kafka para validação rigorosa.                                                                 |
+| **Mocking de APIs Externas** | WireMock `3.13.2` (ADR-014)     | Isolamento completo da API da PandaDoc com testes de rate limit e resiliência.                                                           |
+| **Arquitetura Estática**     | ArchUnit `1.5.1` (ADR-014)      | Validação automatizada contínua das 13 regras do monólito modular hexagonal.                                                             |
+| **Containers**               | Docker / Compose v5+            | Ambientes padronizados para desenvolvimento local e pipelines de CI.                                                                     |
 
 ---
 

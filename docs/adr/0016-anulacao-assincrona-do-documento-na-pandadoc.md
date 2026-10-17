@@ -46,7 +46,7 @@ outbox, na mesma transação da transição, e chegam a `locasign.contract.event
 4. **Classificação das falhas** (`ProviderException`):
 
    | Resultado do `PATCH` | Tratamento | Motivo |
-                        |---|---|---|
+                              |---|---|---|
    | sucesso | marca o evento | caminho normal |
    | `NotReady` (HTTP 404 ou 409) | resolvido: log `info`, marca o evento | documento inexistente, já anulado ou já concluído; o `PATCH` é idempotente |
    | `Forbidden` (403) ou `Rejected` (outros 4xx) | resolvido: log `warn`, marca o evento | falha definitiva; retentar só levaria a mensagem à DLT (`docs/agents/regras-de-codigo.md` §2) |

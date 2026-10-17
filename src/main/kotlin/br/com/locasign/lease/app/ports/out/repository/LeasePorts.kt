@@ -22,7 +22,7 @@ interface LeaseRepositoryPort {
  *
  * **Responsabilidade:**
  * - Devolver a projeção [LeaseDetailView] ([findDetail]) sem instanciar o agregado de domínio.
- * - A implementação lê também a tabela `contracts`, de outro módulo: exceção de `docs/agents/arquitetura.md` §7.
+ * - A implementação lê também a tabela `contracts`, de outro módulo, como projeção autorizada pelo ADR-018.
  */
 interface LeaseQueryPort {
     fun findDetail(id: LeaseId): LeaseDetailView?

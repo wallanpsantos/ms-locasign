@@ -198,8 +198,10 @@ git grep -n -E "^import br\.com\.locasign\.lease\.(app|infra|interfaces)\." -- "
 - `POST /api/v1/contracts/{id}/reconcile` (restrito a operador) chama `SignatureProviderPort.fetchState` dentro da
   requisição (`ReconcileContracts`). O guia prevê esse endpoint (§4.5 e §9.2), mas o princípio 2 do §1 proíbe chamada
   externa na requisição. Não remova o endpoint: a contradição do guia está pendente de ADR.
-- SELECT em tabela de outro módulo: `LeaseQueryAdapter` lê `contracts`, e `JdbcNotificationRecipientsAdapter` lê
-  `contract_signers`. Não há ADR.
+- SELECT em tabela de outro módulo: `LeaseQueryAdapter` lê `contracts` (`LEFT JOIN LATERAL` para `LeaseDetailView`), e
+  `JdbcNotificationRecipientsAdapter` lê
+  `contract_signers` (destinatários mascarados R10). Regulamentado pelo **ADR-018** como projeções somente-leitura
+  autorizadas.
 - `AdminController` chama a porta `DeadLetterReplayPort` direto, sem use case (implementa a interface `AdminApi` em
   `openapi/`).
 - `HousekeepingJob` (`shared/infra/scheduling`) apaga linhas de `outbox_events`, `webhook_inbox` e `processed_messages`

@@ -171,4 +171,34 @@ class HexagonalArchitectureTest {
                 "br.com.locasign.lease.interfaces..",
             )
             .`as`("O módulo contract nunca deve depender de lease.infra ou lease.interfaces")
+
+    @ArchTest
+    val `camada app queries nao depende de use cases nem de portas de escrita`: ArchRule =
+        noClasses()
+            .that().resideInAPackage("..app.queries..")
+            .should().dependOnClassesThat(
+                resideInAPackage("..app.usecases..")
+                    .or(nameMatching(""".*RepositoryPort(\$.*)?"""))
+                    .or(nameMatching(""".*ReconciliationMarkerPort(\$.*)?"""))
+                    .or(nameMatching(""".*PostSignatureActionsPort(\$.*)?"""))
+                    .or(nameMatching(""".*TransactionRunner(\$.*)?"""))
+                    .or(nameMatching(""".*OutboxPort(\$.*)?"""))
+                    .or(nameMatching(""".*ProcessedMessagesPort(\$.*)?"""))
+                    .or(nameMatching(""".*WebhookInboxPort(\$.*)?"""))
+                    .or(nameMatching(""".*ContractEventPublisherPort(\$.*)?"""))
+                    .or(nameMatching(""".*SignatureProviderPort(\$.*)?"""))
+                    .or(nameMatching(""".*LeaseLookupPort(\$.*)?"""))
+                    .or(nameMatching(""".*LeaseActivationPort(\$.*)?""")),
+            )
+            .`as`("A camada app.queries deve ser estritamente de leitura e não depender de usecases, repositórios de escrita, transações ou portas de mutação (ADR-018)")
+
+    @ArchTest
+    val `camada app usecases nao depende de queries nem de portas de leitura`: ArchRule =
+        noClasses()
+            .that().resideInAPackage("..app.usecases..")
+            .should().dependOnClassesThat(
+                resideInAPackage("..app.queries..")
+                    .or(nameMatching(""".*QueryPort(\$.*)?""")),
+            )
+            .`as`("A camada app.usecases deve ser estritamente de comando e não depender de queries nem de portas de leitura QueryPort (ADR-018)")
 }

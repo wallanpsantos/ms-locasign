@@ -180,11 +180,49 @@ class ReconcileContractsTest {
         val contract = staleContract(ContractStatus.COMPLETED, "doc-1")
         provider.respond("doc-1", ProviderDocumentStatus.SENT)
 
-        reconcile.executeFor(contract.id)
+        val summary = reconcile.executeFor(contract.id)
 
+        assertEquals(contract.leaseId, summary.leaseId)
+        assertEquals(ContractStatus.COMPLETED, summary.status)
         assertEquals(ContractStatus.COMPLETED, contract.status)
         val history = contract.pullHistory().single()
         assertEquals(HistoryOutcome.IGNORED_TRANSITION, history.outcome)
+    }
+
+    @Test
+    fun `reconciliação forçada de contrato sem documento no provedor devolve status atual e não consulta provedor (ADR-018)`() {
+        val contract = restoreContract(
+            status = ContractStatus.DRAFT,
+            providerDocumentId = null,
+            now = now,
+        ).also(contracts.storage::save)
+
+        val summary = reconcile.executeFor(contract.id)
+
+        assertEquals(contract.leaseId, summary.leaseId)
+        assertEquals(ContractStatus.DRAFT, summary.status)
+        assertTrue(provider.consulted.isEmpty())
+    }
+
+    @Test
+    fun `reconciliação forçada com transição devolve status atualizado (ADR-018)`() {
+        val contract = staleContract(ContractStatus.SENT, "doc-1")
+        provider.respond("doc-1", ProviderDocumentStatus.COMPLETED)
+
+        val summary = reconcile.executeFor(contract.id)
+
+        assertEquals(contract.leaseId, summary.leaseId)
+        assertEquals(ContractStatus.COMPLETED, summary.status)
+        assertEquals(ContractStatus.COMPLETED, contract.status)
+    }
+
+    @Test
+    fun `reconciliação forçada de contrato inexistente lança NotFound`() {
+        val unknownId = br.com.locasign.contract.domain.valueobjects.ContractId.new()
+
+        kotlin.test.assertFailsWith<br.com.locasign.shared.domain.DomainException.NotFound> {
+            reconcile.executeFor(unknownId)
+        }
     }
 
     /** Provedor que responde à consulta de estado por documento e registra a ordem das consultas. */

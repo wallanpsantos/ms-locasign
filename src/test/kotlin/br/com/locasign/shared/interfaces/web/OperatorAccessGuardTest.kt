@@ -1,13 +1,15 @@
 package br.com.locasign.shared.interfaces.web
 
-import br.com.locasign.contract.app.queries.ContractDetailView
 import br.com.locasign.contract.app.queries.GetContract
 import br.com.locasign.contract.app.queries.GetContractHistory
 import br.com.locasign.contract.app.usecases.CancelContract
 import br.com.locasign.contract.app.usecases.ReconcileContracts
+import br.com.locasign.contract.app.usecases.ReconciledContractSummary
 import br.com.locasign.contract.app.usecases.RequestContract
+import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.interfaces.web.ContractController
+import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import org.assertj.core.api.Assertions.assertThat
 import org.mockito.BDDMockito.given
@@ -18,7 +20,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.assertj.MockMvcTester
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import java.time.Instant
 import kotlin.test.Test
 
 /** Com `ADMIN_TOKEN` configurado, só o header `X-Admin-Token` com o mesmo valor libera a reconciliação (ADR-013). */
@@ -47,22 +48,9 @@ class OperatorAccessGuardTest(@Autowired private val mvc: MockMvcTester) {
     @Test
     fun `reconciliação com o token de operador correto é aceita (ADR-013)`() {
         val contractId = ContractId.new()
-        val at = Instant.parse("2026-10-09T10:00:00Z")
-        given(getContract.execute(contractId)).willReturn(
-            ContractDetailView(
-                id = contractId.toString(),
-                leaseId = "locacao-1",
-                versionNumber = 1,
-                status = "SENT",
-                providerDocumentId = "doc-1",
-                sentAt = at,
-                expiresAt = null,
-                cancelReason = null,
-                signedDocumentRef = null,
-                signers = emptyList(),
-                createdAt = at,
-                updatedAt = at,
-            ),
+        val leaseId = LeaseId.new()
+        given(reconcileContracts.executeFor(contractId)).willReturn(
+            ReconciledContractSummary(leaseId, ContractStatus.SENT)
         )
 
         assertThat(reconcile(contractId, "token-de-teste")).hasStatus(HttpStatus.ACCEPTED)

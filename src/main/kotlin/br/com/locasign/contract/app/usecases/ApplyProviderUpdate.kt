@@ -48,13 +48,13 @@ class ApplyProviderUpdate(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun execute(command: ApplyProviderUpdateCommand) {
+    fun execute(command: ApplyProviderUpdateCommand): ContractStatus? =
         transactions.run {
-            val first = command.signals.firstOrNull() ?: return@run
+            val first = command.signals.firstOrNull() ?: return@run null
             val contract = findContract(first)
             if (contract == null) {
                 log.warn("Documento {} não pertence a nenhum contrato conhecido", first.documentId)
-                return@run
+                return@run null
             }
 
             val now = clock.now()
@@ -69,8 +69,8 @@ class ApplyProviderUpdate(
             } else if (command.markReconciled) {
                 reconciliationMarker.markReconciled(contract.id, now)
             }
+            contract.status
         }
-    }
 
     private fun handle(contract: Contract, signal: ProviderSignal, command: ApplyProviderUpdateCommand, now: Instant) {
         when (signal) {

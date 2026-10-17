@@ -43,7 +43,7 @@ class LeaseRepositoryAdapter(private val repository: LeaseJdbcRepository) : Leas
  * **Responsabilidade:**
  * - Implementar [LeaseQueryPort] com SQL explícito em [JdbcClient], sem carregar os agregados de domínio.
  * - Montar a projeção [LeaseDetailView] com a versão mais recente do contrato via LEFT JOIN LATERAL.
- *   A leitura da tabela `contracts`, de outro módulo, é exceção sem ADR (`docs/agents/arquitetura.md` §7).
+ *   A leitura da tabela `contracts`, de outro módulo, é projeção autorizada pelo ADR-018.
  */
 @Repository
 class LeaseQueryAdapter(private val jdbc: JdbcClient) : LeaseQueryPort {

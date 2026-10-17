@@ -67,6 +67,9 @@ Antes de analisar, planejar ou implementar, leia na ordem:
     - [
       **ADR-017:** Ajustes de resiliência e performance decorrentes da auditoria de 2026-10-15](docs/adr/0017-ajustes-de-resiliencia-e-performance-da-auditoria-2026-10-15.md)
       (`proposta`).
+    - [
+      **ADR-018:** Padrão CQRS pragmático, isolamento de consultas e governança de projeções](docs/adr/0018-padrao-cqrs-pragmatico-e-isolamento-de-consultas.md)
+      (`proposta`).
 4. **Documentos de detalhamento em [`docs/agents/`](docs/agents/):**
     - [**`divergencias-do-guia.md`**](docs/agents/divergencias-do-guia.md): divergências catalogadas entre o guia
       técnico e o repositório.

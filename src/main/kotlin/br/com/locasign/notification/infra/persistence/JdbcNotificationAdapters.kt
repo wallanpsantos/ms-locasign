@@ -14,7 +14,7 @@ import kotlin.uuid.toJavaUuid
  * Adaptador de persistência JDBC para resolução dos destinatários de notificação de um contrato.
  *
  * **Responsabilidade:**
- * - Consultar a tabela `contract_signers`, de outro módulo (exceção sem ADR, `docs/agents/arquitetura.md` §7), filtrando por contrato e audiência.
+ * - Consultar a tabela `contract_signers`, de outro módulo (projeção autorizada pelo ADR-018), filtrando por contrato e audiência.
  * - Converter dados sensíveis (e-mails) em suas representações mascaradas via [Email.masked], protegendo informações pessoais de contato.
  */
 @Repository

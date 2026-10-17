@@ -79,9 +79,8 @@ class ContractController(
         // Consome cota da PandaDoc (limite de requisições por minuto): restrito a operadores.
         operatorAccess.requireOperator()
         val id = ContractId.parse(contractId)
-        reconcileContracts.executeFor(id)
-        val current = getContract.execute(id)
-        return accepted(id, current.leaseId, current.status)
+        val summary = reconcileContracts.executeFor(id)
+        return accepted(id, summary.leaseId.toString(), summary.status.name)
     }
 
     private fun accepted(id: ContractId, leaseId: String?, status: String): ResponseEntity<ContractAcceptedResponse> =

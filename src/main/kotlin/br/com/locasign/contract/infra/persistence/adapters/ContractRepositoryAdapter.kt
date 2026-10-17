@@ -81,11 +81,11 @@ class ContractRepositoryAdapter(
     override fun findOverdueIds(now: Instant, limit: Int): List<ContractId> =
         jdbc.sql(
             """
-			SELECT id FROM contracts
-			WHERE status IN (:awaiting) AND expires_at <= :now
-			ORDER BY expires_at
-			LIMIT :limit
-			""".trimIndent(),
+            SELECT id FROM contracts
+            WHERE status IN (:awaiting) AND expires_at <= :now
+            ORDER BY expires_at
+            LIMIT :limit
+            """.trimIndent(),
         )
             .param("awaiting", AWAITING_STATUSES)
             .param("now", now.toDb())
@@ -95,11 +95,11 @@ class ContractRepositoryAdapter(
     override fun findReminderDueIds(sentBefore: Instant, limit: Int): List<ContractId> =
         jdbc.sql(
             """
-			SELECT id FROM contracts
-			WHERE status IN (:awaiting) AND sent_at <= :sentBefore AND reminder_sent_at IS NULL
-			ORDER BY sent_at
-			LIMIT :limit
-			""".trimIndent(),
+            SELECT id FROM contracts
+            WHERE status IN (:awaiting) AND sent_at <= :sentBefore AND reminder_sent_at IS NULL
+            ORDER BY sent_at
+            LIMIT :limit
+            """.trimIndent(),
         )
             .param("awaiting", AWAITING_STATUSES)
             .param("sentBefore", sentBefore.toDb())
@@ -109,14 +109,14 @@ class ContractRepositoryAdapter(
     override fun findReconciliationCandidates(staleBefore: Instant, limit: Int): List<ReconciliationCandidate> =
         jdbc.sql(
             """
-			SELECT id, provider_document_id FROM contracts
-			WHERE status NOT IN (:finalStatuses)
-			  AND provider_document_id IS NOT NULL
-			  AND updated_at <= :staleBefore
-			  AND (last_reconciled_at IS NULL OR last_reconciled_at <= :staleBefore)
-			ORDER BY updated_at
-			LIMIT :limit
-			""".trimIndent(),
+            SELECT id, provider_document_id FROM contracts
+            WHERE status NOT IN (:finalStatuses)
+              AND provider_document_id IS NOT NULL
+              AND updated_at <= :staleBefore
+              AND (last_reconciled_at IS NULL OR last_reconciled_at <= :staleBefore)
+            ORDER BY updated_at
+            LIMIT :limit
+            """.trimIndent(),
         )
             .param("finalStatuses", FINAL_STATUSES)
             .param("staleBefore", staleBefore.toDb())
@@ -140,11 +140,11 @@ class ContractRepositoryAdapter(
     private fun insertHistory(entry: StatusHistoryEntry) {
         jdbc.sql(
             """
-			INSERT INTO contract_status_history
-			    (id, contract_id, from_status, to_status, outcome, source, source_event_id, note, occurred_at)
-			VALUES
-			    (:id, :contractId, :fromStatus, :toStatus, :outcome, :source, :sourceEventId, :note, :occurredAt)
-			""".trimIndent(),
+            INSERT INTO contract_status_history
+                (id, contract_id, from_status, to_status, outcome, source, source_event_id, note, occurred_at)
+            VALUES
+                (:id, :contractId, :fromStatus, :toStatus, :outcome, :source, :sourceEventId, :note, :occurredAt)
+            """.trimIndent(),
         )
             .param("id", entry.id.toJavaUuid())
             .param("contractId", entry.contractId.value.toJavaUuid())

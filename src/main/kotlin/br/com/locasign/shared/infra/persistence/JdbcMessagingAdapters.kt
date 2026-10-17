@@ -46,13 +46,13 @@ class JdbcOutboxAdapter(
         )
         jdbc.sql(
             """
-			INSERT INTO outbox_events
-			    (id, aggregate_type, aggregate_id, event_type, topic, message_key, payload, headers)
-			VALUES
-			    (:id, :aggregateType, :aggregateId, :eventType, :topic, :messageKey,
-			     CAST(:payload AS jsonb), CAST(:headers AS jsonb))
-			ON CONFLICT (id) DO NOTHING
-			""".trimIndent(),
+            INSERT INTO outbox_events
+                (id, aggregate_type, aggregate_id, event_type, topic, message_key, payload, headers)
+            VALUES
+                (:id, :aggregateType, :aggregateId, :eventType, :topic, :messageKey,
+                 CAST(:payload AS jsonb), CAST(:headers AS jsonb))
+            ON CONFLICT (id) DO NOTHING
+            """.trimIndent(),
         )
             .param("id", message.id)
             .param("aggregateType", message.aggregateType)
@@ -90,10 +90,10 @@ class JdbcProcessedMessagesAdapter(private val jdbc: JdbcClient) : ProcessedMess
     override fun markProcessed(consumerGroup: String, eventId: String): Boolean =
         jdbc.sql(
             """
-			INSERT INTO processed_messages (consumer_group, event_id)
-			VALUES (:group, :eventId)
-			ON CONFLICT (consumer_group, event_id) DO NOTHING
-			""".trimIndent(),
+            INSERT INTO processed_messages (consumer_group, event_id)
+            VALUES (:group, :eventId)
+            ON CONFLICT (consumer_group, event_id) DO NOTHING
+            """.trimIndent(),
         )
             .param("group", consumerGroup)
             .param("eventId", eventId)
@@ -113,10 +113,10 @@ class JdbcWebhookInboxAdapter(private val jdbc: JdbcClient) : WebhookInboxPort {
     override fun store(deliveryId: String, rawBody: String): Boolean =
         jdbc.sql(
             """
-			INSERT INTO webhook_inbox (delivery_id, raw_body)
-			VALUES (:deliveryId, :rawBody)
-			ON CONFLICT (delivery_id) DO NOTHING
-			""".trimIndent(),
+            INSERT INTO webhook_inbox (delivery_id, raw_body)
+            VALUES (:deliveryId, :rawBody)
+            ON CONFLICT (delivery_id) DO NOTHING
+            """.trimIndent(),
         )
             .param("deliveryId", deliveryId)
             .param("rawBody", rawBody)

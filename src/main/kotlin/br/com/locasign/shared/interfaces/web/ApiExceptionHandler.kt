@@ -78,9 +78,8 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         headers: HttpHeaders,
         status: HttpStatusCode,
         request: WebRequest,
-    ): ResponseEntity<Any>? {
-        val body = validationProblem("Um ou mais campos são inválidos.")
-        body.setProperty(
+    ): ResponseEntity<Any> = validationProblem("Um ou mais campos são inválidos.") {
+        setProperty(
             "errors",
             ex.bindingResult.fieldErrors.map {
                 mapOf(
@@ -89,7 +88,6 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
                 )
             },
         )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
     }
 
     override fun handleHttpMessageNotReadable(
@@ -97,12 +95,9 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         headers: HttpHeaders,
         status: HttpStatusCode,
         request: WebRequest,
-    ): ResponseEntity<Any>? {
-        val body = validationProblem(
-            "Corpo da requisição ilegível: verifique o JSON, os tipos dos campos e os campos obrigatórios.",
-        )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body)
-    }
+    ): ResponseEntity<Any> = validationProblem(
+        "Corpo da requisição ilegível: verifique o JSON, os tipos dos campos e os campos obrigatórios.",
+    )
 
     private fun problem(
         status: HttpStatus,
@@ -111,17 +106,25 @@ class ApiExceptionHandler : ResponseEntityExceptionHandler() {
         detail: String?,
         customize: ProblemDetail.() -> Unit = {},
     ): ResponseEntity<ProblemDetail> =
-        ResponseEntity.status(status).body(problemDetail(status, slug, title, detail).apply(customize))
+        ResponseEntity.status(status).body(problemDetail(status, slug, title, detail, customize))
+
+    private fun validationProblem(
+        detail: String,
+        customize: ProblemDetail.() -> Unit = {},
+    ): ResponseEntity<Any> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(problemDetail(HttpStatus.BAD_REQUEST, "validation", "Requisição inválida", detail, customize))
 
     /** Problem Details (RFC 9457) com `type` `/problems/<slug>`; sem `detail`, o título também vira o detalhe. */
-    private fun problemDetail(status: HttpStatus, slug: String, title: String, detail: String?): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(status, detail ?: title).apply {
-            type = problemType(slug)
-            this.title = title
-        }
-
-    private fun validationProblem(detail: String): ProblemDetail =
-        problemDetail(HttpStatus.BAD_REQUEST, "validation", "Requisição inválida", detail)
-
-    private fun problemType(slug: String): URI = URI.create("/problems/$slug")
+    private fun problemDetail(
+        status: HttpStatus,
+        slug: String,
+        title: String,
+        detail: String?,
+        customize: ProblemDetail.() -> Unit,
+    ): ProblemDetail = ProblemDetail.forStatusAndDetail(status, detail ?: title).apply {
+        type = URI.create("/problems/$slug")
+        this.title = title
+        customize()
+    }
 }

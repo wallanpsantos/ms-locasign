@@ -23,10 +23,10 @@ class PostSignatureActionsAdapter(private val jdbc: JdbcClient) : PostSignatureA
         detailsJson: String?,
     ): Boolean = jdbc.sql(
         """
-		INSERT INTO post_signature_actions (contract_id, action_type, status, details)
-		VALUES (:contractId, :actionType, :status, CAST(:details AS jsonb))
-		ON CONFLICT (contract_id, action_type) DO NOTHING
-		""".trimIndent(),
+        INSERT INTO post_signature_actions (contract_id, action_type, status, details)
+        VALUES (:contractId, :actionType, :status, CAST(:details AS jsonb))
+        ON CONFLICT (contract_id, action_type) DO NOTHING
+        """.trimIndent(),
     )
         .param("contractId", contractId.value.toJavaUuid())
         .param("actionType", actionType)

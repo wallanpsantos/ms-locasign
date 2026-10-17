@@ -129,14 +129,13 @@ class Contract private constructor(
         }
         return when (val decision = ContractTransitionPolicy.decide(status, change.target)) {
             TransitionDecision.NoOp -> TransitionResult.NO_CHANGE
-            is TransitionDecision.Reject -> {
-                if (change.source == ChangeSource.RECONCILIATION && !status.isFinal && change.target.progress < status.progress) {
+            is TransitionDecision.Reject ->
+                if (change.source == ChangeSource.RECONCILIATION && !status.isFinal) {
                     TransitionResult.NO_CHANGE
                 } else {
                     recordRejected(change, decision.reason, now)
                     TransitionResult.IGNORED
                 }
-            }
 
             TransitionDecision.Apply -> {
                 applyTransition(change, now, signatureDeadline)
@@ -263,13 +262,7 @@ class Contract private constructor(
     private fun applyTransition(change: StatusChange, now: Instant, signatureDeadline: Duration) {
         val from = status
         status = change.target
-        change.providerModifiedAt?.let { modified ->
-            val current = providerLastModifiedAt
-            if (current == null || modified.isAfter(current)) {
-                providerLastModifiedAt = modified
-            }
-        }
-        val effectiveReason = if (change.target == ContractStatus.CANCELLED) effectiveCancelReason(change) else null
+        change.providerModifiedAt?.let { providerLastModifiedAt = it }
         when (change.target) {
             ContractStatus.SENT, ContractStatus.VIEWED, ContractStatus.PARTIALLY_SIGNED -> {
                 // Cobre também saltos para frente (webhook de envio perdido): o prazo sempre existe.
@@ -279,12 +272,12 @@ class Contract private constructor(
             }
 
             ContractStatus.COMPLETED -> signers = signers.map { it.copy(completedAt = it.completedAt ?: now) }
-            ContractStatus.CANCELLED -> cancelReason = effectiveReason
+            ContractStatus.CANCELLED -> cancelReason = effectiveCancelReason(change)
 
             ContractStatus.DRAFT, ContractStatus.GENERATED, ContractStatus.DECLINED, ContractStatus.EXPIRED -> Unit
         }
         touch(now)
-        eventFor(change, effectiveReason, now)?.let { pendingEvents += it }
+        eventFor(change, now)?.let { pendingEvents += it }
         appendHistory(
             from = from,
             to = change.target,
@@ -296,20 +289,19 @@ class Contract private constructor(
         )
     }
 
-    private fun eventFor(change: StatusChange, cancelReason: CancelReason?, now: Instant): ContractEvent? =
-        when (change.target) {
-            ContractStatus.DRAFT, ContractStatus.PARTIALLY_SIGNED -> null
-            ContractStatus.GENERATED -> ContractGenerated(id, now)
-            ContractStatus.SENT -> ContractSent(id, expiresAt, now)
-            ContractStatus.VIEWED -> ContractViewed(id, now)
-            ContractStatus.COMPLETED -> ContractCompleted(id, leaseId, now)
-            ContractStatus.DECLINED -> ContractDeclined(id, change.note, now)
-            ContractStatus.EXPIRED -> ContractExpired(id, now)
-            ContractStatus.CANCELLED -> when (val reason = checkNotNull(cancelReason)) {
-                is CancelReason.GenerationFailed -> ContractGenerationFailed(id, reason.detail, now)
-                is CancelReason.Requested -> ContractCancelled(id, reason.text, now)
-            }
+    private fun eventFor(change: StatusChange, now: Instant): ContractEvent? = when (change.target) {
+        ContractStatus.DRAFT, ContractStatus.PARTIALLY_SIGNED -> null
+        ContractStatus.GENERATED -> ContractGenerated(id, now)
+        ContractStatus.SENT -> ContractSent(id, expiresAt, now)
+        ContractStatus.VIEWED -> ContractViewed(id, now)
+        ContractStatus.COMPLETED -> ContractCompleted(id, leaseId, now)
+        ContractStatus.DECLINED -> ContractDeclined(id, change.note, now)
+        ContractStatus.EXPIRED -> ContractExpired(id, now)
+        ContractStatus.CANCELLED -> when (val reason = effectiveCancelReason(change)) {
+            is CancelReason.GenerationFailed -> ContractGenerationFailed(id, reason.detail, now)
+            is CancelReason.Requested -> ContractCancelled(id, reason.text, now)
         }
+    }
 
     /** Motivo gravado e publicado no cancelamento: o explícito da mudança ou, na falta dele, a nota como pedido. */
     private fun effectiveCancelReason(change: StatusChange): CancelReason =

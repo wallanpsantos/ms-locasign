@@ -96,13 +96,13 @@ class OutboxRelay(
      */
     private fun lockNextBatch(): List<OutboxRow> = jdbc.sql(
         """
-		SELECT id, topic, message_key, payload::text AS payload, headers::text AS headers
-		FROM outbox_events
-		WHERE published_at IS NULL AND available_at <= now()
-		ORDER BY seq
-		LIMIT :limit
-		FOR UPDATE SKIP LOCKED
-		""".trimIndent(),
+        SELECT id, topic, message_key, payload::text AS payload, headers::text AS headers
+        FROM outbox_events
+        WHERE published_at IS NULL AND available_at <= now()
+        ORDER BY seq
+        LIMIT :limit
+        FOR UPDATE SKIP LOCKED
+        """.trimIndent(),
     )
         .param("limit", properties.outbox.batchSize)
         .query { rs, _ ->
@@ -117,7 +117,7 @@ class OutboxRelay(
         .list()
 
     private fun publish(row: OutboxRow) {
-        val record = ProducerRecord<String, String>(row.topic, row.key, row.payload)
+        val record = ProducerRecord(row.topic, row.key, row.payload)
         mapper.readTree(row.headers).properties().forEach { (name, value) ->
             record.headers().add(name, value.asString().toByteArray(Charsets.UTF_8))
         }
@@ -133,12 +133,12 @@ class OutboxRelay(
     private fun markFailed(id: String, error: Exception) {
         jdbc.sql(
             """
-			UPDATE outbox_events
-			SET attempts = attempts + 1,
-			    last_error = :error,
-			    available_at = now() + (LEAST(:maxBackoff, power(2, attempts + 1)) * interval '1 second')
-			WHERE id = :id
-			""".trimIndent(),
+            UPDATE outbox_events
+            SET attempts = attempts + 1,
+                last_error = :error,
+                available_at = now() + (LEAST(:maxBackoff, power(2, attempts + 1)) * interval '1 second')
+            WHERE id = :id
+            """.trimIndent(),
         )
             .param("id", id)
             .param("error", error.message?.take(MAX_ERROR_LENGTH) ?: error.javaClass.simpleName)

@@ -17,7 +17,7 @@ import java.security.MessageDigest
  */
 @Component
 class OperatorAccessGuard(
-    @param:Value("\${locasign.admin.token:}") private val configuredToken: String,
+    @Value($$"${locasign.admin.token:}") configuredToken: String,
 ) {
     private val configuredHash: ByteArray? = configuredToken.takeIf { it.isNotBlank() }?.let(::sha256)
 

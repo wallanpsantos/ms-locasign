@@ -17,6 +17,6 @@ data class RequestContractCommand(val leaseId: LeaseId)
  * **Responsabilidade:**
  * - Expor à controller a criação de um rascunho para a locação informada, sem revelar a classe concreta que aplica R1 e R3.
  */
-interface RequestContractPort {
+fun interface RequestContractPort {
     fun execute(command: RequestContractCommand): ContractId
 }

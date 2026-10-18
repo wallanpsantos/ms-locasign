@@ -92,27 +92,69 @@ A stack técnica é estritamente fixada e controlada via Version Catalog (`gradl
 
 ## 3. Arquitetura e Fluxo Orientado a Eventos
 
-O sistema foi concebido como um **monólito modular hexagonal** (`shared`, `lease`, `contract`, `notification`). Chamadas
-externas síncronas são terminantemente proibidas no ciclo de vida de requisições do usuário: todas as integrações com a
-PandaDoc são executadas de maneira assíncrona orientada a eventos através dos padrões **Transactional Outbox** e
-**Inbox**.
+O sistema foi concebido como um **monólito modular hexagonal** composto por quatro módulos de fronteiras bem delimitadas
+(`shared`, `lease`, `contract`, `notification`):
+
+1. **Fase Prévia Síncrona (`lease`):** O ciclo inicia em `POST /api/v1/leases`, que valida as regras estruturais e de
+   dados pessoais (**R2, R10**) e cria a locação residencial em estado `DRAFT`. Por ser uma operação atômica de cadastro
+   cadastral sem integrações externas, ela é persistida diretamente no PostgreSQL sem emitir eventos de mensageria.
+2. **Ponto de Partida Contratual & Fronteira Modular (`contract → lease`):** A chamada
+   `POST /api/v1/leases/{id}/contracts` verifica a unicidade (**R1**) e consome a porta de leitura [
+   `LeaseLookupPort`](src/main/kotlin/br/com/locasign/contract/app/ports/out/lease/LeaseLookupPort.kt) (implementada
+   pela ponte [
+   `LeaseLookupAdapter`](src/main/kotlin/br/com/locasign/contract/infra/persistence/adapters/LeaseBridgeAdapters.kt))
+   para compor os signatários. O agregado `Contract` é persistido em `DRAFT` juntamente com o evento `ContractRequested`
+   na tabela `outbox_events` em uma **única transação ACID**, devolvendo `HTTP 202 Accepted` de imediato.
+3. **Orquestração Assíncrona com Provedor Externo:** Chamadas de rede externas síncronas são terminantemente proibidas
+   nas requisições do usuário. O `OutboxRelay` descarrega os eventos no Kafka KRaft e o `OrchestratorConsumer` realiza
+   as chamadas REST com a PandaDoc de forma assíncrona, controlando janelas de taxa de requisição (*rate limiting*).
+4. **Ingestão Segura de Webhooks (Transactional Inbox - R7):** O endpoint `/webhooks/pandadoc` valida o HMAC-SHA256
+   sobre bytes brutos em tempo constante e persiste o corpo integral bruto em `webhook_inbox` + `outbox_events`,
+   respondendo `HTTP 200 OK` rápido (< 30ms). O `ProviderEventsConsumer` consome cada item com deduplicação estrita
+   (**R6**) e aplica as transições de estado (**R5**).
+5. **Gatilhos Pós-Assinatura Reativos (R8) e Notificações:** Quando o contrato atinge o estado terminal `COMPLETED`, o
+   evento `ContractCompleted` é publicado no Kafka. O `PostSignatureConsumer` dispara [
+   `RunPostSignatureActions`](src/main/kotlin/br/com/locasign/contract/app/usecases/RunPostSignatureActions.kt), que
+   aciona a porta [
+   `LeaseActivationPort`](src/main/kotlin/br/com/locasign/contract/infra/persistence/adapters/LeaseBridgeAdapters.kt)
+   para transicionar a locação para `ACTIVE` no módulo `lease`, além de registrar a vistoria e a 1ª fatura.
+   Paralelamente, o `NotificationConsumer` registra o envio simulado de alertas aos signatários.
 
 ```mermaid
 flowchart TD
     subgraph Cliente["Cliente / Web Browser"]
-        Req["POST /api/v1/leases/{id}/contracts"]
+        ReqLease["1. POST /api/v1/leases"]
+        ReqContract["3. POST /api/v1/leases/{id}/contracts"]
     end
 
-    subgraph Core["LocaSign (Monólito Hexagonal)"]
-        UC["RequestContract (Use Case)"]
-        Agg["Aggregate Contract (DRAFT)"]
+    subgraph ModLease["Módulo Lease"]
+        UCRegLease["RegisterLease (Use Case)"]
+        AggLease["Aggregate Lease<br/>(DRAFT / ACTIVE)"]
+        UCActLease["ActivateLease (Use Case)"]
+    end
+
+    subgraph ModContract["Módulo Contract"]
+        UCReqContract["RequestContract (Use Case)"]
+        BridgeLookup["LeaseLookupPort (Ponte)"]
+        AggContract["Aggregate Contract<br/>(DRAFT a COMPLETED)"]
+        Orchestrator["OrchestratorConsumer"]
+        WebHookRecv["POST /webhooks/pandadoc<br/>(ReceiveProviderWebhook)"]
+        ProviderConsumer["ProviderEventsConsumer"]
+        AppProvider["ProcessProviderWebhookItem<br/>& ApplyProviderUpdate"]
+        PostSigConsumer["PostSignatureConsumer"]
+        RunPostSig["RunPostSignatureActions<br/>(Regra R8)"]
+        BridgeActivation["LeaseActivationPort (Ponte)"]
+    end
+
+    subgraph ModShared["Módulo Shared (Transversal)"]
         OutboxTable[("outbox_events")]
         InboxTable[("webhook_inbox")]
         Relay["OutboxRelay (@Scheduled)"]
-        Orchestrator["OrchestratorConsumer"]
-        WebHookRecv["POST /webhooks/pandadoc"]
-        ProviderConsumer["ProviderEventsConsumer"]
-        AppProvider["ProcessProviderWebhookItem"]
+    end
+
+    subgraph ModNotif["Módulo Notification"]
+        NotifConsumer["NotificationConsumer"]
+        NotifLog[("notifications_log<br/>(Simulado)")]
     end
 
     subgraph Broker["Apache Kafka (KRaft)"]
@@ -120,26 +162,48 @@ flowchart TD
         TopicWebhooks["locasign.pandadoc.webhooks.v1"]
     end
 
-    subgraph Externo["Provedor de Assinatura"]
-        PandaDocAPI["PandaDoc API"]
+    subgraph Externo["Provedor PandaDoc"]
+        PandaDocAPI["PandaDoc REST API"]
     end
 
-    Req -->|1 . Requisição| UC
-    UC -->|2 . Transação Atômica| Agg
-    UC -->|2 . Grava Evento| OutboxTable
-    UC -.->|3 . Resposta Rápida 202 Accepted| Cliente
-    Relay -->|4 . Polling & Publicação| OutboxTable
-    Relay -->|5 . Publica ContractRequested| TopicContract
-    TopicContract -->|6 . Consome Evento| Orchestrator
-    Orchestrator -->|7 . Chamada Assíncrona REST| PandaDocAPI
-    PandaDocAPI -.->|8 . Webhook HTTPS com HMAC| WebHookRecv
-    WebHookRecv -->|9 . Grava Bruto no Inbox| InboxTable
-    WebHookRecv -->|9 . Grava no Outbox| OutboxTable
-    WebHookRecv -.->|10 . Resposta Rápida 200 OK| PandaDocAPI
-    Relay -->|11 . Publica WebhookReceived| TopicWebhooks
-    TopicWebhooks -->|12 . Consome Webhook| ProviderConsumer
-    ProviderConsumer -->|13 . Processa Item| AppProvider
-    AppProvider -->|14 . Transiciona Contrato| Agg
+    %% 1. Cadastro de Locação
+    ReqLease -->|1 . Cria Locação| UCRegLease
+    UCRegLease -->|2 . Persiste DRAFT| AggLease
+
+    %% 2. Solicitação de Contrato & Ponte
+    ReqContract -->|3 . Solicita Contrato| UCReqContract
+    UCReqContract -.->|4 . Consulta Snapshot| BridgeLookup
+    BridgeLookup -.->|Lê Dados| AggLease
+    UCReqContract -->|5 . ACID: Salva DRAFT| AggContract
+    UCReqContract -->|5 . Grava ContractRequested| OutboxTable
+    UCReqContract -.->|6 . Resposta Rápida 202 Accepted| Cliente
+
+    %% 3. Outbox Relay & Orquestração PandaDoc
+    Relay -->|7 . Polling Outbox| OutboxTable
+    Relay -->|8 . Publica ContractRequested| TopicContract
+    TopicContract -->|9 . Consome Evento| Orchestrator
+    Orchestrator -->|10 . REST POST /documents & send| PandaDocAPI
+
+    %% 4. Webhooks, Inbox e Transições
+    PandaDocAPI -.->|11 . Webhook HTTPS com HMAC| WebHookRecv
+    WebHookRecv -->|12 . Grava Bruto no Inbox| InboxTable
+    WebHookRecv -->|12 . Grava no Outbox| OutboxTable
+    WebHookRecv -.->|13 . Resposta Rápida 200 OK| PandaDocAPI
+    Relay -->|14 . Publica WebhookReceived| TopicWebhooks
+    TopicWebhooks -->|15 . Consome Webhook| ProviderConsumer
+    ProviderConsumer -->|16 . Processa Item| AppProvider
+    AppProvider -->|17 . Transiciona Status| AggContract
+
+    %% 5. Conclusão, Pós-Assinatura (R8) e Notificações
+    AggContract -.->|18 . Emite ContractCompleted| OutboxTable
+    Relay -->|19 . Publica ContractCompleted| TopicContract
+    TopicContract -->|20 . Reação Pós-Assinatura| PostSigConsumer
+    PostSigConsumer -->|21 . Executa Ações R8| RunPostSig
+    RunPostSig -->|22 . Ativa Locação| BridgeActivation
+    BridgeActivation -->|23 . Dispara Ativação| UCActLease
+    UCActLease -->|24 . Status ACTIVE| AggLease
+    TopicContract -->|20 . Consome Evento| NotifConsumer
+    NotifConsumer -->|21 . Registra Log Notificação| NotifLog
 ```
 
 ---

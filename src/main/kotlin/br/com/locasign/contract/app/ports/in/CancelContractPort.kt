@@ -16,6 +16,6 @@ data class CancelContractCommand(val contractId: ContractId, val reason: String)
  * **Responsabilidade:**
  * - Expor à controller o cancelamento formal com justificativa, sem revelar a classe concreta que aplica R9.
  */
-interface CancelContractPort {
+fun interface CancelContractPort {
     fun execute(command: CancelContractCommand)
 }

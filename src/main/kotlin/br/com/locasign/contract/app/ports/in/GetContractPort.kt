@@ -9,6 +9,6 @@ import br.com.locasign.contract.domain.valueobjects.ContractId
  * **Responsabilidade:**
  * - Expor à controller a leitura do detalhe operacional do contrato, sem revelar a classe concreta da query.
  */
-interface GetContractPort {
+fun interface GetContractPort {
     fun execute(id: ContractId): ContractDetailView
 }

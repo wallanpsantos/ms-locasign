@@ -1,6 +1,8 @@
 package br.com.locasign.contract.app.usecases
 
 import br.com.locasign.contract.app.fakes.FixedWebhookGateway
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookCommand
+import br.com.locasign.contract.app.ports.`in`.WebhookReceipt
 import br.com.locasign.contract.app.ports.out.integration.WebhookItem
 import br.com.locasign.shared.app.Topics
 import br.com.locasign.shared.app.fakes.FixedBusinessClock

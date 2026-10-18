@@ -21,11 +21,16 @@ camadas é o pacote, e `internal` não isola camadas.
 - **`domain`:** Kotlin puro. Não declara portas. Erro de negócio é subtipo da hierarquia selada
   `shared.domain.DomainException` (não existe `domain/exceptions` por módulo).
 - **`app`:** use cases e queries são classes Kotlin sem anotação, com dependências no construtor, registradas uma a uma
-  como `@Bean` em `<módulo>/infra/config/<Módulo>BeansConfig.kt`. Não existe `ports/in`: controllers, consumers e jobs
-  injetam a classe concreta e chamam `execute(...)`.
-    - O `data class <Nome>Command` fica no arquivo do use case. A exceção é o `ContractEventCommand`, compartilhado
-      pelos use cases que reagem a um `ContractEvent`, que fica em `ContractSupport.kt`.
-    - Jobs chamam `execute()` sem argumento, e `ReconcileContracts` expõe `executeStale()` e `executeFor(id)`.
+  como `@Bean` em `<módulo>/infra/config/<Módulo>BeansConfig.kt`. O `@Bean` devolve a classe concreta.
+    - A controller HTTP e o webhook dependem de `app/ports/in` (ADR-019). A classe concreta implementa a porta. O
+      comando e o resultado que esse adaptador monta ou lê ficam no arquivo da porta.
+    - Consumidores Kafka e jobs injetam a classe concreta. Caso de uso que nenhuma controller chama não ganha porta de
+      entrada.
+    - O `data class <Nome>Command` de operação só usada por Kafka ou job fica no arquivo do use case.
+      `ContractEventCommand`,
+      compartilhado pelos use cases que reagem a um `ContractEvent`, fica em `ContractSupport.kt`.
+    - Jobs chamam `execute()` sem argumento. `ReconcileContracts` expõe `executeStale()` para o job e `executeFor(id)`
+      na porta `ReconcileContractPort`.
     - As portas de saída ficam em `app/ports/out/<categoria>/`, onde a categoria é `repository`, `integration`,
       `messaging` ou o nome do módulo fornecedor. As transversais ficam em `shared/app/ports`; a exceção é o
       `DeadLetterReplayPort`, em `shared/app/MessagingErrors.kt`.
@@ -62,7 +67,7 @@ shared/                              # transversal; não importa nenhum módulo
     └── scheduling/                  # HousekeepingJob
 lease/
 ├── domain/{models,valueobjects}                          # Lease, Tenant, AgencySigner | LeaseId, LeaseTerm
-├── app/{usecases,queries,ports/out/repository}           # RegisterLease, ActivateLease | GetLease | LeaseRepositoryPort, LeaseQueryPort
+├── app/{usecases,queries,ports/out/repository,ports/in}  # RegisterLease, ActivateLease | GetLease | LeaseRepositoryPort, LeaseQueryPort | RegisterLeasePort, GetLeasePort
 ├── interfaces/web/{dto/request,dto/response,mappers,openapi}
 └── infra/{config,persistence/{adapters,entities,mappers,repositories}}
 contract/
@@ -70,6 +75,7 @@ contract/
 ├── app/
 │   ├── usecases/                    # um use case por arquivo; ContractSupport.kt (ContractPersister, ContractSettings, ContractEventCommand)
 │   ├── queries/                     # GetContract, GetContractHistory + views
+│   ├── ports/in/                    # portas HTTP: RequestContractPort, CancelContractPort, ReconcileContractPort, GetContractPort, GetContractHistoryPort, ReceiveProviderWebhookPort
 │   └── ports/out/{repository,integration,messaging,lease} # integration: IntegrationPorts.kt, ProviderErrors.kt (MalformedWebhookPayload), ProviderModels.kt
 ├── interfaces/
 │   ├── web/{dto/request,dto/response,mappers,openapi}
@@ -139,16 +145,18 @@ Referência: `RequestContract`. O `POST /api/v1/leases/{leaseId}/contracts` cria
    `ApiExceptionHandler.handleDomain`; o compilador obriga.
 2. **Porta de saída** (só se nenhuma existente servir): interface em `app/ports/out/<categoria>/`, com tipos de domínio
    ou modelos neutros, nunca DTO de infra.
-3. **Use case:** `app/usecases/<Verbo><Substantivo>.kt`, com o `data class <Nome>Command` e uma classe que recebe as
-   portas, `BusinessClock` e `TransactionRunner` e expõe `execute(command)`. O corpo roda em `transactions.run { }`.
-   Contrato é salvo com `ContractPersister.save`, que grava agregado, histórico e outbox na mesma transação.
+3. **Use case:** `app/usecases/<Verbo><Substantivo>.kt`, classe que recebe as portas, `BusinessClock` e
+   `TransactionRunner` e expõe `execute(command)`. Se uma controller HTTP chama a operação, a porta e o comando ficam em
+   `app/ports/in` e a classe implementa a porta (ADR-019). O corpo roda em `transactions.run { }`. Contrato é salvo com
+   `ContractPersister.save`, que grava agregado, histórico e outbox na mesma transação.
 4. **Bean:** `@Bean` explícito em `<Módulo>BeansConfig.kt`.
 5. **Adapter driven** (se houver porta nova): `@Repository` em `infra/persistence/adapters/`, usando Spring Data JDBC
    para o agregado e `JdbcClient` para consultas, com conversões em `infra/persistence/mappers/`. Violação de constraint
    de regra de negócio é traduzida para `DomainException` (ex.: `ux_contracts_one_active_per_lease` vira
    `ActiveContractExists`).
 6. **Adapter driving:**
-    - HTTP: método no controller que implementa `openapi/<Recurso>Api`. O DTO de entrada usa `@field:` e é convertido
+    - HTTP: método no controller que implementa `openapi/<Recurso>Api` e injeta a porta de `app/ports/in`, não a classe
+      concreta. O DTO de entrada usa `@field:` e é convertido
       por extension function em `mappers/`. Operação assíncrona responde 202 com `Location`. Não capture
       `DomainException`: o `ApiExceptionHandler` faz o mapeamento.
     - Kafka: listener em `interfaces/messaging/` (detalhes em [`docs/agents/regras-de-codigo.md`](regras-de-codigo.md));
@@ -164,7 +172,7 @@ Referência: `RequestContract`. O `POST /api/v1/leases/{leaseId}/contracts` cria
 
 O projeto conta com o teste automatizado `HexagonalArchitectureTest`
 (`src/test/kotlin/br/com/locasign/architecture/HexagonalArchitectureTest.kt`,
-ADR-014), que executa 13 regras ArchUnit durante `./gradlew test` ou `./gradlew build`. Ele verifica isolamento de
+ADR-014), que executa 16 regras ArchUnit durante `./gradlew test` ou `./gradlew build`. Ele verifica isolamento de
 domínio,
 camadas e grafo de dependência entre módulos diretamente no bytecode.
 

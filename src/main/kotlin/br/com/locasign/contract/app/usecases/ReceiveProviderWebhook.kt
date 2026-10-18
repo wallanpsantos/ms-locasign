@@ -1,5 +1,8 @@
 package br.com.locasign.contract.app.usecases
 
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookCommand
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookPort
+import br.com.locasign.contract.app.ports.`in`.WebhookReceipt
 import br.com.locasign.contract.app.ports.out.integration.MalformedWebhookPayload
 import br.com.locasign.contract.app.ports.out.integration.ProviderWebhookGateway
 import br.com.locasign.contract.app.ports.out.integration.WebhookItem
@@ -17,35 +20,6 @@ import java.time.Instant
 import java.util.HexFormat
 
 /**
- * Parâmetros de entrada contendo os bytes brutos e cabeçalhos de uma entrega de webhook do provedor.
- *
- * **Responsabilidade:**
- * - Transportar o payload original não parseado ([rawBody]), a assinatura criptográfica ([signature]) e o identificador de entrega ([deliveryId]).
- */
-class ReceiveProviderWebhookCommand(
-    val rawBody: ByteArray,
-    val signature: String?,
-    val deliveryId: String?,
-)
-
-/**
- * Resultado da recepção do webhook pelo gateway de entrada da aplicação.
- *
- * **Responsabilidade:**
- * - Diferenciar recepção válida com itens enfileirados ([Accepted]), entrega duplicada descartada ([Duplicate]) e falha de integridade criptográfica ([InvalidSignature]).
- */
-sealed interface WebhookReceipt {
-    /** Entrega nova gravada no inbox, com [items] itens enfileirados no outbox. */
-    data class Accepted(val deliveryId: String, val items: Int) : WebhookReceipt
-
-    /** Entrega já recebida (reenvio manual pelo painel): nenhum efeito novo. */
-    data class Duplicate(val deliveryId: String) : WebhookReceipt
-
-    /** Assinatura ausente ou incorreta: o corpo não é gravado. */
-    data object InvalidSignature : WebhookReceipt
-}
-
-/**
  * Caso de uso síncrono responsável pela recepção, validação HMAC e armazenamento transacional no inbox de webhooks do provedor.
  *
  * **Responsabilidade:**
@@ -60,10 +34,10 @@ class ReceiveProviderWebhook(
     private val clock: BusinessClock,
     private val metrics: MetricsPort,
     private val transactions: TransactionRunner,
-) {
+) : ReceiveProviderWebhookPort {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun execute(command: ReceiveProviderWebhookCommand): WebhookReceipt {
+    override fun execute(command: ReceiveProviderWebhookCommand): WebhookReceipt {
         if (!gateway.isAuthentic(command.rawBody, command.signature)) {
             metrics.count(Metrics.WEBHOOK_INVALID)
             return WebhookReceipt.InvalidSignature

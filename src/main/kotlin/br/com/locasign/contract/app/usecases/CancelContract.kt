@@ -1,18 +1,11 @@
 package br.com.locasign.contract.app.usecases
 
+import br.com.locasign.contract.app.ports.`in`.CancelContractCommand
+import br.com.locasign.contract.app.ports.`in`.CancelContractPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
-import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
-
-/**
- * Parâmetros de comando para cancelamento voluntário de um contrato de locação em andamento.
- *
- * **Responsabilidade:**
- * - Conter o identificador do contrato ([contractId]) e a justificativa formal do cancelamento ([reason]).
- */
-data class CancelContractCommand(val contractId: ContractId, val reason: String)
 
 /**
  * Caso de uso acionado pela requisição HTTP que cancela um contrato por solicitação do corretor ou operador (Regra R9).
@@ -27,9 +20,9 @@ class CancelContract(
     private val persister: ContractPersister,
     private val clock: BusinessClock,
     private val transactions: TransactionRunner,
-) {
+) : CancelContractPort {
 
-    fun execute(command: CancelContractCommand) {
+    override fun execute(command: CancelContractCommand) {
         val reason = command.reason.trim()
         if (reason.isEmpty() || reason.length > MAX_REASON_LENGTH) {
             throw DomainException.BusinessRuleViolation(

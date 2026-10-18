@@ -1,8 +1,8 @@
 package br.com.locasign.contract.interfaces.webhook.pandadoc
 
-import br.com.locasign.contract.app.usecases.ReceiveProviderWebhook
-import br.com.locasign.contract.app.usecases.ReceiveProviderWebhookCommand
-import br.com.locasign.contract.app.usecases.WebhookReceipt
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookCommand
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookPort
+import br.com.locasign.contract.app.ports.`in`.WebhookReceipt
 import br.com.locasign.shared.app.ports.CorrelationContext
 import br.com.locasign.shared.interfaces.web.PayloadTooLargeException
 import io.swagger.v3.oas.annotations.Hidden
@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Controlador REST para recepção de webhooks enviados pelo parceiro externo PandaDoc (guia, seção 6.2).
  *
- * Lê o corpo da requisição como bytes brutos (`ByteArray`) e os repassa intactos; quem valida a assinatura HMAC é o
- * [ReceiveProviderWebhook] (`docs/agents/arquitetura.md` §4). Propaga o identificador de entrega para o contexto de correlação e
- * delega o registro imediato na tabela de inbox ao caso de uso [ReceiveProviderWebhook]. Responde HTTP 200 de forma
+ * Lê o corpo da requisição como bytes brutos (`ByteArray`) e os repassa intactos. Propaga o identificador de entrega
+ * para o contexto de correlação e delega a validação HMAC e o registro imediato no inbox à porta
+ * [ReceiveProviderWebhookPort] (`docs/agents/arquitetura.md` §4). Responde HTTP 200 de forma
  * rápida e idempotente para lotes aceitos ou duplicados, HTTP 401 para assinaturas inválidas, HTTP 413 para corpos acima
  * de `locasign.pandadoc.webhook-max-body-bytes` (`PANDADOC_WEBHOOK_MAX_BODY_BYTES`, padrão 1 MiB) e nunca retorna
  * HTTP 410 (para evitar que o provedor desative o endpoint).
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @Hidden
 class PandaDocWebhookController(
-    private val receiveWebhook: ReceiveProviderWebhook,
+    private val receiveWebhook: ReceiveProviderWebhookPort,
     private val correlation: CorrelationContext,
     @param:Value("\${locasign.pandadoc.webhook-max-body-bytes:1048576}") private val maxBodyBytes: Int,
 ) {

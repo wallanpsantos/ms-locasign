@@ -70,6 +70,9 @@ Antes de analisar, planejar ou implementar, leia na ordem:
     - [
       **ADR-018:** Padrão CQRS pragmático, isolamento de consultas e governança de projeções](docs/adr/0018-padrao-cqrs-pragmatico-e-isolamento-de-consultas.md)
       (`proposta`).
+    - [
+      **ADR-019:** Portas de entrada para os adaptadores HTTP](docs/adr/0019-portas-de-entrada-dos-adaptadores-http.md)
+      (`proposta`).
 4. **Documentos de detalhamento em [`docs/agents/`](docs/agents/):**
     - [**`divergencias-do-guia.md`**](docs/agents/divergencias-do-guia.md): divergências catalogadas entre o guia
       técnico e o repositório.
@@ -77,7 +80,7 @@ Antes de analisar, planejar ou implementar, leia na ordem:
       checklist de use cases e exceções.
     - [**`regras-de-codigo.md`**](docs/agents/regras-de-codigo.md): nomes, convenção de KDoc, Kotlin idiomático, Spring
       Boot 4/Spring 7, consistência, segurança e Flyway.
-    - [**`testes.md`**](docs/agents/testes.md): pirâmide de testes (341 testes), classpath/BOM, Testcontainers,
+    - [**`testes.md`**](docs/agents/testes.md): pirâmide de testes (347 testes), classpath/BOM, Testcontainers,
       WireMock, ArchUnit, `IntegrationTestSupport`.
     - [**`build-e-ci.md`**](docs/agents/build-e-ci.md): governança de dependências, contratos de build (`app.jar`),
       workflows de CI e Dependabot.
@@ -208,7 +211,7 @@ sequenciais por jornadas**:
 - **Definição de pronto (DoD):**
     1. Em funcionalidade nova ou correção de bug, o teste novo falhava antes da mudança e passa depois; em refatoração,
        os testes existentes continuam verdes;
-    2. `./gradlew build` está verde com Docker ligado e a suíte de testes executa com 100% de aprovação (341 testes);
+    2. `./gradlew build` está verde com Docker ligado e a suíte de testes executa com 100% de aprovação (347 testes);
     3. `./gradlew compileKotlin` não emite warnings novos;
     4. A checagem automatizada de arquitetura (`HexagonalArchitectureTest`) e a verificação de fronteiras passam com
        sucesso.  
@@ -248,18 +251,18 @@ múltiplos passos:
 
 Diretrizes de engenharia aplicadas de forma idiomática em Kotlin 2.4+ e Spring Boot 4.1.1+:
 
-| Princípio     | Aplicação Idiomática no LocaSign                                                                                                                                                                                        | Limite Explícito                                                                                                                          |
-|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| **SRP**       | Um use case por arquivo com método `execute` (`RequestContract`); controllers apenas adaptam HTTP; `ContractTransitionPolicy` centraliza regras de transição; mapeamentos em `mappers/`.                                | Não fragmentar classes coesas ou value objects só para reduzir linhas de código.                                                          |
-| **OCP**       | Extensão por novas portas (`SignatureProviderPort`), sem alterar use cases. Classes `final` por padrão (sem `open` especulativo). `sealed` com `when` exaustivo força tratamento explícito.                             | Não criar hierarquias ou padrões Strategy especulativos para casos de uso únicos.                                                         |
-| **LSP**       | Fakes e adapters cumprem estritamente o contrato da porta: `markProcessed` devolve `false` em duplicata; ausência é `T?` (nunca exceção nem `Optional`); `ImmediateTransactionRunner` executa sem rollback.             | O contrato expresso no KDoc da porta é soberano; implementação que o viola é bug.                                                         |
-| **ISP**       | Portas pequenas e orientadas ao consumidor: segregação entre `LeaseLookupPort` e `LeaseActivationPort`, ou `SignatureProviderPort` e `ProviderWebhookGateway`.                                                          | Não criar portas genéricas nem interfaces de método único sem consumidores independentes reais.                                           |
-| **DIP**       | Camada `app` declara portas em `app/ports/out`; `infra` implementa. Composição explícita via `@Configuration(proxyBeanMethods = false)` em `<Modulo>BeansConfig`. Verificado por `HexagonalArchitectureTest`.           | Sem `ports/in`: controllers injetam diretamente a classe concreta do use case, simplificando o design.                                    |
-| **DRY**       | Centralização de conhecimento canônico: catálogo de tópicos em `Topics`, grupos em `ConsumerGroups`, métricas em `Metrics`, propriedades em `LocaSignProperties` e persistência em `ContractPersister.save`.            | Não compartilhar entidades entre módulos (`LeaseSnapshot` desacopla módulos de propósito). Testes toleram duplicação pontual por clareza. |
-| **KISS**      | Transações explícitas via `TransactionRunner.run { }` em vez de AOP/decorators; conversões simples por extension functions em vez de MapStruct; consultas com `JdbcClient` e SQL explícito.                             | Simplicidade não elimina requisitos críticos: idempotência (R6), outbox e HMAC constante (R7) são obrigatórios.                           |
-| **YAGNI**     | Proibido criar subpacotes por simetria, flags sem uso, abstrações genéricas ou parâmetros para o futuro; instância única dispensa locks distribuídos ou ShedLock; zero dependências sem ADR.                            | Requisitos formalmente documentados (R1–R10, ADRs) não constituem especulação.                                                            |
-| **Boy Scout** | Deixar o trecho tocado pela tarefa mais limpo do que estava: remover `!!` residuais, imports mortos, KDoc ausente ou nomes confusos, sem alterar comportamento.                                                         | Restrito ao escopo direto da tarefa. Proibido refatorar módulos vizinhos sem ADR prévio.                                                  |
-| **SLAP**      | O método `execute(...)` de use cases (`RequestContract`, `ApplyProviderUpdate`) deve ser lido no mesmo nível de abstração (validar ➔ aplicar no agregado ➔ persistir), delegando particularidades a funções privadas. | Não fragmentar fluxos sequenciais coesos em microfunções sem ganho real de legibilidade.                                                  |
+| Princípio     | Aplicação Idiomática no LocaSign                                                                                                                                                                                                                                                                                                        | Limite Explícito                                                                                                                          |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| **SRP**       | Um use case por arquivo com método `execute` (`RequestContract`); controllers apenas adaptam HTTP; `ContractTransitionPolicy` centraliza regras de transição; mapeamentos em `mappers/`.                                                                                                                                                | Não fragmentar classes coesas ou value objects só para reduzir linhas de código.                                                          |
+| **OCP**       | Extensão por novas portas (`SignatureProviderPort`), sem alterar use cases. Classes `final` por padrão (sem `open` especulativo). `sealed` com `when` exaustivo força tratamento explícito.                                                                                                                                             | Não criar hierarquias ou padrões Strategy especulativos para casos de uso únicos.                                                         |
+| **LSP**       | Fakes e adapters cumprem estritamente o contrato da porta: `markProcessed` devolve `false` em duplicata; ausência é `T?` (nunca exceção nem `Optional`); `ImmediateTransactionRunner` executa sem rollback.                                                                                                                             | O contrato expresso no KDoc da porta é soberano; implementação que o viola é bug.                                                         |
+| **ISP**       | Portas pequenas e orientadas ao consumidor: segregação entre `LeaseLookupPort` e `LeaseActivationPort`, ou `SignatureProviderPort` e `ProviderWebhookGateway`.                                                                                                                                                                          | Não criar portas genéricas nem interfaces de método único sem consumidores independentes reais.                                           |
+| **DIP**       | Camada `app` declara portas de saída em `app/ports/out` (`infra` implementa) e portas de entrada HTTP em `app/ports/in` (a classe concreta implementa; a controller injeta a porta, ADR-019). Composição explícita via `@Configuration(proxyBeanMethods = false)` em `<Modulo>BeansConfig`. Verificado por `HexagonalArchitectureTest`. | Consumidores Kafka e jobs injetam a classe concreta. Sem porta de entrada para caso de uso que nenhuma controller chama.                  |
+| **DRY**       | Centralização de conhecimento canônico: catálogo de tópicos em `Topics`, grupos em `ConsumerGroups`, métricas em `Metrics`, propriedades em `LocaSignProperties` e persistência em `ContractPersister.save`.                                                                                                                            | Não compartilhar entidades entre módulos (`LeaseSnapshot` desacopla módulos de propósito). Testes toleram duplicação pontual por clareza. |
+| **KISS**      | Transações explícitas via `TransactionRunner.run { }` em vez de AOP/decorators; conversões simples por extension functions em vez de MapStruct; consultas com `JdbcClient` e SQL explícito.                                                                                                                                             | Simplicidade não elimina requisitos críticos: idempotência (R6), outbox e HMAC constante (R7) são obrigatórios.                           |
+| **YAGNI**     | Proibido criar subpacotes por simetria, flags sem uso, abstrações genéricas ou parâmetros para o futuro; instância única dispensa locks distribuídos ou ShedLock; zero dependências sem ADR.                                                                                                                                            | Requisitos formalmente documentados (R1–R10, ADRs) não constituem especulação.                                                            |
+| **Boy Scout** | Deixar o trecho tocado pela tarefa mais limpo do que estava: remover `!!` residuais, imports mortos, KDoc ausente ou nomes confusos, sem alterar comportamento.                                                                                                                                                                         | Restrito ao escopo direto da tarefa. Proibido refatorar módulos vizinhos sem ADR prévio.                                                  |
+| **SLAP**      | O método `execute(...)` de use cases (`RequestContract`, `ApplyProviderUpdate`) deve ser lido no mesmo nível de abstração (validar ➔ aplicar no agregado ➔ persistir), delegando particularidades a funções privadas.                                                                                                                 | Não fragmentar fluxos sequenciais coesos em microfunções sem ganho real de legibilidade.                                                  |
 
 ### 4.1 Regra de precedência dos princípios
 
@@ -285,8 +288,8 @@ O sistema organiza-se em um monólito modular estruturado no pacote raiz `br.com
 - **Camadas concêntricas:** `interfaces ➔ app ➔ domain ⮌ infra` (`infra` também implementa portas de `app`).
     - `domain`: Kotlin puro sem frameworks nem anotações Spring. Agregados (`Contract`, `Lease`), value objects e erros
       derivados de `DomainException`.
-    - `app`: casos de uso (`<Verbo><Substantivo>.kt`), queries e portas de saída (`app/ports/out/`). Totalmente
-      agnóstica de frameworks de persistência ou mensageria.
+    - `app`: casos de uso (`<Verbo><Substantivo>.kt`), queries, portas de saída (`app/ports/out/`) e portas de entrada
+      HTTP (`app/ports/in/`, ADR-019). Totalmente agnóstica de frameworks de persistência ou mensageria.
     - `interfaces`: adaptadores de entrada — controllers REST, receptores de webhook e `@KafkaListener`.
     - `infra`: adaptadores de saída — persistência com Spring Data JDBC e `JdbcClient`, integração com PandaDoc
       (`RestClient`), mensageria Kafka, storage local e jobs `@Scheduled`.
@@ -350,7 +353,7 @@ As restrições técnicas abaixo são de observância mandatória em todo o repo
 
 ## 7. Testes automatizados em resumo
 
-A suíte conta com **341 testes automatizados** cobrindo todas as camadas e regras de negócio R1 a R10:
+A suíte conta com **347 testes automatizados** cobrindo todas as camadas e regras de negócio R1 a R10:
 
 - **Convenção de sufixos e execução:**
     - `*Test`: testes rápidos sem Docker (unitários de domínio sem frameworks, use cases com fakes em memória, slices
@@ -362,7 +365,7 @@ A suíte conta com **341 testes automatizados** cobrindo todas as camadas e regr
     - O bean de assinatura é substituído automaticamente por `FixedSignatureProvider` para isolar a PandaDoc.
 - **Teste ponta a ponta (E2E):** `LocaSignE2EIT` valida o fluxo assíncrono completo integrando Testcontainers e
   WireMock.
-- **Validação arquitetural:** `HexagonalArchitectureTest` valida 13 regras estáticas do monólito hexagonal via ArchUnit.
+- **Validação arquitetural:** `HexagonalArchitectureTest` valida 16 regras estáticas do monólito hexagonal via ArchUnit.
 - **Proibições em testes:**
     - Proibido utilizar Spring ou Mockito em testes de `domain` e `app` (utilize instanciação direta e fakes em
       memória).

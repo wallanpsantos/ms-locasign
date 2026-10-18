@@ -1,9 +1,9 @@
 package br.com.locasign.lease.interfaces.web
 
+import br.com.locasign.lease.app.ports.`in`.GetLeasePort
+import br.com.locasign.lease.app.ports.`in`.RegisterLeasePort
 import br.com.locasign.lease.app.queries.CurrentContractView
-import br.com.locasign.lease.app.queries.GetLease
 import br.com.locasign.lease.app.queries.LeaseDetailView
-import br.com.locasign.lease.app.usecases.RegisterLease
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.domain.DomainException
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
@@ -32,10 +32,10 @@ import kotlin.test.Test
 class LeaseControllerTest(@Autowired private val mvc: MockMvcTester) {
 
     @MockitoBean
-    private lateinit var registerLease: RegisterLease
+    private lateinit var registerLease: RegisterLeasePort
 
     @MockitoBean
-    private lateinit var getLease: GetLease
+    private lateinit var getLease: GetLeasePort
 
     private val validRequestJson = """
         {

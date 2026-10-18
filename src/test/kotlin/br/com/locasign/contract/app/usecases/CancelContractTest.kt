@@ -2,6 +2,7 @@ package br.com.locasign.contract.app.usecases
 
 import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
+import br.com.locasign.contract.app.ports.`in`.CancelContractCommand
 import br.com.locasign.contract.domain.events.ContractCancelled
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.Contract

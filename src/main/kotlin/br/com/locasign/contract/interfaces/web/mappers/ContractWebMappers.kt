@@ -1,9 +1,9 @@
 package br.com.locasign.contract.interfaces.web.mappers
 
+import br.com.locasign.contract.app.ports.`in`.CancelContractCommand
 import br.com.locasign.contract.app.queries.ContractDetailView
 import br.com.locasign.contract.app.queries.HistoryEntryView
 import br.com.locasign.contract.app.queries.SignerView
-import br.com.locasign.contract.app.usecases.CancelContractCommand
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.interfaces.web.dto.request.CancelContractRequest
 import br.com.locasign.contract.interfaces.web.dto.response.ContractHistoryResponse

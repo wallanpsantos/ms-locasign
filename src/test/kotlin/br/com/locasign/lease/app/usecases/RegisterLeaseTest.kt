@@ -1,6 +1,7 @@
 package br.com.locasign.lease.app.usecases
 
 import br.com.locasign.lease.app.fakes.InMemoryLeaseRepository
+import br.com.locasign.lease.app.ports.`in`.RegisterLeaseCommand
 import br.com.locasign.lease.domain.models.LeaseStatus
 import br.com.locasign.shared.app.fakes.FixedBusinessClock
 import br.com.locasign.shared.app.fakes.ImmediateTransactionRunner

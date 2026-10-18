@@ -1,5 +1,7 @@
 package br.com.locasign.contract.app.usecases
 
+import br.com.locasign.contract.app.ports.`in`.ReconcileContractPort
+import br.com.locasign.contract.app.ports.`in`.ReconciledContractSummary
 import br.com.locasign.contract.app.ports.out.integration.ProviderException
 import br.com.locasign.contract.app.ports.out.integration.ProviderSignal
 import br.com.locasign.contract.app.ports.out.integration.SignatureProviderPort
@@ -8,22 +10,10 @@ import br.com.locasign.contract.domain.models.ChangeSource
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.domain.valueobjects.ProviderDocumentId
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
 import org.slf4j.LoggerFactory
-
-/**
- * Metadados mínimos do contrato após tentativa de reconciliação (ADR-018).
- *
- * **Responsabilidade:**
- * - Prover identificador da locação ([leaseId]) e status final ([status]) para resposta de comando REST sem consultas adicionais.
- */
-data class ReconciledContractSummary(
-    val leaseId: LeaseId,
-    val status: ContractStatus,
-)
 
 /**
  * Caso de uso agendado e sob demanda responsável por sincronizar ativamente o estado de contratos junto ao provedor externo (guia, §6.4).
@@ -40,7 +30,7 @@ class ReconcileContracts(
     private val clock: BusinessClock,
     private val settings: ContractSettings,
     private val transactions: TransactionRunner,
-) {
+) : ReconcileContractPort {
     private val log = LoggerFactory.getLogger(javaClass)
 
     /** Reconcilia os contratos parados há mais tempo que o limite. Devolve quantos foram consultados. */
@@ -65,7 +55,7 @@ class ReconcileContracts(
     }
 
     /** Reconciliação forçada de um contrato (operação e desenvolvimento, ADR-018). */
-    fun executeFor(contractId: ContractId): ReconciledContractSummary {
+    override fun executeFor(contractId: ContractId): ReconciledContractSummary {
         val (leaseId, status, documentId) = transactions.run {
             val contract = contracts.findById(contractId)
                 ?: throw DomainException.NotFound("Contrato", contractId.toString())

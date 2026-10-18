@@ -1,7 +1,7 @@
 package br.com.locasign.lease.interfaces.web
 
-import br.com.locasign.lease.app.queries.GetLease
-import br.com.locasign.lease.app.usecases.RegisterLease
+import br.com.locasign.lease.app.ports.`in`.GetLeasePort
+import br.com.locasign.lease.app.ports.`in`.RegisterLeasePort
 import br.com.locasign.lease.domain.models.LeaseStatus
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.lease.interfaces.web.dto.request.CreateLeaseRequest
@@ -30,8 +30,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 @RestController
 @RequestMapping("/api/v1/leases")
 class LeaseController(
-    private val registerLease: RegisterLease,
-    private val getLease: GetLease,
+    private val registerLease: RegisterLeasePort,
+    private val getLease: GetLeasePort,
 ) : LeaseApi {
 
     @PostMapping

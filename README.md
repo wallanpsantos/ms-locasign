@@ -6,7 +6,7 @@
 [![PostgreSQL 18.6](https://img.shields.io/badge/PostgreSQL-18.6-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Apache Kafka 4.3.1](https://img.shields.io/badge/Apache%20Kafka-4.3.1%20KRaft-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org)
 [![Gradle 9.8.1](https://img.shields.io/badge/Gradle-9.8.1-02303A?logo=gradle&logoColor=white)](https://gradle.org)
-[![Testes Automatizados](https://img.shields.io/badge/Testes-341%20passing-brightgreen?logo=junit5&logoColor=white)](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)
+[![Testes Automatizados](https://img.shields.io/badge/Testes-347%20passing-brightgreen?logo=junit5&logoColor=white)](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)
 
 Serviço backend de alto desempenho e resiliência que automatiza integralmente o ciclo de vida de contratos de **locação
 residencial**: cadastra a locação, orquestra a geração do contrato, envia para assinatura eletrônica na **PandaDoc**,
@@ -36,7 +36,7 @@ pós-assinatura (ativação da locação, agendamento de vistoria, emissão da p
 7. [Executando o Ambiente Local](#7-executando-o-ambiente-local)
 8. [Variáveis de Ambiente e Configuração](#8-variáveis-de-ambiente-e-configuração)
 9. [Preparando a PandaDoc (Checklist do Dia 1)](#9-preparando-a-pandadoc-checklist-do-dia-1)
-10. [Estratégia e Pirâmide de Testes (341 Testes)](#10-estratégia-e-pirâmide-de-testes-341-testes)
+10. [Estratégia e Pirâmide de Testes (347 Testes)](#10-estratégia-e-pirâmide-de-testes-347-testes)
 11. [Estrutura do Projeto e Decisões Arquiteturais (ADRs)](#11-estrutura-do-projeto-e-decisões-arquiteturais-adrs)
 12. [Resiliência, Operação e Troubleshooting](#12-resiliência-operação-e-troubleshooting)
 
@@ -85,7 +85,7 @@ A stack técnica é estritamente fixada e controlada via Version Catalog (`gradl
 | **Automação de Build**       | Gradle `9.8.1`                  | Build determinístico, checagem de warnings (`-Werror`) e geração de `app.jar`.                                                           |
 | **Testes de Integração**     | Testcontainers `2.0.5` (`2.x`)  | Subida real de instâncias de PostgreSQL e Kafka para validação rigorosa.                                                                 |
 | **Mocking de APIs Externas** | WireMock `3.13.2` (ADR-014)     | Isolamento completo da API da PandaDoc com testes de rate limit e resiliência.                                                           |
-| **Arquitetura Estática**     | ArchUnit `1.5.1` (ADR-014)      | Validação automatizada contínua das 13 regras do monólito modular hexagonal.                                                             |
+| **Arquitetura Estática**     | ArchUnit `1.5.1` (ADR-014)      | Validação automatizada contínua das 16 regras do monólito modular hexagonal.                                                             |
 | **Containers**               | Docker / Compose v5+            | Ambientes padronizados para desenvolvimento local e pipelines de CI.                                                                     |
 
 ---
@@ -585,9 +585,9 @@ mesmo sem as credenciais da PandaDoc, permitindo testar cadastros e o fluxo loca
 
 ---
 
-## 10. Estratégia e Pirâmide de Testes (341 Testes)
+## 10. Estratégia e Pirâmide de Testes (347 Testes)
 
-A aplicação conta com uma esteira rigorosa de **341 testes automatizados com 100% de aprovação**, cobrindo todas as
+A aplicação conta com uma esteira rigorosa de **347 testes automatizados com 100% de aprovação**, cobrindo todas as
 camadas
 da arquitetura hexagonal (formalizada no [ADR-014](docs/adr/0014-estrategia-e-ferramentas-de-testes.md)):
 
@@ -644,7 +644,8 @@ src/main/kotlin/br/com/locasign/
 ```
 
 Cada módulo organiza-se rigorosamente nas camadas:
-`interfaces (web/kafka)` ➔ `app (casos de uso e portas de saída)` ➔ `domain (Kotlin puro)` ➔ `infra (adapters)`.
+`interfaces (web/kafka)` ➔ `app (casos de uso, portas de entrada HTTP e portas de saída)` ➔ `domain (Kotlin puro)` ➔
+`infra (adapters)`.
 
 ### 11.2 Registro de Decisões Arquiteturais (ADRs)
 

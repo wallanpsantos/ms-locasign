@@ -1,11 +1,11 @@
 package br.com.locasign.contract.interfaces.web
 
-import br.com.locasign.contract.app.queries.GetContract
-import br.com.locasign.contract.app.queries.GetContractHistory
-import br.com.locasign.contract.app.usecases.CancelContract
-import br.com.locasign.contract.app.usecases.ReconcileContracts
-import br.com.locasign.contract.app.usecases.RequestContract
-import br.com.locasign.contract.app.usecases.RequestContractCommand
+import br.com.locasign.contract.app.ports.`in`.CancelContractPort
+import br.com.locasign.contract.app.ports.`in`.GetContractHistoryPort
+import br.com.locasign.contract.app.ports.`in`.GetContractPort
+import br.com.locasign.contract.app.ports.`in`.ReconcileContractPort
+import br.com.locasign.contract.app.ports.`in`.RequestContractCommand
+import br.com.locasign.contract.app.ports.`in`.RequestContractPort
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.interfaces.web.dto.request.CancelContractRequest
@@ -39,11 +39,11 @@ import java.net.URI
 @RestController
 @RequestMapping("/api/v1")
 class ContractController(
-    private val requestContract: RequestContract,
-    private val getContract: GetContract,
-    private val getContractHistory: GetContractHistory,
-    private val cancelContract: CancelContract,
-    private val reconcileContracts: ReconcileContracts,
+    private val requestContract: RequestContractPort,
+    private val getContract: GetContractPort,
+    private val getContractHistory: GetContractHistoryPort,
+    private val cancelContract: CancelContractPort,
+    private val reconcileContracts: ReconcileContractPort,
     private val operatorAccess: OperatorAccessGuard,
 ) : ContractApi {
 

@@ -1,5 +1,6 @@
 package br.com.locasign.lease.app.queries
 
+import br.com.locasign.lease.app.ports.`in`.GetLeasePort
 import br.com.locasign.lease.app.ports.out.repository.LeaseQueryPort
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.domain.DomainException
@@ -11,8 +12,8 @@ import br.com.locasign.shared.domain.DomainException
  * - Orquestrar a leitura da projeção detalhada da locação através de [LeaseQueryPort].
  * - Lançar [DomainException.NotFound] caso o identificador da locação não exista no sistema.
  */
-class GetLease(private val queries: LeaseQueryPort) {
+class GetLease(private val queries: LeaseQueryPort) : GetLeasePort {
 
-    fun execute(leaseId: LeaseId): LeaseDetailView =
+    override fun execute(leaseId: LeaseId): LeaseDetailView =
         queries.findDetail(leaseId) ?: throw DomainException.NotFound("Locação", leaseId.toString())
 }

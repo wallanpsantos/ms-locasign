@@ -1,7 +1,7 @@
 package br.com.locasign.shared.interfaces.web
 
-import br.com.locasign.lease.app.queries.GetLease
-import br.com.locasign.lease.app.usecases.RegisterLease
+import br.com.locasign.lease.app.ports.`in`.GetLeasePort
+import br.com.locasign.lease.app.ports.`in`.RegisterLeasePort
 import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.lease.interfaces.web.LeaseController
 import br.com.locasign.shared.domain.DomainException
@@ -25,10 +25,10 @@ import kotlin.test.assertTrue
 class CorrelationIdFilterTest(@Autowired private val mvc: MockMvcTester) {
 
     @MockitoBean
-    private lateinit var registerLease: RegisterLease
+    private lateinit var registerLease: RegisterLeasePort
 
     @MockitoBean
-    private lateinit var getLease: GetLease
+    private lateinit var getLease: GetLeasePort
 
     private val uuidPattern = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 

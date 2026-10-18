@@ -1,5 +1,7 @@
 package br.com.locasign.contract.app.usecases
 
+import br.com.locasign.contract.app.ports.`in`.RequestContractCommand
+import br.com.locasign.contract.app.ports.`in`.RequestContractPort
 import br.com.locasign.contract.app.ports.out.lease.LeaseLookupPort
 import br.com.locasign.contract.app.ports.out.repository.ContractRepositoryPort
 import br.com.locasign.contract.domain.models.Contract
@@ -7,18 +9,9 @@ import br.com.locasign.contract.domain.models.Signer
 import br.com.locasign.contract.domain.models.SignerRole
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.domain.valueobjects.SigningOrder
-import br.com.locasign.lease.domain.valueobjects.LeaseId
 import br.com.locasign.shared.app.ports.BusinessClock
 import br.com.locasign.shared.app.ports.TransactionRunner
 import br.com.locasign.shared.domain.DomainException
-
-/**
- * Parâmetros de comando para solicitação e criação de uma nova versão de contrato para uma locação.
- *
- * **Responsabilidade:**
- * - Conter o identificador da locação ([leaseId]) para a qual o contrato será gerado.
- */
-data class RequestContractCommand(val leaseId: LeaseId)
 
 /**
  * Caso de uso responsável por iniciar a confecção de um contrato de locação em estado de rascunho (`DRAFT`).
@@ -34,9 +27,9 @@ class RequestContract(
     private val persister: ContractPersister,
     private val clock: BusinessClock,
     private val transactions: TransactionRunner,
-) {
+) : RequestContractPort {
 
-    fun execute(command: RequestContractCommand): ContractId = transactions.run {
+    override fun execute(command: RequestContractCommand): ContractId = transactions.run {
         val lease = leases.find(command.leaseId)
             ?: throw DomainException.NotFound("Locação", command.leaseId.toString())
         if (contracts.existsCompletedContract(command.leaseId)) {

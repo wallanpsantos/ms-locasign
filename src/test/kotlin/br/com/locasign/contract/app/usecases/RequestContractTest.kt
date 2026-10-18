@@ -3,6 +3,7 @@ package br.com.locasign.contract.app.usecases
 import br.com.locasign.contract.app.fakes.FakeLeaseLookup
 import br.com.locasign.contract.app.fakes.InMemoryContractRepository
 import br.com.locasign.contract.app.fakes.RecordingContractEventPublisher
+import br.com.locasign.contract.app.ports.`in`.RequestContractCommand
 import br.com.locasign.contract.domain.events.ContractRequested
 import br.com.locasign.contract.domain.models.CancelReason
 import br.com.locasign.contract.domain.models.ContractStatus

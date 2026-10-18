@@ -1,8 +1,8 @@
 package br.com.locasign.lease.interfaces.web.mappers
 
+import br.com.locasign.lease.app.ports.`in`.RegisterLeaseCommand
 import br.com.locasign.lease.app.queries.CurrentContractView
 import br.com.locasign.lease.app.queries.LeaseDetailView
-import br.com.locasign.lease.app.usecases.RegisterLeaseCommand
 import br.com.locasign.lease.interfaces.web.dto.request.CreateLeaseRequest
 import br.com.locasign.lease.interfaces.web.dto.response.AgencySignerResponse
 import br.com.locasign.lease.interfaces.web.dto.response.CurrentContractResponse

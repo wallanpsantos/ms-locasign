@@ -1,11 +1,11 @@
 package br.com.locasign.shared.interfaces.web
 
-import br.com.locasign.contract.app.queries.GetContract
-import br.com.locasign.contract.app.queries.GetContractHistory
-import br.com.locasign.contract.app.usecases.CancelContract
-import br.com.locasign.contract.app.usecases.ReconcileContracts
-import br.com.locasign.contract.app.usecases.ReconciledContractSummary
-import br.com.locasign.contract.app.usecases.RequestContract
+import br.com.locasign.contract.app.ports.`in`.CancelContractPort
+import br.com.locasign.contract.app.ports.`in`.GetContractHistoryPort
+import br.com.locasign.contract.app.ports.`in`.GetContractPort
+import br.com.locasign.contract.app.ports.`in`.ReconcileContractPort
+import br.com.locasign.contract.app.ports.`in`.ReconciledContractSummary
+import br.com.locasign.contract.app.ports.`in`.RequestContractPort
 import br.com.locasign.contract.domain.models.ContractStatus
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.contract.interfaces.web.ContractController
@@ -28,19 +28,19 @@ import kotlin.test.Test
 class OperatorAccessGuardTest(@Autowired private val mvc: MockMvcTester) {
 
     @MockitoBean
-    private lateinit var requestContract: RequestContract
+    private lateinit var requestContract: RequestContractPort
 
     @MockitoBean
-    private lateinit var getContract: GetContract
+    private lateinit var getContract: GetContractPort
 
     @MockitoBean
-    private lateinit var getContractHistory: GetContractHistory
+    private lateinit var getContractHistory: GetContractHistoryPort
 
     @MockitoBean
-    private lateinit var cancelContract: CancelContract
+    private lateinit var cancelContract: CancelContractPort
 
     @MockitoBean
-    private lateinit var reconcileContracts: ReconcileContracts
+    private lateinit var reconcileContracts: ReconcileContractPort
 
     private fun reconcile(contractId: ContractId, token: String) =
         mvc.perform(post("/api/v1/contracts/$contractId/reconcile").header("X-Admin-Token", token))

@@ -1,8 +1,8 @@
 package br.com.locasign.contract.interfaces.webhook.pandadoc
 
-import br.com.locasign.contract.app.usecases.ReceiveProviderWebhook
-import br.com.locasign.contract.app.usecases.ReceiveProviderWebhookCommand
-import br.com.locasign.contract.app.usecases.WebhookReceipt
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookCommand
+import br.com.locasign.contract.app.ports.`in`.ReceiveProviderWebhookPort
+import br.com.locasign.contract.app.ports.`in`.WebhookReceipt
 import br.com.locasign.shared.infra.observability.MdcCorrelationContext
 import br.com.locasign.shared.interfaces.web.ApiExceptionHandler
 import br.com.locasign.support.any
@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
 class PandaDocWebhookControllerTest(@Autowired private val mvc: MockMvcTester) {
 
     @MockitoBean
-    private lateinit var receiveWebhook: ReceiveProviderWebhook
+    private lateinit var receiveWebhook: ReceiveProviderWebhookPort
 
     /** Sem este padrão, um corpo rejeitado por engano apareceria como 500 (mock sem retorno) em vez de 200. */
     @BeforeEach

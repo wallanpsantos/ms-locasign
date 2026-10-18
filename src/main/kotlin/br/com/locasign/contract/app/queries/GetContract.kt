@@ -1,5 +1,6 @@
 package br.com.locasign.contract.app.queries
 
+import br.com.locasign.contract.app.ports.`in`.GetContractPort
 import br.com.locasign.contract.app.ports.out.repository.ContractQueryPort
 import br.com.locasign.contract.domain.valueobjects.ContractId
 import br.com.locasign.shared.domain.DomainException
@@ -10,7 +11,7 @@ import br.com.locasign.shared.domain.DomainException
  * **Responsabilidade:**
  * - Buscar o contrato via [ContractQueryPort] e lançar [DomainException.NotFound] se não for localizado.
  */
-class GetContract(private val queries: ContractQueryPort) {
-    fun execute(id: ContractId): ContractDetailView =
+class GetContract(private val queries: ContractQueryPort) : GetContractPort {
+    override fun execute(id: ContractId): ContractDetailView =
         queries.findDetail(id) ?: throw DomainException.NotFound("Contrato", id.toString())
 }

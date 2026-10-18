@@ -1,7 +1,10 @@
 package br.com.locasign.architecture
 
+import br.com.locasign.contract.app.queries.GetContract
+import br.com.locasign.contract.app.queries.GetContractHistory
 import br.com.locasign.contract.infra.persistence.adapters.LeaseActivationAdapter
 import br.com.locasign.contract.infra.persistence.adapters.LeaseLookupAdapter
+import br.com.locasign.lease.app.queries.GetLease
 import com.tngtech.archunit.base.DescribedPredicate
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf
@@ -90,6 +93,16 @@ class HexagonalArchitectureTest {
             .should().dependOnClassesThat()
             .resideInAPackage("..infra..")
             .`as`("A camada de interfaces não deve depender diretamente de infra")
+
+    @ArchTest
+    val `adaptadores http nao dependem da classe concreta de entrada`: ArchRule =
+        noClasses()
+            .that().resideInAnyPackage("..interfaces.web..", "..interfaces.webhook..")
+            .should().dependOnClassesThat(
+                resideInAPackage("..app.usecases..")
+                    .or(belongToAnyOf(GetContract::class.java, GetContractHistory::class.java, GetLease::class.java)),
+            )
+            .`as`("Controller e webhook HTTP dependem de app.ports.in, não da classe concreta do caso de uso ou da query")
 
     @ArchTest
     val `camada infra nao depende de interfaces`: ArchRule =
